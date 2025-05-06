@@ -1,0 +1,29 @@
+version: "latest"
+services:
+  # nestjs-app:
+  #   image: node:20
+  #   working_dir: /Users/chenkj/codelynx/flib/
+  #   volumes:
+  #     - ./:/Users/chenkj/codelynx/flib/
+  #   environment:
+  #     NODE_ENV: prod # 根据实际情况调整环境变量
+  #   ports: # use if it is necessary to expose the container to the host machine
+  #     - "443:443"
+  #   command: npm run start:prod # 启动项目的命令
+  #   depends_on:
+  #     - mongo
+  #   restart: always
+  mongo:
+    image: mongodb/mongodb-community-server
+    # command: --setParameter maxBsonObjectSize=33554432
+    restart: always
+    environment:
+      # MONGO_INITDB_ROOT_USERNAME: root
+      # MONGO_INITDB_ROOT_PASSWORD: pass
+      MONGO_INITDB_DATABASE: flib
+    ports:
+      - "27017:27017"
+    volumes:
+      - flib:/data/db    
+volumes:
+  flib:
