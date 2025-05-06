@@ -1,8 +1,8 @@
-const MongoDB = require('../database/mongo');
-const logger = require('../utils/logger');
-const axios = require('axios');
-const api = require('../../config/api');
-const config = require('../../config/default');
+import MongoDB from '../database/mongo.js';
+import logger from '../utils/logger.js';
+import axios from 'axios';
+import api from '../config/api.js';
+import config from '../config/default.js';
 
 /**
  * 列表数据获取模块
@@ -83,7 +83,7 @@ async function fetchList() {
     }
 }
 
-module.exports = {
+export {
     fetchList,
     fetchListPage
 };

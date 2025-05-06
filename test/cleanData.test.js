@@ -1,5 +1,5 @@
-const MongoDB = require('../src/database/mongo');
-const { StockList } = require('../src/database/models/list');
+import MongoDB from '../server/database/mongo.js';
+import { StockList } from '../server/database/models/list.js';
 
 async function main() {
     try {

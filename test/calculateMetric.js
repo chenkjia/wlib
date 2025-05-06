@@ -1,6 +1,6 @@
-const MongoDB = require('../src/database/mongo');
-const logger = require('../src/utils/logger');
-const {calculateMetric} = require('../src/strategies/metric');
+import MongoDB from '../server/database/mongo.js';
+import logger from '../server/utils/logger.js';
+import { calculateMetric } from '../server/strategies/metric.js';
 
 async function runBacktest() {
     try {

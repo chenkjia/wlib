@@ -1,5 +1,5 @@
-const MongoDB = require('../src/database/mongo');
-const logger = require('../src/utils/logger');
+import MongoDB from '../server/database/mongo.js';
+import logger from '../server/utils/logger.js';
 
 async function cleanBacktestData() {
     try {

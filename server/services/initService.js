@@ -34,7 +34,7 @@ async function initStockList() {
 async function initHistoryData(stockCode, startDate) {
 }
 
-module.exports = {
+export {
     startService,
     initData,
     initStockList,

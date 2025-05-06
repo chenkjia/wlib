@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const stockListSchema = new mongoose.Schema({
     // 添加索引配置
@@ -49,6 +49,4 @@ const stockListSchema = new mongoose.Schema({
 
 const StockList = mongoose.model('StockList', stockListSchema);
 
-module.exports = {
-    StockList
-};
+export { StockList };

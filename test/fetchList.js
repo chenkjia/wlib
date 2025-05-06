@@ -1,5 +1,5 @@
-const { fetchList } = require('../src/fetchers/listFetcher');
-const MongoDB = require('../src/database/mongo');
+import { fetchList } from '../server/fetchers/listFetcher.js';
+import MongoDB from '../server/database/mongo.js';
 
 async function main() {
     try {

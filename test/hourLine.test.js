@@ -1,5 +1,5 @@
-const { fetchAllHourLines } = require('../src/fetchers/hourLineFetcher');
-const MongoDB = require('../src/database/mongo');
+import { fetchAllHourLines } from '../server/fetchers/hourLineFetcher.js';
+import MongoDB from '../server/database/mongo.js';
 
 async function main() {
     try {

@@ -1,7 +1,7 @@
-const MongoDB = require('../database/mongo');
-const logger = require('../utils/logger');
-const axios = require('axios');
-const config = require('../../config/api');
+import MongoDB from '../database/mongo.js';
+import logger from '../utils/logger.js';
+import axios from 'axios';
+import config from '../config/api.js';
 
 /**
  * 小时线数据获取模块
@@ -189,7 +189,7 @@ async function fetchAllHourLines() {
     }
 }
 
-module.exports = {
+export {
     fetchHourLine,
     fetchAllHourLines
 };

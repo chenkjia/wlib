@@ -1,7 +1,7 @@
-const mongoose = require('mongoose');
-const config = require('../../config/default');
-const logger = require('../utils/logger');
-const { StockList } = require('./models/list');
+import mongoose from 'mongoose';
+import config from '../config/default.js';
+import logger from '../utils/logger.js';
+import { StockList } from './models/list.js';
 
 /**
  * MongoDB 数据库连接和基础操作类
@@ -369,4 +369,4 @@ class MongoDB {
     }
 }
 
-module.exports = MongoDB;
+export default MongoDB;

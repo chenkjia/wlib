@@ -1,11 +1,12 @@
-module.exports = {
-    // CryptoCompare API密钥
+// CryptoCompare API configuration
+const config = {
+    // API key
     apiKey: '204cf4cbc903b811a7b03605f6ef39b938577a12207e11d9e8a87682101a76dd',
 
-    // API基础URL (removed template literals)
+    // API base URL
     baseURL: 'https://min-api.cryptocompare.com/data',
 
-    // API端点配置
+    // API endpoints
     endpoints: {
         price: '/price',          // 获取实时价格的端点
         histoday: '/v2/histoday', // 获取每日历史数据的端点
@@ -14,3 +15,5 @@ module.exports = {
         allcoins: '/all/coinlist'
     }
 };
+
+export default config;

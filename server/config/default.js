@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   stocks: ['BTC','ETH','SUSHI','AAVE','UNI','SFL','X2Y2','ABT','SUI','NPC','SAND'],
   // MongoDB配置
   mongodb: {
