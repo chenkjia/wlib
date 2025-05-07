@@ -7,13 +7,17 @@ import logger from '../utils/logger.js';
  */
 export default defineEventHandler(async () => {
   try {
+    await MongoDB.connect();
     const stocks = await MongoDB.getList();
+    if (!stocks || !Array.isArray(stocks)) {
+      throw new Error('获取的股票数据格式不正确');
+    }
     return stocks;
   } catch (error) {
-    logger.error('获取股票列表失败:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
     throw createError({
       statusCode: 500,
-      message: '获取股票列表失败'
+      message: `获取股票列表失败: ${errorMessage}`
     });
   }
 });

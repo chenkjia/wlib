@@ -30,6 +30,8 @@ class MongoDB {
             const list = await StockList.find({}, {
                 dayLine: 0,
                 dayMetric: 0,
+                hourLine: 0,
+                hourMetric: 0,
                 signal: 0
             });
             return list;
