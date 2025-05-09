@@ -6,7 +6,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: true,
   modules: [
-    '@nuxt/ui'
+    '@nuxt/ui',
+    'nuxt-tradingview'
   ],
   css: ['~/app/assets/css/main.css'],
   colorMode: {

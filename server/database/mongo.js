@@ -28,11 +28,8 @@ class MongoDB {
     static async getList() {
         try {
             const list = await StockList.find({}, {
-                dayLine: 0,
-                dayMetric: 0,
-                hourLine: 0,
-                hourMetric: 0,
-                signal: 0
+                code: 1,
+                name: 1
             });
             return list;
         } catch (error) {
@@ -90,12 +87,13 @@ class MongoDB {
      * @returns {Promise<Array>} 日线数据
      */
     static async getDayLine(code, startDate = null, endDate = null) {
+        console.log('code')
+        console.log(code)
         try {
-            const stock = await StockList.findOne({ code });
+            const stock = await StockList.findOne({ code }, { dayLine: 1, _id: 0 });
             if (!stock) {
                 throw new Error(`股票代码 ${code} 不存在`);
             }
-            
             if (startDate && endDate) {
                 return stock.dayLine.filter(day => 
                     day.date >= startDate && day.date <= endDate

@@ -1,6 +1,6 @@
 import MongoDB from '../server/database/mongo.js';
 import logger from '../server/utils/logger.js';
-import { calculateMetric } from '../server/strategies/metric.js';
+import { calculateMetric } from '../server/strategies/calculate.js';
 
 async function runBacktest() {
     try {
