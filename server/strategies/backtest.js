@@ -3,7 +3,7 @@
  */
 import MongoDB from '../database/mongo.js';
 import { calculateSignal } from './calculate.js';
-
+import logger from '../utils/logger.js';
 class BacktestExecutor {
   /**
    * 执行单个标的回测
