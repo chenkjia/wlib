@@ -20,12 +20,12 @@ const stockListSchema = new mongoose.Schema({
     }],
     hourLine: [{
         time: Date,
-        // open: Number,
-        // high: Number,
-        // low: Number,
+        open: Number,
+        high: Number,
+        low: Number,
         close: Number,
         volume: Number,
-        // amount: Number
+        amount: Number
     }],
 
 });
