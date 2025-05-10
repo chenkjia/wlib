@@ -200,24 +200,6 @@ class MongoDB {
     }
 
     /**
-     * 清空技术指标数据
-     * @param {string} code - 股票代码
-     * @returns {Promise} 清空结果
-     */
-    static async clearMetric(code) {
-        try {
-            const result = await StockList.updateOne(
-                { code },
-                { $set: { dayMetric: [] } }
-            );
-            return result;
-        } catch (error) {
-            logger.error('清空技术指标数据失败:', error);
-            throw error;
-        }
-    }
-
-    /**
      * 清空交易信号数据
      * @param {string} code - 股票代码
      * @returns {Promise} 清空结果

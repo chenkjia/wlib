@@ -14,13 +14,10 @@ class BacktestExecutor {
     try {
       // 获取日线数据
       const dayLine = await MongoDB.getDayLine(symbol);
-      // 清理交易数据
-      await MongoDB.clearSignal(symbol);
       // 计算交易数据
       const { signal } = calculateSignal(dayLine)
       // 保存交易数据
-      const result = await MongoDB.saveSignal(symbol, signal);
-      console.log(result)
+      await MongoDB.saveSignal(symbol, signal);
 
       return {
         symbol,
@@ -51,7 +48,23 @@ class BacktestExecutor {
    * @returns {Promise<Object[]>} 回测结果列表
    */
   async backtestAll(strategy) {
-    // TODO: 实现所有标的回测逻辑
+    await MongoDB.clearSignal();
+        
+    // 获取股票列表
+    const stockList = await MongoDB.getList();
+    
+    // 对每个股票执行回测策略
+    for (const stock of stockList) {
+        logger.info(`开始对 ${stock.code} 执行回测策略...`);
+        
+        // 使用BacktestExecutor执行单个股票回测
+        const result = await this.backtestSingle(stock.code);
+        if (result.success) {
+            logger.info(`${stock.code} ${result.message}`);
+        } else {
+            logger.error(`${stock.code} 回测失败: ${result.message}`);
+        }
+    }
   }
 }
 
