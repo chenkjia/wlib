@@ -222,9 +222,9 @@ class MongoDB {
      * @param {string} code - 股票代码
      * @returns {Promise} 清空结果
      */
-    static async clearSignal(code) {
+    static async clearSignal() {
         try {
-            const result = await Signal.deleteMany({ stockCode: code });
+            const result = await Signal.deleteMany();
             return result;
         } catch (error) {
             logger.error('清空交易信号数据失败:', error);

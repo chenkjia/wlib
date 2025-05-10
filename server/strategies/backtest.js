@@ -19,7 +19,8 @@ class BacktestExecutor {
       // 计算交易数据
       const { signal } = calculateSignal(dayLine)
       // 保存交易数据
-      await MongoDB.saveSignal(symbol, signal);
+      const result = await MongoDB.saveSignal(symbol, signal);
+      console.log(result)
 
       return {
         symbol,
