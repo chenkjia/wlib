@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { h } from 'vue'
+import SignalDetail from './components/SignalDetail.vue'
 const UButton = resolveComponent('UButton')
 
 function getHeader(column, label) {
@@ -45,7 +46,7 @@ const sorting = ref([{
 const columns = [
   { 
     accessorKey: 'stockCode', 
-    header: ({ column }) => getHeader(column, '股票代码')
+    header: ({ column }) => getHeader(column, '股票')
   },
   { 
     accessorKey: 'buyTime', 
@@ -62,6 +63,18 @@ const columns = [
         class: profit >= 0 ? 'text-green-500' : 'text-red-500'
       }, `${profit.toFixed(2)}%`)
     }
+  },
+  {
+    id: 'actions',
+    header: '',
+    cell: ({ row }) => h(UButton, {
+      color: 'primary',
+      variant: 'soft',
+      icon: 'i-lucide-info',
+      onClick: () => {
+        selectedSignal.value = row.original
+      }
+    }, () => '')
   }
 ]
 
@@ -95,11 +108,6 @@ async function fetchSignals() {
 function handleSearch() {
   page.value = 1
   fetchSignals()
-}
-
-function handleRowClick(row) {
-    console.log('row', row)
-  selectedSignal.value = row.original
 }
 
 onMounted(() => {
@@ -140,8 +148,6 @@ watch([page, sorting], () => {
               :columns="columns"
               v-model:sorting="sorting"
               hover
-              @row-click="handleRowClick"
-              :selected="selectedSignal ? [selectedSignal] : []"
               class="min-h-full"
             />
             <div class="sticky bottom-0 py-2 flex justify-end border-t px-4 bg-white">
@@ -159,39 +165,8 @@ watch([page, sorting], () => {
         </div>
       </div>
 
-      <div class="w-3/5 overflow-auto">
-        <div v-if="selectedSignal" class="min-h-full p-8">
-          <div class="max-w-3xl mx-auto space-y-8">
-            <div class="flex items-center justify-between border-b pb-4">
-              <h2 class="text-2xl font-semibold">交易信号详情</h2>
-              <div class="text-lg font-medium" :class="selectedSignal.profit >= 0 ? 'text-green-500' : 'text-red-500'">
-                盈亏：{{ selectedSignal.profit?.toFixed(2) }}%
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-8">
-              <div class="p-6 bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <div class="text-sm text-gray-500 mb-2">股票代码</div>
-                <div class="text-xl font-medium">{{ selectedSignal.stockCode }}</div>
-              </div>
-              <div class="p-6 bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <div class="text-sm text-gray-500 mb-2">买入时间</div>
-                <div class="text-xl font-medium">{{ new Date(selectedSignal.buyTime).toLocaleString() }}</div>
-              </div>
-              <div class="p-6 bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <div class="text-sm text-gray-500 mb-2">买入价格</div>
-                <div class="text-xl font-medium">{{ selectedSignal.buyPrice?.toFixed(2) }}</div>
-              </div>
-              <div class="p-6 bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <div class="text-sm text-gray-500 mb-2">卖出时间</div>
-                <div class="text-xl font-medium">{{ selectedSignal.sellTime ? new Date(selectedSignal.sellTime).toLocaleString() : '-' }}</div>
-              </div>
-              <div class="p-6 bg-gray-50 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                <div class="text-sm text-gray-500 mb-2">卖出价格</div>
-                <div class="text-xl font-medium">{{ selectedSignal.sellPrice?.toFixed(2) || '-' }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="w-3/4 overflow-auto">
+        <SignalDetail v-if="selectedSignal" :signal="selectedSignal" />
         <div v-else class="h-full flex items-center justify-center text-gray-500 bg-gray-50">
           <div class="text-center space-y-4">
             <div class="text-5xl mb-2 animate-bounce">👈</div>

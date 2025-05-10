@@ -83,11 +83,11 @@ class MongoDB {
     /**
      * 获取日线数据
      * @param {string} code - 股票代码
-     * @param {string} startDate - 开始日期
-     * @param {string} endDate - 结束日期
+     * @param {Date} startTime - 开始时间
+     * @param {Date} endTime - 结束时间
      * @returns {Promise<Array>} 日线数据
      */
-    static async getDayLine(code, startDate = null, endDate = null) {
+    static async getDayLine(code, startTime = null, endTime = null) {
         try {
             const stock = await StockList.findOne({ code }, { dayLine: 1, _id: 0 });
             if (!stock) {
@@ -96,9 +96,9 @@ class MongoDB {
             if (!stock.dayLine) {
                 return [];
             }
-            if (startDate && endDate) {
+            if (startTime && endTime) {
                 return stock.dayLine.filter(day => 
-                    day.date >= startDate && day.date <= endDate
+                    day.time >= startTime && day.time <= endTime
                 );
             }
             
@@ -112,20 +112,20 @@ class MongoDB {
     /**
      * 获取技术指标数据
      * @param {string} code - 股票代码
-     * @param {string} startDate - 开始日期
-     * @param {string} endDate - 结束日期
+     * @param {string} startTime - 开始日期
+     * @param {string} endTime - 结束日期
      * @returns {Promise<Array>} 指标数据
      */
-    static async getMetric(code, startDate = null, endDate = null) {
+    static async getMetric(code, startTime = null, endTime = null) {
         try {
             const stock = await StockList.findOne({ code });
             if (!stock) {
                 throw new Error(`股票代码 ${code} 不存在`);
             }
             
-            if (startDate && endDate) {
+            if (startTime && endTime) {
                 return stock.dayMetric.filter(metric =>
-                    metric.date >= startDate && metric.date <= endDate
+                    metric.date >= startTime && metric.date <= endTime
                 );
             }
             
@@ -147,6 +147,24 @@ class MongoDB {
             return signals;
         } catch (error) {
             logger.error('获取交易信号失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 通过ID获取交易信号
+     * @param {string} id - 信号ID
+     * @returns {Promise<Object>} 交易信号数据
+     */
+    static async getSignalById(id) {
+        try {
+            const signal = await Signal.findById(id);
+            if (!signal) {
+                throw new Error(`信号ID ${id} 不存在`);
+            }
+            return signal;
+        } catch (error) {
+            logger.error('通过ID获取交易信号失败:', error);
             throw error;
         }
     }
