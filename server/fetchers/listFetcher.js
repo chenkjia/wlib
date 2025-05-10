@@ -64,14 +64,17 @@ async function fetchListPage() {
  * 获取所有加密货币列表数据
  * @returns {Promise<Array>} 完整的加密货币列表数据
  */
-async function fetchList() {
+async function fetchList(stocks = []) {
     try {
         const allData = await fetchListPage();
         
         // 保存到数据库
         if (allData.length > 0) {
-            // await MongoDB.saveList(allData);
-            await MongoDB.saveList(allData.filter(({code}) => config.stocks.includes(code)));
+            if(stocks.length > 0) {
+                await MongoDB.saveList(allData.filter(({code}) => stocks.includes(code)));
+            } else {
+                await MongoDB.saveList(allData);
+            }
         }
         
         // 获取完整的列表
