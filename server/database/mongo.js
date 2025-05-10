@@ -110,53 +110,11 @@ class MongoDB {
     }
 
     /**
-     * 获取技术指标数据
-     * @param {string} code - 股票代码
-     * @param {string} startTime - 开始日期
-     * @param {string} endTime - 结束日期
-     * @returns {Promise<Array>} 指标数据
-     */
-    static async getMetric(code, startTime = null, endTime = null) {
-        try {
-            const stock = await StockList.findOne({ code });
-            if (!stock) {
-                throw new Error(`股票代码 ${code} 不存在`);
-            }
-            
-            if (startTime && endTime) {
-                return stock.dayMetric.filter(metric =>
-                    metric.date >= startTime && metric.date <= endTime
-                );
-            }
-            
-            return stock.dayMetric;
-        } catch (error) {
-            logger.error('获取技术指标数据失败:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 获取交易信号
-     * @param {string} code - 股票代码
-     * @returns {Promise<Array>} 交易信号数据
-     */
-    static async getSignal(code) {
-        try {
-            const signals = await Signal.find({ stockCode: code }).sort({ buyTime: -1 });
-            return signals;
-        } catch (error) {
-            logger.error('获取交易信号失败:', error);
-            throw error;
-        }
-    }
-
-    /**
      * 通过ID获取交易信号
      * @param {string} id - 信号ID
      * @returns {Promise<Object>} 交易信号数据
      */
-    static async getSignalById(id) {
+    static async getSignal(id) {
         try {
             const signal = await Signal.findById(id);
             if (!signal) {
@@ -199,25 +157,6 @@ class MongoDB {
             return result;
         } catch (error) {
             logger.error('保存日线数据失败:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * 保存技术指标数据
-     * @param {string} code - 股票代码
-     * @param {Array} data - 指标数据
-     * @returns {Promise} 保存结果
-     */
-    static async saveMetric(code, data) {
-        try {
-            const result = await StockList.updateOne(
-                { code },
-                { $push: { dayMetric: { $each: data } } }
-            );
-            return result;
-        } catch (error) {
-            logger.error('保存技术指标数据失败:', error);
             throw error;
         }
     }

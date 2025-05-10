@@ -121,6 +121,7 @@ async function initChart() {
     }
     
     const data = splitData(rawData)
+    console.log('处理后的数据:', data.categoryData.length, '条记录')
     
     // 计算MA数据
     const ma7 = calculateMA(7, data.values)
@@ -130,32 +131,55 @@ async function initChart() {
     // 标记买入和卖出点
     const markPoints = []
     const buyDateStr = formatDate(props.signal.buyTime)
+    console.log('买入日期:', buyDateStr, props.signal.buyTime)
     
     const buyIndex = data.categoryData.findIndex(date => date === buyDateStr)
+    console.log('买入点索引:', buyIndex, '总数据点:', data.categoryData.length)
     
     if (buyIndex !== -1) {
       markPoints.push({
         name: '买入',
         coord: [buyIndex, data.values[buyIndex][1]],
+        value: '买入',
         itemStyle: {
           color: '#2196F3'
         },
-        symbolSize: 15
+        symbol: 'pin',
+        symbolSize: 50,
+        label: {
+          show: true,
+          position: 'inside',
+          formatter: '买入',
+          fontSize: 12,
+          color: '#fff'
+        }
       })
     }
 
     if (props.signal.sellTime) {
       const sellDateStr = formatDate(props.signal.sellTime)
+      console.log('卖出日期:', sellDateStr, props.signal.sellTime)
+      
       const sellIndex = data.categoryData.findIndex(date => date === sellDateStr)
+      console.log('卖出点索引:', sellIndex)
       
       if (sellIndex !== -1) {
         markPoints.push({
           name: '卖出',
           coord: [sellIndex, data.values[sellIndex][1]],
+          value: '卖出',
           itemStyle: {
             color: props.signal.profit >= 0 ? upColor : downColor
           },
-          symbolSize: 15
+          symbol: 'pin',
+          symbolSize: 50,
+          label: {
+            show: true,
+            position: 'inside',
+            formatter: '卖出',
+            fontSize: 12,
+            color: '#fff'
+          }
         })
       }
     }
@@ -320,7 +344,21 @@ async function initChart() {
           type: 'candlestick',
           data: data.values,
           markPoint: {
-            data: markPoints
+            data: markPoints,
+            symbolSize: 30,
+            label: {
+              show: true,
+              position: 'top',
+              fontSize: 12
+            },
+            emphasis: {
+              scale: true,
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            z: 10
           },
           itemStyle: {
             color: upColor,
@@ -335,7 +373,8 @@ async function initChart() {
           data: ma7,
           smooth: true,
           lineStyle: {
-            opacity: 0.5
+            opacity: 0.5,
+            width: 1.5
           }
         },
         {
@@ -344,7 +383,8 @@ async function initChart() {
           data: ma50,
           smooth: true,
           lineStyle: {
-            opacity: 0.5
+            opacity: 0.5,
+            width: 1.5
           }
         },
         {
@@ -353,7 +393,8 @@ async function initChart() {
           data: ma100,
           smooth: true,
           lineStyle: {
-            opacity: 0.5
+            opacity: 0.5,
+            width: 1.5
           }
         },
         {
@@ -381,8 +422,8 @@ async function initChart() {
       const startIdx = Math.max(0, buyIndex - 20)
       const endIdx = sellIndex !== -1 ? Math.min(totalDays - 1, sellIndex + 20) : Math.min(totalDays - 1, buyIndex + 40)
       
-      const startPercent = (startIdx / totalDays) * 100
-      const endPercent = (endIdx / totalDays) * 100
+      const startPercent = Math.max(0, Math.min(100, (startIdx / totalDays) * 100))
+      const endPercent = Math.max(0, Math.min(100, (endIdx / totalDays) * 100))
       
       option.dataZoom[0].start = startPercent
       option.dataZoom[0].end = endPercent

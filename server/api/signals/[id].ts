@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     await MongoDB.connect();
-    const signal = await MongoDB.getSignalById(id);
+    const signal = await MongoDB.getSignal(id);
     return signal;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : '未知错误';

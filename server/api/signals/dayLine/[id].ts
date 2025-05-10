@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     await MongoDB.connect();
     
     // 1. 获取交易信号
-    const signal = await MongoDB.getSignalById(id) as Signal;
+    const signal = await MongoDB.getSignal(id) as Signal;
     
     // 2. 计算日期范围
     const buyDate = new Date(signal.buyTime);
