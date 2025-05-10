@@ -59,7 +59,7 @@ function transformDayLineData(rawData) {
     return rawData
         .filter(item => item.high !== 0 && item.low !== 0 )
         .map(item => ({
-        date: new Date(item.time * 1000).toISOString().split('T')[0],
+        time: new Date(item.time * 1000),
         open: item.open,
         high: item.high,
         low: item.low,
@@ -97,9 +97,10 @@ async function fetchDayLine(stockCode) {
  * @returns {boolean} 是否需要更新
  */
 async function needsUpdate(stockCode) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const lastDayLine = await MongoDB.getLastDayLine(stockCode);
-    return !lastDayLine || lastDayLine.date !== today;
+    return !lastDayLine || lastDayLine.time < today;
 }
 
 /**

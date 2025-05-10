@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import config from '../config/default.js';
 import logger from '../utils/logger.js';
 import { StockList } from './models/list.js';
+import { Signal } from './models/signal.js';
 
 /**
  * MongoDB 数据库连接和基础操作类
@@ -87,12 +88,13 @@ class MongoDB {
      * @returns {Promise<Array>} 日线数据
      */
     static async getDayLine(code, startDate = null, endDate = null) {
-        console.log('code')
-        console.log(code)
         try {
             const stock = await StockList.findOne({ code }, { dayLine: 1, _id: 0 });
             if (!stock) {
                 throw new Error(`股票代码 ${code} 不存在`);
+            }
+            if (!stock.dayLine) {
+                return [];
             }
             if (startDate && endDate) {
                 return stock.dayLine.filter(day => 
@@ -141,12 +143,8 @@ class MongoDB {
      */
     static async getSignal(code) {
         try {
-            const stock = await StockList.findOne({ code });
-            if (!stock) {
-                throw new Error(`股票代码 ${code} 不存在`);
-            }
-            
-            return stock.signal;
+            const signals = await Signal.find({ stockCode: code }).sort({ buyTime: -1 });
+            return signals;
         } catch (error) {
             logger.error('获取交易信号失败:', error);
             throw error;
@@ -214,10 +212,11 @@ class MongoDB {
      */
     static async saveSignal(code, data) {
         try {
-            const result = await StockList.updateOne(
-                { code },
-                { $push: { signal: { $each: data } } }
-            );
+            const signalData = data.map(signal => ({
+                ...signal,
+                stockCode: code
+            }));
+            const result = await Signal.insertMany(signalData);
             return result;
         } catch (error) {
             logger.error('保存交易信号失败:', error);
@@ -268,10 +267,7 @@ class MongoDB {
      */
     static async clearSignal(code) {
         try {
-            const result = await StockList.updateOne(
-                { code },
-                { $set: { signal: [] } }
-            );
+            const result = await Signal.deleteMany({ stockCode: code });
             return result;
         } catch (error) {
             logger.error('清空交易信号数据失败:', error);

@@ -3,14 +3,14 @@ import mongoose from 'mongoose';
 const stockListSchema = new mongoose.Schema({
     // 添加索引配置
     code: { type: String, required: true, unique: true, index: true },
-    'dayLine.date': { type: String, index: true },
+    'dayLine.time': { type: String, index: true },
     'hourLine.time': { type: String, index: true },
     
     
     name: { type: String, required: true },
     market: { type: String, required: true },
     dayLine: [{
-        date: String,
+        time: Date,
         open: Number,
         high: Number,
         low: Number,
@@ -19,7 +19,7 @@ const stockListSchema = new mongoose.Schema({
         amount: Number
     }],
     hourLine: [{
-        time: String,
+        time: Date,
         // open: Number,
         // high: Number,
         // low: Number,
@@ -27,24 +27,7 @@ const stockListSchema = new mongoose.Schema({
         volume: Number,
         // amount: Number
     }],
-    dayMetric: [{
-        date: String,
-        ma: Object,
-        macd: Object,
-        kdj: Object,
-        rsi: Object
-    }],
-    signal: [{
-        buyTime: String,
-        buyPrice: Number,
-        buyVolume: Number,
-        buyAmount: Number,
-        sellTime: String,
-        sellPrice: Number,
-        sellVolume: Number,
-        sellAmount: Number,
-        profit: Number
-    }]
+
 });
 
 const StockList = mongoose.model('StockList', stockListSchema);

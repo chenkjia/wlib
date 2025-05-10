@@ -1,6 +1,6 @@
 import MongoDB from '../server/database/mongo.js';
 import logger from '../server/utils/logger.js';
-import { calculateMetric } from '../server/strategies/calculate.js';
+import { calculateMetric, calculateSignal } from '../server/strategies/calculate.js';
 
 async function runBacktest() {
     try {
@@ -9,8 +9,8 @@ async function runBacktest() {
         
         // 获取股票列表
         const dayLine = await MongoDB.getDayLine('ETH');
-        
-        console.log(calculateMetric(dayLine).length)
+        const {signal} = calculateSignal(dayLine);
+        console.log(signal);
         
         logger.info('所有股票回测完成');
     } catch (error) {

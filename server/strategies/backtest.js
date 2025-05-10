@@ -1,8 +1,8 @@
 /**
  * 回测执行模块
  */
-const MongoDB = require('../database/mongo');
-const { calculateMetric } = require('./metric');
+import MongoDB from '../database/mongo.js';
+import { calculateSignal } from './calculate.js';
 
 class BacktestExecutor {
   /**
@@ -14,14 +14,12 @@ class BacktestExecutor {
     try {
       // 获取日线数据
       const dayLine = await MongoDB.getDayLine(symbol);
-      // 清理指标数据
-      await MongoDB.clearMetric(symbol);
-
-      // 计算技术指标
-      const metrics = calculateMetric(dayLine);
-
-      // 保存指标数据
-      await MongoDB.saveMetric(symbol, metrics);
+      // 清理交易数据
+      await MongoDB.clearSignal(symbol);
+      // 计算交易数据
+      const { signal } = calculateSignal(dayLine)
+      // 保存交易数据
+      await MongoDB.saveSignal(symbol, signal);
 
       return {
         symbol,
@@ -56,4 +54,4 @@ class BacktestExecutor {
   }
 }
 
-module.exports = BacktestExecutor;
+export default BacktestExecutor;

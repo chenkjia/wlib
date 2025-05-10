@@ -14,8 +14,7 @@ async function cleanBacktestData() {
             logger.info(`开始清理 ${stock.code} 的回测数据...`);
             
             // 清空指标数据
-            await MongoDB.updateDayMetrics(stock.code, []);
-            await MongoDB.updateHourMetrics(stock.code, []);
+            await MongoDB.clearMetric(stock.code, []);
             
             // 清空信号数据
             await MongoDB.updateSignals(stock.code, []);
