@@ -24,7 +24,7 @@ async function fetchHourLineFromAPI(stockCode) {
         // 如果没有小时线数据，则获取第一条日线数据作为起始时间点
         const firstDayLine = await MongoDB.getFirstDayLine(stockCode);
         if (firstDayLine) {
-            startTime = Math.floor(new Date(firstDayLine.date).getTime() / 1000);
+            startTime = Math.floor(new Date(firstDayLine.time).getTime() / 1000);
         }
     }
 
