@@ -23,15 +23,19 @@ async function fetchDayLineFromAPI(stockCode) {
         aggregate: 1,       // 不进行数据聚合
         e: 'CCCAGG'        // 使用综合数据
     };
-
     if (!lastDayLine) {
         params.allData = true;  // 如果没有历史数据，获取全部数据
     } else {
         // 计算从最后一条数据到今天的天数作为limit
-        const lastDate = new Date(lastDayLine.date);
-        const today = new Date();
+        let lastDate = new Date(lastDayLine.time);
+        let today = new Date();
         const diffDays = Math.ceil((today - lastDate) / (1000 * 60 * 60 * 24));
-        params.limit = diffDays + 1;  // 多获取一天以确保数据连续性
+        params.limit = diffDays - 1;  // 多获取一天以确保数据连续性
+        console.log('today');
+        console.log(today);
+        console.log(lastDate);
+        console.log(today - lastDate);
+        console.log(params);
     }
 
     const headers = {
@@ -42,7 +46,7 @@ async function fetchDayLineFromAPI(stockCode) {
     logger.info('请求参数:', params);
 
     const response = await axios.get(url, { headers, params });
-
+    console.log(response.data);
     if (!response.data || !response.data.Data || !response.data.Data.Data) {
         throw new Error('API 响应数据格式错误');
     }
@@ -78,7 +82,7 @@ async function fetchDayLine(stockCode) {
     try {
         const rawData = await fetchDayLineFromAPI(stockCode);
         const dayLines = transformDayLineData(rawData);
-
+        console.log(dayLines);
         logger.info(`成功获取 ${stockCode} 的日线数据，共 ${dayLines.length} 条记录`);
 
         // 保存到数据库

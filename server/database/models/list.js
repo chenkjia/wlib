@@ -3,8 +3,8 @@ import mongoose from 'mongoose';
 const stockListSchema = new mongoose.Schema({
     // 添加索引配置
     code: { type: String, required: true, unique: true, index: true },
-    'dayLine.time': { type: String, index: true },
-    'hourLine.time': { type: String, index: true },
+    'dayLine.time': { type: String, required: true, unique: true, index: true },
+    'hourLine.time': { type: String, required: true, unique: true, index: true },
     
     
     name: { type: String, required: true },

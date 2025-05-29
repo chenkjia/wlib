@@ -3,7 +3,11 @@ const config = {
     // API key
     // apiKey: '204cf4cbc903b811a7b03605f6ef39b938577a12207e11d9e8a87682101a76dd',
     // API key
-    apiKey: 'a79b73da505a673d3c59975172b5475f89e3f54db1e599752d8f51fa8d454e9f',
+    // apiKey: 'a79b73da505a673d3c59975172b5475f89e3f54db1e599752d8f51fa8d454e9f',
+    // API key
+    apiKey: '3c1257f2e76debab6991a8cb05a0051457ceb0b735b0ea7e3b63d8e096af823c',
+
+    
     
 
     // API base URL

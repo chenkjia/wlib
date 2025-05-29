@@ -1,0 +1,121 @@
+import logger from '../utils/logger.js';
+import { StockList } from './models/list.js';
+
+/**
+ * 日线数据数据库操作类
+ */
+class DayLineDB {
+    /**
+     * 获取单个股票的最后一条日线数据
+     * @param {string} code - 股票代码
+     * @returns {Promise<Object>} 最后一条日线数据
+     */
+    static async getLastDayLine(code) {
+        try {
+            const result = await StockList.findOne(
+                { code },
+                { dayLine: { $slice: -1 } }
+            );
+            
+            if (!result) {
+                throw new Error(`股票代码 ${code} 不存在`);
+            }
+
+            return result.dayLine[0] || null;
+        } catch (error) {
+            logger.error('获取最后一条日线数据失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取单个股票的第一条日线数据
+     * @param {string} code - 股票代码
+     * @returns {Promise<Object>} 第一条日线数据
+     */
+    static async getFirstDayLine(code) {
+        try {
+            const result = await StockList.findOne(
+                { code },
+                { dayLine: { $slice: 1 } }
+            );
+            
+            if (!result) {
+                throw new Error(`股票代码 ${code} 不存在`);
+            }
+
+            return result.dayLine[0] || null;
+        } catch (error) {
+            logger.error('获取第一条日线数据失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 获取日线数据
+     * @param {string} code - 股票代码
+     * @param {Date} startTime - 开始时间
+     * @param {Date} endTime - 结束时间
+     * @returns {Promise<Array>} 日线数据
+     */
+    static async getDayLine(code, startTime = null, endTime = null) {
+        try {
+            const stock = await StockList.findOne({ code }, { dayLine: 1, _id: 0 });
+            if (!stock) {
+                throw new Error(`股票代码 ${code} 不存在`);
+            }
+            if (!stock.dayLine) {
+                return [];
+            }
+            if (startTime && endTime) {
+                return stock.dayLine.filter(day => 
+                    day.time >= startTime && day.time <= endTime
+                );
+            }
+            
+            return stock.dayLine;
+        } catch (error) {
+            logger.error('获取日线数据失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 保存日线数据
+     * @param {string} code - 股票代码
+     * @param {Array} data - 日线数据
+     * @returns {Promise} 保存结果
+     */
+    static async saveDayLine(code, data) {
+        try {
+            const result = await StockList.updateOne(
+                { code },
+                { $push: { dayLine: { $each: data } } }
+            );
+            return result;
+        } catch (error) {
+            logger.error('保存日线数据失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 清空日线数据
+     * @param {string} code - 股票代码
+     * @returns {Promise} 清空结果
+     */
+    static async clearDayLine(code) {
+        try {
+            const result = await StockList.updateOne(
+                { code },
+                { $set: { dayLine: [] } }
+            );
+            return result;
+        } catch (error) {
+            logger.error('清空日线数据失败:', error);
+            throw error;
+        }
+    }
+}
+
+export default DayLineDB;
