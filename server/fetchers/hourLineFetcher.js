@@ -165,6 +165,7 @@ async function fetchAllHourLines() {
         logger.info(`开始获取所有加密货币的小时线数据，共 ${stockList.length} 个币种`);
 
         // 遍历每个币种
+        let index = 1;
         for (const stock of stockList) {
             try {
                 // 检查是否需要更新
@@ -172,6 +173,9 @@ async function fetchAllHourLines() {
                     logger.info(`${stock.code} 已有最新小时数据，跳过更新`);
                     continue;
                 }
+                console.log(`${index}/${stockList.length}`);
+                // 递增进度计数
+                index++;
 
                 // 更新该币种的小时线数据
                 await updateStockHourLine(stock.code);

@@ -30,12 +30,7 @@ async function fetchDayLineFromAPI(stockCode) {
         let lastDate = new Date(lastDayLine.time);
         let today = new Date();
         const diffDays = Math.ceil((today - lastDate) / (1000 * 60 * 60 * 24));
-        params.limit = diffDays - 1;  // 多获取一天以确保数据连续性
-        console.log('today');
-        console.log(today);
-        console.log(lastDate);
-        console.log(today - lastDate);
-        console.log(params);
+        params.limit = diffDays - 1; 
     }
 
     const headers = {
@@ -46,7 +41,6 @@ async function fetchDayLineFromAPI(stockCode) {
     logger.info('请求参数:', params);
 
     const response = await axios.get(url, { headers, params });
-    console.log(response.data);
     if (!response.data || !response.data.Data || !response.data.Data.Data) {
         throw new Error('API 响应数据格式错误');
     }
@@ -134,6 +128,7 @@ async function fetchAllDayLines() {
         logger.info(`开始获取所有加密货币的日线数据，共 ${stockList.length} 个币种`);
 
         // 遍历每个币种
+        let index = 1;
         for (const stock of stockList) {
             try {
                 // 检查是否需要更新
@@ -141,9 +136,14 @@ async function fetchAllDayLines() {
                     logger.info(`${stock.code} 已有今日数据，跳过更新`);
                     continue;
                 }
+                
+                console.log(`${index}/${stockList.length}`)
 
                 // 更新该币种的日线数据
                 await updateStockDayLine(stock.code);
+                
+                // 递增进度计数
+                index++;
             } catch (error) {
                 logger.error(`获取 ${stock.code} 日线数据时出错:`, error);
                 // 继续处理下一个币种

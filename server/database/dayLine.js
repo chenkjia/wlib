@@ -81,16 +81,24 @@ class DayLineDB {
     }
 
     /**
-     * 保存日线数据
+     * 保存日线数据，如果数据已存在（根据time判断）则更新，否则插入新数据
      * @param {string} code - 股票代码
      * @param {Array} data - 日线数据
      * @returns {Promise} 保存结果
      */
     static async saveDayLine(code, data) {
         try {
+            // First, remove any existing entries with matching times
+            await StockList.updateOne(
+                { code },
+                { $pull: { dayLine: { time: { $in: data.map(item => item.time) } } } }
+            );
+
+            // Then add the new data
             const result = await StockList.updateOne(
                 { code },
-                { $push: { dayLine: { $each: data } } }
+                { $push: { dayLine: { $each: data } } },
+                { upsert: true }
             );
             return result;
         } catch (error) {

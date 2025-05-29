@@ -7,8 +7,8 @@ async function main() {
         await MongoDB.connect();
         
         console.log('开始获取日线数据...');
-        // await fetchAllDayLines();
-        await fetchDayLine('DBX');
+        await fetchAllDayLines();
+        // await fetchDayLine('DOME');
         console.log('所有日线数据获取完成');
     } catch (error) {
         console.error('测试失败:', error);
