@@ -9,19 +9,25 @@ import SignalDB from './signal.js';
  */
 class MongoDB {
     static connect = MongoConnection.connect;
+
     static getList = StockListDB.getList;
     static getStock = StockListDB.getStock;
+    static saveList = StockListDB.saveList;
+
     static getLastDayLine = DayLineDB.getLastDayLine;
     static getFirstDayLine = DayLineDB.getFirstDayLine;
     static getDayLine = DayLineDB.getDayLine;
-    static getSignal = SignalDB.getSignal;
-    static saveList = StockListDB.saveList;
     static saveDayLine = DayLineDB.saveDayLine;
-    static saveSignal = SignalDB.saveSignal;
     static clearDayLine = DayLineDB.clearDayLine;
+
+    static getSignal = SignalDB.getSignal;
+    static saveSignal = SignalDB.saveSignal;
     static clearSignal = SignalDB.clearSignal;
+
     static getLastHourLine = HourLineDB.getLastHourLine;
+    static getHourLine = HourLineDB.getHourLine;
     static saveHourLine = HourLineDB.saveHourLine;
+    static clearHourLine = HourLineDB.clearHourLine;
 }
 
 export default MongoDB;
