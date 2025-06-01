@@ -1,5 +1,5 @@
 import MongoConnection from './connection.js';
-import StockListDB from './stockList.js';
+import StockDB from './stock.js';
 import DayLineDB from './dayLine.js';
 import HourLineDB from './hourLine.js';
 import TransactionDB from './transaction.js';
@@ -11,9 +11,9 @@ import SignalDB from './signal.js';
 class MongoDB {
     static connect = MongoConnection.connect;
 
-    static getList = StockListDB.getList;
-    static getStock = StockListDB.getStock;
-    static saveList = StockListDB.saveList;
+    static getList = StockDB.getList;
+    static getStock = StockDB.getStock;
+    static saveList = StockDB.saveList;
 
     static getLastDayLine = DayLineDB.getLastDayLine;
     static getFirstDayLine = DayLineDB.getFirstDayLine;

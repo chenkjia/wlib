@@ -22,7 +22,7 @@ async function initData() {
  * 初始化股票列表数据
  * @returns {Promise<void>} 股票列表初始化完成的Promise
  */
-async function initStockList() {
+async function initStock() {
 }
 
 /**
@@ -37,6 +37,6 @@ async function initHistoryData(stockCode, startDate) {
 export {
     startService,
     initData,
-    initStockList,
+    initStock,
     initHistoryData
 };

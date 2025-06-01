@@ -45,10 +45,7 @@ async function fetchListPage() {
             name: item.FullName,
             market: 'crypto',
             dayLine: [],
-            dayMetric: [],
             hourLine: [],
-            hourMetric: [],
-            signal: []
         }));
 
         logger.info(`成功获取加密货币列表数据，共 ${mappedData.length} 条记录`);
@@ -71,6 +68,9 @@ async function fetchList(stocks = []) {
         // 保存到数据库
         if (allData.length > 0) {
             if(stocks.length > 0) {
+                console.log('allData')
+                console.log(allData)
+                console.log('allData')
                 await MongoDB.saveList(allData.filter(({code}) => stocks.includes(code)));
             } else {
                 await MongoDB.saveList(allData);

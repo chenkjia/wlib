@@ -1,5 +1,5 @@
 import MongoDB from '../database/mongo.js';
-import { StockList } from '../database/models/list.js';
+import { Stock } from '../database/models/list.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -14,7 +14,7 @@ async function testCleanEmptyDayLines() {
     logger.info('测试开始：清除 dayLine 为空的股票记录...');
     
     // 查找 dayLine 为空或长度为 0 的记录
-    const emptyStocks = await StockList.find({
+    const emptyStocks = await Stock.find({
       $or: [
         { dayLine: { $exists: false } },
         { dayLine: null },
@@ -36,7 +36,7 @@ async function testCleanEmptyDayLines() {
     }
     
     // 直接执行清除操作，无需确认
-    const result = await StockList.deleteMany({
+    const result = await Stock.deleteMany({
       $or: [
         { dayLine: { $exists: false } },
         { dayLine: null },
@@ -62,4 +62,4 @@ testCleanEmptyDayLines()
   .catch((error) => {
     logger.error('测试脚本执行失败:', error);
     process.exit(1);
-  }); 
+  });

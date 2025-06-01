@@ -1,5 +1,5 @@
 import logger from '../utils/logger.js';
-import { StockList } from './models/list.js';
+import { Stock } from './models/stock.js';
 
 /**
  * 日线数据数据库操作类
@@ -12,7 +12,7 @@ class DayLineDB {
      */
     static async getLastDayLine(code) {
         try {
-            const result = await StockList.findOne(
+            const result = await Stock.findOne(
                 { code },
                 { dayLine: { $slice: -1 } }
             );
@@ -35,7 +35,7 @@ class DayLineDB {
      */
     static async getFirstDayLine(code) {
         try {
-            const result = await StockList.findOne(
+            const result = await Stock.findOne(
                 { code },
                 { dayLine: { $slice: 1 } }
             );
@@ -74,7 +74,7 @@ class DayLineDB {
                 projection['dayLine'] = 1;
             }
 
-            const stock = await StockList.findOne(query, projection);
+            const stock = await Stock.findOne(query, projection);
             if (!stock) {
                 throw new Error(`股票代码 ${code} 不存在`);
             }
@@ -95,13 +95,13 @@ class DayLineDB {
     static async saveDayLine(code, data) {
         try {
             // First, remove any existing entries with matching times
-            await StockList.updateOne(
+            await Stock.updateOne(
                 { code },
                 { $pull: { dayLine: { time: { $in: data.map(item => item.time) } } } }
             );
 
             // Then add the new data
-            const result = await StockList.updateOne(
+            const result = await Stock.updateOne(
                 { code },
                 { $push: { dayLine: { $each: data } } },
                 { upsert: true }
@@ -120,7 +120,7 @@ class DayLineDB {
      */
     static async clearDayLine(code) {
         try {
-            const result = await StockList.updateOne(
+            const result = await Stock.updateOne(
                 { code },
                 { $set: { dayLine: [] } }
             );

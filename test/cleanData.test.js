@@ -1,5 +1,5 @@
 import MongoDB from '../server/database/mongo.js';
-import { StockList } from '../server/database/models/list.js';
+import { Stock } from '../server/database/models/stock.js';
 
 async function main() {
     try {
@@ -29,7 +29,7 @@ async function main() {
         successCount = 0;
         for (const stock of stockList) {
             try {
-                await StockList.updateOne(
+                await Stock.updateOne(
                     { code: stock.code },
                     { $set: { hourLine: [] } }
                 );

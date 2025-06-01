@@ -1,12 +1,10 @@
 import mongoose from 'mongoose';
 
-const stockListSchema = new mongoose.Schema({
+const stockSchema = new mongoose.Schema({
     // 添加索引配置
     code: { type: String, required: true, unique: true, index: true },
-    'dayLine.time': { type: String, required: true, unique: true, index: true },
-    'hourLine.time': { type: String, required: true, unique: true, index: true },
-    
-    
+    'dayLine.time': { type: String, required: true, index: true },
+    'hourLine.time': { type: String, required: true, index: true },
     name: { type: String, required: true },
     market: { type: String, required: true },
     dayLine: [{
@@ -30,6 +28,6 @@ const stockListSchema = new mongoose.Schema({
 
 });
 
-const StockList = mongoose.model('StockList', stockListSchema);
+const Stock = mongoose.model('Stock', stockSchema);
 
-export { StockList };
+export { Stock };

@@ -22,7 +22,7 @@ async function updateData() {
  * 更新股票列表
  * @returns {Promise<void>} 股票列表更新完成的Promise
  */
-async function updateStockList() {
+async function updateStock() {
 }
 
 /**
@@ -53,7 +53,7 @@ async function updateSignals(stockCode) {
 module.exports = {
     startService,
     updateData,
-    updateStockList,
+    updateStock,
     updateMarketData,
     updateMetrics,
     updateSignals

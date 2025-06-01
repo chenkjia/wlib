@@ -1,5 +1,5 @@
 import logger from '../utils/logger.js';
-import { StockList } from './models/list.js';
+import { Stock } from './models/stock.js';
 
 /**
  * 小时线数据数据库操作类
@@ -12,7 +12,7 @@ class HourLineDB {
      */
     static async getLastHourLine(code) {
         try {
-            const result = await StockList.findOne(
+            const result = await Stock.findOne(
                 { code },
                 { hourLine: { $slice: -1 } }
             );
@@ -36,12 +36,12 @@ class HourLineDB {
      */
     static async saveHourLine(code, data) {
         try {
-            await StockList.updateOne(
+            await Stock.updateOne(
                 { code },
                 { $pull: { hourLine: { time: { $in: data.map(item => item.time) } } } }
             );
 
-            const result = await StockList.updateOne(
+            const result = await Stock.updateOne(
                 { code },
                 { $push: { hourLine: { $each: data } } },
                 { upsert: true }
@@ -76,7 +76,7 @@ class HourLineDB {
                 projection['hourLine'] = 1;
             }
 
-            const stock = await StockList.findOne(query, projection);
+            const stock = await Stock.findOne(query, projection);
             if (!stock) {
                 throw new Error(`股票代码 ${code} 不存在`);
             }
@@ -95,7 +95,7 @@ class HourLineDB {
      */
     static async clearHourLine(code) {
         try {
-            const result = await StockList.updateOne(
+            const result = await Stock.updateOne(
                 { code },
                 { $set: { hourLine: [] } }
             );
