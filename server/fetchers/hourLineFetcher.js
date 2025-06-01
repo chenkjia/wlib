@@ -167,15 +167,15 @@ async function fetchAllHourLines() {
         // 遍历每个币种
         let index = 1;
         for (const stock of stockList) {
+            console.log(`${index}/${stockList.length}`);
+            // 递增进度计数
+            index++;
             try {
                 // 检查是否需要更新
                 if (!await needsUpdate(stock.code)) {
                     logger.info(`${stock.code} 已有最新小时数据，跳过更新`);
                     continue;
                 }
-                console.log(`${index}/${stockList.length}`);
-                // 递增进度计数
-                index++;
 
                 // 更新该币种的小时线数据
                 await updateStockHourLine(stock.code);

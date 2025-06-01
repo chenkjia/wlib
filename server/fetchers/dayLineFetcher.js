@@ -76,7 +76,6 @@ async function fetchDayLine(stockCode) {
     try {
         const rawData = await fetchDayLineFromAPI(stockCode);
         const dayLines = transformDayLineData(rawData);
-        console.log(dayLines);
         logger.info(`成功获取 ${stockCode} 的日线数据，共 ${dayLines.length} 条记录`);
 
         // 保存到数据库
