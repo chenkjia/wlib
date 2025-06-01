@@ -9,7 +9,8 @@ async function runBacktest() {
         // 创建回测执行器实例
         const executor = new BacktestExecutor();
 
-        const result = await executor.backtestAll();
+        // await executor.backtestAll();
+        await executor.backtestSingle('DOME');
         
         
         logger.info('所有股票回测完成');

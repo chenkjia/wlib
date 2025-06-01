@@ -2,6 +2,7 @@ import MongoConnection from './connection.js';
 import StockListDB from './stockList.js';
 import DayLineDB from './dayLine.js';
 import HourLineDB from './hourLine.js';
+import TransactionDB from './transaction.js';
 import SignalDB from './signal.js';
 
 /**
@@ -19,6 +20,10 @@ class MongoDB {
     static getDayLine = DayLineDB.getDayLine;
     static saveDayLine = DayLineDB.saveDayLine;
     static clearDayLine = DayLineDB.clearDayLine;
+
+    static getTransaction = TransactionDB.getTransaction;
+    static saveTransaction = TransactionDB.saveTransaction;
+    static clearTransaction = TransactionDB.clearTransaction;
 
     static getSignal = SignalDB.getSignal;
     static saveSignal = SignalDB.saveSignal;

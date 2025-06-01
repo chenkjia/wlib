@@ -111,11 +111,8 @@ function calculateSignal (dayLine) {
       return [
         ...result,
         {
-        buyTime: dayLine[i].time,
-        buyPrice: dayLine[i].close,
-        sellTime: dayLine[i+14].time,
-        sellPrice: dayLine[i+14].close,
-        profit: (dayLine[i+14].close-dayLine[i].close)/dayLine[i].close
+        signalTime: dayLine[i].time,
+        signalPrice: dayLine[i].close
       }]
     }
     return result

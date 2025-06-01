@@ -130,20 +130,17 @@ async function fetchAllDayLines() {
         // 遍历每个币种
         let index = 1;
         for (const stock of stockList) {
+            console.log(`${index}/${stockList.length}`)
+            index++;
             try {
                 // 检查是否需要更新
                 if (!await needsUpdate(stock.code)) {
                     logger.info(`${stock.code} 已有今日数据，跳过更新`);
                     continue;
                 }
-                
-                console.log(`${index}/${stockList.length}`)
-
                 // 更新该币种的日线数据
                 await updateStockDayLine(stock.code);
-                
                 // 递增进度计数
-                index++;
             } catch (error) {
                 logger.error(`获取 ${stock.code} 日线数据时出错:`, error);
                 // 继续处理下一个币种

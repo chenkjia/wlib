@@ -14,10 +14,13 @@ class BacktestExecutor {
     try {
       // 获取日线数据
       const dayLine = await MongoDB.getDayLine(symbol);
-      // 计算交易数据
+      // 计算日线信号
       const { signal } = calculateSignal(dayLine)
-      // 保存交易数据
-      await MongoDB.saveSignal(symbol, signal);
+      // 计算交易数据
+      // const transaction = await calculateTransaction(symbol, signal)
+      
+      console.log(signal)
+      // await MongoDB.saveTransaction(symbol, signal);
 
       return {
         symbol,
