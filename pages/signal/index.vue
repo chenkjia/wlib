@@ -34,7 +34,7 @@ const error = ref('')
 const loading = ref(true)
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(10)
+const pageSize = ref(18)
 const stockCode = ref('')
 const selectedSignal = ref(null)
 
@@ -56,18 +56,6 @@ const columns = [
   { 
     accessorKey: 'signalPrice', 
     header: ({ column }) => getHeader(column, '信号价格')
-  },
-  {
-    id: 'actions',
-    header: '',
-    cell: ({ row }) => h(UButton, {
-      color: 'primary',
-      variant: 'soft',
-      icon: 'i-lucide-info',
-      onClick: () => {
-        selectedSignal.value = row.original
-      }
-    }, () => '')
   }
 ]
 
@@ -103,6 +91,21 @@ function handleSearch() {
   fetchSignals()
 }
 
+function toggleSort(id) {
+  if (sorting.value[0]?.id === id) {
+    if (!sorting.value[0].desc) {
+      // 升序→降序
+      sorting.value = [{ id, desc: true }]
+    } else {
+      // 降序→无排序
+      sorting.value = []
+    }
+  } else {
+    // 新列，升序
+    sorting.value = [{ id, desc: false }]
+  }
+}
+
 onMounted(() => {
   fetchSignals()
 })
@@ -136,13 +139,46 @@ watch([page, sorting], () => {
         <div v-if="!error" class="h-full">
           <USkeleton v-if="loading" class="h-full" />
           <template v-else>
-            <UTable
-              :data="signals"
-              :columns="columns"
-              v-model:sorting="sorting"
-              hover
-              class="min-h-full"
-            />
+            <table class="w-full text-sm">
+              <thead>
+                <tr>
+                  <th class="px-4 py-2">
+                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center">
+                      股票
+                      <span v-if="sorting[0]?.id === 'stockCode'">
+                        <span v-if="!sorting[0].desc">▲</span>
+                        <span v-else>▼</span>
+                      </span>
+                    </span>
+                  </th>
+                  <th class="px-4 py-2">
+                    <span @click="toggleSort('signalTime')" class="cursor-pointer select-none flex items-center">
+                      信号时间
+                      <span v-if="sorting[0]?.id === 'signalTime'">
+                        <span v-if="!sorting[0].desc">▲</span>
+                        <span v-else>▼</span>
+                      </span>
+                    </span>
+                  </th>
+                  <th class="px-4 py-2">
+                    <span @click="toggleSort('signalPrice')" class="cursor-pointer select-none flex items-center">
+                      信号价格
+                      <span v-if="sorting[0]?.id === 'signalPrice'">
+                        <span v-if="!sorting[0].desc">▲</span>
+                        <span v-else>▼</span>
+                      </span>
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in signals" :key="row._id" :class="[selectedSignal && selectedSignal._id === row._id ? 'bg-blue-100' : 'cursor-pointer', 'transition']" @click="selectedSignal = row">
+                  <td class="px-4 py-2">{{ row.stockCode }}</td>
+                  <td class="px-4 py-2">{{ new Date(row.signalTime).toLocaleDateString() }}</td>
+                  <td class="px-4 py-2">{{ row.signalPrice }}</td>
+                </tr>
+              </tbody>
+            </table>
             <div class="sticky bottom-0 py-2 flex justify-end border-t px-4 bg-white">
               <UPagination
                 v-model:page="page"
@@ -174,3 +210,9 @@ watch([page, sorting], () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.bg-blue-100 {
+  background-color: #dbeafe !important;
+}
+</style>
