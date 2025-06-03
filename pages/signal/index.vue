@@ -39,7 +39,7 @@ const stockCode = ref('')
 const selectedSignal = ref(null)
 
 const sorting = ref([{
-  id: 'buyTime',
+  id: 'signalTime',
   desc: false
 }])
 
@@ -49,20 +49,13 @@ const columns = [
     header: ({ column }) => getHeader(column, '股票')
   },
   { 
-    accessorKey: 'buyTime', 
-    header: ({ column }) => getHeader(column, '买入时间'),
-    cell: ({ row }) => new Date(row.getValue('buyTime')).toLocaleString()
+    accessorKey: 'signalTime', 
+    header: ({ column }) => getHeader(column, '信号时间'),
+    cell: ({ row }) => new Date(row.getValue('signalTime')).toLocaleDateString()
   },
   { 
-    accessorKey: 'profit', 
-    header: ({ column }) => getHeader(column, '盈利'),
-    cell: ({ row }) => {
-      const profit = row.getValue('profit')
-      if (profit === undefined || profit === null) return '-'
-      return h('span', {
-        class: profit >= 0 ? 'text-green-500' : 'text-red-500'
-      }, `${profit.toFixed(2)}%`)
-    }
+    accessorKey: 'signalPrice', 
+    header: ({ column }) => getHeader(column, '信号价格')
   },
   {
     id: 'actions',
@@ -166,7 +159,11 @@ watch([page, sorting], () => {
       </div>
 
       <div class="w-3/4 overflow-auto">
-        <SignalDetail v-if="selectedSignal" :signal="selectedSignal" />
+        <SignalDetail 
+          v-if="selectedSignal" 
+          :signal="selectedSignal"
+          class="h-full"
+        />
         <div v-else class="h-full flex items-center justify-center text-gray-500 bg-gray-50">
           <div class="text-center space-y-4">
             <div class="text-5xl mb-2 animate-bounce">👈</div>

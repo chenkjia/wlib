@@ -1,5 +1,7 @@
 <template>
-  <UApp>
-    <NuxtPage />
-  </UApp>
+  <NuxtLayout>
+    <div class="min-h-screen">
+      <NuxtPage />
+    </div>
+  </NuxtLayout>
 </template>

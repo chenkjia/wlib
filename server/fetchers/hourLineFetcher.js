@@ -75,7 +75,7 @@ async function fetchHourLineFromAPI(stockCode) {
             toTs = data[0].time;
 
             // 添加延迟，避免请求过于频繁
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 

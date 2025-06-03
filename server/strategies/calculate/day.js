@@ -1,58 +1,7 @@
-/**
- * 技术指标计算模块
- * 负责计算各类技术指标
- */
+import {
+    calculateMA
+} from './common.js';
 
-/**
- * 计算移动平均线
- * @param {Array<Object>} data - 历史行情数据
- * @param {number} period - 计算周期
- * @returns {Array<number>} 移动平均线数据
- */
-function calculateMA(data, period) {
-  if (!Array.isArray(data) || data.length === 0) {
-    return [];
-  }
-
-  const result = [];
-  for (let i = 0; i < data.length; i++) {
-    if (i >= period - 1) {
-      const sum = data.slice(i - period + 1, i + 1)
-        .reduce((acc, cur) => acc + cur.close, 0);
-      result.push(sum / period);
-    } else {
-      result.push(null);
-    }
-  }
-
-  return result;
-}
-
-  
-function calculateMetric(dayLine) {
-  if (!Array.isArray(dayLine) || dayLine.length === 0) {
-      return [];
-  }
-
-  const maShort = calculateMA(dayLine, 7);
-  const maMiddle = calculateMA(dayLine, 50);
-  const maLong = calculateMA(dayLine, 100);
-  const position = calculatePosition({maShort, maMiddle, maLong})
-  const sign1 = calculateSign1({position})
-  const sign2 = calculateSign2({maShort, maMiddle, maLong})
-
-  return dayLine.map((item, index) => ({
-      date: item.date,
-      metric: {
-        maShort: maShort[index],
-        maMiddle: maMiddle[index],
-        maLong: maLong[index],
-        position: position[index],
-        sign1: sign1[index],
-        sign2: sign2[index]
-      }
-  }));
-}
 /**
  * 计算持仓天数
  * @param {Object} params - 输入参数对象
@@ -104,10 +53,35 @@ function calculatePosition({maShort, maMiddle, maLong}) {
     }
   });
 }
-function calculateSignal (dayLine) {
-  const metrics = calculateMetric(dayLine)
+
+function calculateDayMetric(dayLine) {
+  if (!Array.isArray(dayLine) || dayLine.length === 0) {
+      return [];
+  }
+
+  const dayClose = dayLine.map(item => item.close);
+  const maShort = calculateMA(dayClose, 7);
+  const maMiddle = calculateMA(dayClose, 50);
+  const maLong = calculateMA(dayClose, 100);
+  const position = calculatePosition({maShort, maMiddle, maLong})
+  const sign1 = calculateSign1({position})
+  const sign2 = calculateSign2({maShort, maMiddle, maLong})
+
+  return dayLine.map((item, index) => ({
+      date: item.date,
+      maShort: maShort[index],
+      maMiddle: maMiddle[index],
+      maLong: maLong[index],
+      position: position[index],
+      sign1: sign1[index],
+      sign2: sign2[index]
+  }));
+}
+
+function calculateDaySignal (dayLine) {
+  const metrics = calculateDayMetric(dayLine)
   const signal = metrics.reduce((result, item, i) => {
-    if(i>0 && item.metric.sign1 >=0 && metrics[i-1].metric.sign1 < -50 && metrics[i-1].metric.sign2 < 0.2) {
+    if(i>0 && item.sign1 >=0 && metrics[i-1].sign1 < -50 && metrics[i-1].sign2 < 0.2) {
       return [
         ...result,
         {
@@ -125,7 +99,6 @@ function calculateSignal (dayLine) {
 };
 
 export {
-    calculateMA,
-    calculateMetric,
-    calculateSignal
+    calculateDayMetric,
+    calculateDaySignal
 };
