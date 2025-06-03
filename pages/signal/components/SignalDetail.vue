@@ -33,8 +33,14 @@ const signalTime = computed(() => new Date(props.signal.signalTime).toLocaleStri
 
 watch(() => props.signal, async (newSignal) => {
   if (newSignal) {
-    // TODO: 发起后端请求获取详细信息
-    console.log('信号数据变化，准备请求详情：', newSignal)
+    // 计算startTime和endTime
+    const signalDate = new Date(newSignal.signalTime)
+    const startTime = new Date(signalDate.getTime() - 100 * 24 * 60 * 60 * 1000)
+    const endTime = new Date(signalDate.getTime() + 200 * 24 * 60 * 60 * 1000)
+    // 请求小时线数据
+    const res = await fetch(`/api/hourLine?code=${newSignal.stockCode}&startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`)
+    const hourLine = await res.json()
+    console.log('小时线数据：', hourLine)
   }
 }, { immediate: true })
 </script>
