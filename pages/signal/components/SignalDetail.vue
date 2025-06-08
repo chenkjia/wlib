@@ -7,7 +7,8 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
-
+import { getSmallerOrderValue } from '../../../server/utils/common.js'
+import { calculateHourMetric } from '../../../server/strategies/calculate/hour.js'
 const props = defineProps({
   signal: {
     type: Object,
@@ -17,10 +18,11 @@ const props = defineProps({
 
 const chartContainer = ref(null)
 const hourLine = ref([])
+const maLine = ref([])
 let myChart = null
 
 function splitData(rawData) {
-  // 返回 [日期, open, close, low, high, volumn] 结构
+  // 返回 [日期, open, close, low, high, volume] 结构
   return rawData.map(item => [
     item.time,
     item.open,
@@ -38,6 +40,9 @@ async function fetchHourLine(signal) {
   const endTime = new Date(signalDate.getTime() + 200 * 24 * 60 * 60 * 1000)
   const res = await fetch(`/api/hourLine?code=${signal.stockCode}&startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`)
   hourLine.value = await res.json()
+  console.log(hourLine)
+  maLine.value = calculateHourMetric(hourLine.value)
+  console.log(maLine)
   renderChart()
 }
 
@@ -47,6 +52,7 @@ function renderChart() {
     myChart = echarts.init(chartContainer.value, 'light')
   }
   const data = splitData(hourLine.value)
+  const maData = maLine.value
   // 定位signalTime索引
   let signalIndex = 0
   let signalPrice = props.signal.signalPrice
@@ -64,8 +70,26 @@ function renderChart() {
     start = Math.max(0, percent - 10)
     end = Math.min(100, percent + 10)
   }
+  console.log(signalPrice)
+  console.log(data[signalIndex])
+  const xData = data.map(d => d[0])
   myChart.setOption({
     animation: false,
+    legend: {
+      data: ['maS', 'maM', 'maL', 'maXL', 'volumeMaS', 'volumeMaM', 'volumeMaL', 'volumeMaXL'],
+      top: 0,
+      left: 'center',
+      icon: 'line',
+      textStyle: { fontSize: 12 }
+    },
+    axisPointer: {
+      link: [
+        { xAxisIndex: [0, 1] }
+      ],
+      label: {
+        show: false
+      }
+    },
     dataset: [{ source: data }],
     grid: [
       { left: 60, right: 20, top: 20, bottom: 120 },
@@ -75,26 +99,64 @@ function renderChart() {
       trigger: 'axis',
       axisPointer: { type: 'cross' },
       formatter: function (params) {
+        // params 是数组，包含主图和副图的所有 series
+        let obj = {};
+        params.forEach(p => {
+          obj[p.seriesName] = p.data;
+          obj[p.seriesName + '_value'] = p.value;
+        });
+        // 主K线数据
         const d = params[0].data;
-        const t = d[0]
-        const date = new Date(t)
-        const y = date.getFullYear()
-        const m = String(date.getMonth() + 1).padStart(2, '0')
-        const day = String(date.getDate()).padStart(2, '0')
-        const h = String(date.getHours()).padStart(2, '0')
+        const t = d[0];
+        const date = new Date(t);
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const h = String(date.getHours()).padStart(2, '0');
+        // 量数据
+        const volume = d[5];
+        // 均线数据
+        const maS = obj['maS_value'] ?? '';
+        const maM = obj['maM_value'] ?? '';
+        const maL = obj['maL_value'] ?? '';
+        const maXL = obj['maXL_value'] ?? '';
+        // 量均线
+        const volumeMaS = obj['volumeMaS_value'];
+        const volumeMaM = obj['volumeMaM_value'];
+        const volumeMaL = obj['volumeMaL_value'];
+        const volumeMaXL = obj['volumeMaXL_value'];
+
+        // 判断是否全部大于
+        let volumeStr = '成交量: ' + volume;
+        if (
+          volumeMaS != null && volumeMaM != null && volumeMaL != null && volumeMaXL != null &&
+          volume > volumeMaS * 4 && volume > volumeMaM * 4 && volume > volumeMaL * 4 && volume > volumeMaXL * 4
+        ) {
+          volumeStr = '<span style="color:red">成交量: ' + volume + '</span>';
+        }
+
         return [
           '时间: ' + `${y}-${m}-${day} ${h}:00`,
           '开盘: ' + d[1],
           '收盘: ' + d[2],
           '最低: ' + d[3],
           '最高: ' + d[4],
-          '成交量: ' + d[5]
+          volumeStr,
+          `maS: ${maS}`,
+          `maM: ${maM}`,
+          `maL: ${maL}`,
+          `maXL: ${maXL}`,
+          `volumeMaS: ${volumeMaS ?? ''}`,
+          `volumeMaM: ${volumeMaM ?? ''}`,
+          `volumeMaL: ${volumeMaL ?? ''}`,
+          `volumeMaXL: ${volumeMaXL ?? ''}`
         ].join('<br/>');
       }
     },
     xAxis: [
       {
         type: 'category',
+        data: xData,
         scale: true,
         boundaryGap: false,
         axisLine: { onZero: false },
@@ -112,10 +174,16 @@ function renderChart() {
             return `${y}-${m}-${day} ${h}`
           }
         },
+        axisPointer: {
+          label: {
+            show: false,
+          }
+        },
         gridIndex: 0
       },
       {
         type: 'category',
+        data: xData,
         gridIndex: 1,
         scale: true,
         boundaryGap: false,
@@ -124,14 +192,20 @@ function renderChart() {
         splitLine: { show: false },
         axisLabel: { show: false },
         min: 'dataMin',
-        max: 'dataMax'
+        max: 'dataMax',
+        axisPointer: {
+          label: {
+            show: false,
+          }
+        },
       }
     ],
     yAxis: [
       {
         scale: true,
         splitArea: { show: true },
-        gridIndex: 0
+        gridIndex: 0,
+        interval: () => getSmallerOrderValue(signalPrice)
       },
       {
         scale: true,
@@ -176,12 +250,52 @@ function renderChart() {
         yAxisIndex: 0,
         markLine: {
           symbol: 'none',
-          lineStyle: { type: 'dashed', color: '#f00', width: 2 },
+          lineStyle: { type: 'dashed', color: '#777', width: 1 },
           data: [
             signalIndex > 0 ? { xAxis: signalIndex } : null,
-            signalPrice ? { yAxis: signalPrice } : null
-          ].filter(Boolean)
+            { yAxis: signalPrice }
+          ]
         }
+      },
+      // maS
+      {
+        type: 'line',
+        name: 'maS',
+        data: xData.map((_, i) => maData[i]?.maS ?? null),
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#FFA500' }
+      },
+      // maM
+      {
+        type: 'line',
+        name: 'maM',
+        data: xData.map((_, i) => maData[i]?.maM ?? null),
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#FF7F32' }
+      },
+      // maL
+      {
+        type: 'line',
+        name: 'maL',
+        data: xData.map((_, i) => maData[i]?.maL ?? null),
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#FF4C00' }
+      },
+      // maXL
+      {
+        type: 'line',
+        name: 'maXL',
+        data: xData.map((_, i) => maData[i]?.maXL ?? null),
+        xAxisIndex: 0,
+        yAxisIndex: 0,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#D72600' }
       },
       {
         type: 'bar',
@@ -192,6 +306,50 @@ function renderChart() {
         itemStyle: {
           color: 'rgba(60,120,216,0.3)'
         }
+      },
+      // volumeMaS
+      {
+        type: 'line',
+        name: 'volumeMaS',
+        data: xData.map((_, i) => maData[i]?.volumeMaS ?? null),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#1E90FF' },
+        tooltip: { show: true }
+      },
+      // volumeMaM
+      {
+        type: 'line',
+        name: 'volumeMaM',
+        data: xData.map((_, i) => maData[i]?.volumeMaM ?? null),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#00CED1' },
+        tooltip: { show: true }
+      },
+      // volumeMaL
+      {
+        type: 'line',
+        name: 'volumeMaL',
+        data: xData.map((_, i) => maData[i]?.volumeMaL ?? null),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#32CD32' },
+        tooltip: { show: true }
+      },
+      // volumeMaXL
+      {
+        type: 'line',
+        name: 'volumeMaXL',
+        data: xData.map((_, i) => maData[i]?.volumeMaXL ?? null),
+        xAxisIndex: 1,
+        yAxisIndex: 1,
+        showSymbol: false,
+        lineStyle: { width: 1, color: '#FFD700' },
+        tooltip: { show: true }
       }
     ]
   })

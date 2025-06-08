@@ -36,16 +36,41 @@ class HourLineDB {
      */
     static async saveHourLine(code, data) {
         try {
+            // 先删除已存在的相同时间点的数据
             await Stock.updateOne(
                 { code },
                 { $pull: { hourLine: { time: { $in: data.map(item => item.time) } } } }
             );
 
-            const result = await Stock.updateOne(
-                { code },
-                { $push: { hourLine: { $each: data } } },
-                { upsert: true }
-            );
+            // 如果数据量超过20000条，分批处理
+            const BATCH_SIZE = 20000;
+            let result;
+            
+            if (data.length > BATCH_SIZE) {
+                logger.info(`小时线数据量较大(${data.length}条)，开始分批存储...`);
+                
+                // 分批处理数据
+                for (let i = 0; i < data.length; i += BATCH_SIZE) {
+                    const batchData = data.slice(i, i + BATCH_SIZE);
+                    logger.info(`正在存储第${Math.floor(i/BATCH_SIZE)+1}批数据，共${batchData.length}条`);
+                    
+                    result = await Stock.updateOne(
+                        { code },
+                        { $push: { hourLine: { $each: batchData } } },
+                        { upsert: true }
+                    );
+                }
+                
+                logger.info(`分批存储完成，共${data.length}条数据`);
+            } else {
+                // 数据量较小，直接存储
+                result = await Stock.updateOne(
+                    { code },
+                    { $push: { hourLine: { $each: data } } },
+                    { upsert: true }
+                );
+            }
+            
             return result;
         } catch (error) {
             logger.error('保存小时线数据失败:', error);
