@@ -2,7 +2,7 @@
  * 回测执行模块
  */
 import MongoDB from '../database/mongo.js';
-import { calculateDaySignal } from './calculate/day.js';
+import { calculateSignal } from './calculate/signal.js';
 import logger from '../utils/logger.js';
 class BacktestExecutor {
   /**
@@ -13,9 +13,9 @@ class BacktestExecutor {
   async backtestSingle(symbol) {
     try {
       // 获取日线数据
-      const dayLine = await MongoDB.getDayLine(symbol);
+      const stock = await MongoDB.getStock(symbol);
       // 计算日线信号
-      const { signal } = calculateDaySignal(dayLine)
+      const { signal } = calculateSignal(stock)
       // 保存信号数据
       await MongoDB.saveSignal(symbol, signal);
       // 计算交易数据
