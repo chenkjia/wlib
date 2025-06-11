@@ -9,6 +9,7 @@ import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { getSmallerOrderValue } from '../../../server/utils/common.js'
 import { calculateHourMetric } from '../../../server/strategies/calculate/hour.js'
+import { calculateTransaction } from '../../../server/strategies/calculate/signal.js'
 const props = defineProps({
   signal: {
     type: Object,
@@ -19,6 +20,7 @@ const props = defineProps({
 const chartContainer = ref(null)
 const hourLine = ref([])
 const maLine = ref([])
+const transaction = ref(null) // 添加买入信号状态变量
 let myChart = null
 
 function splitData(rawData) {
@@ -42,6 +44,11 @@ async function fetchHourLine(signal) {
   hourLine.value = await res.json()
   console.log(hourLine)
   maLine.value = calculateHourMetric(hourLine.value)
+  
+  // 计算买入信号
+  transaction.value = calculateTransaction({signalTime: signal.signalTime, hourLine: hourLine.value})
+  console.log('信号:', transaction.value)
+  
   console.log(maLine)
   renderChart()
 }
@@ -73,6 +80,36 @@ function renderChart() {
   console.log(signalPrice)
   console.log(data[signalIndex])
   const xData = data.map(d => d[0])
+  // 准备买入信号点数据
+  let markPointData = []
+  if (transaction.value) {
+    const buyIndex = data.findIndex(d => d[0] === transaction.value.buyTime)
+    if (buyIndex !== -1) {
+      markPointData.push({
+        name: '买入点',
+        symbol: 'arrow', 
+        coord: [buyIndex, transaction.value.buyPrice * 49/50],
+        value: transaction.value.buyPrice,
+        itemStyle: {
+          color: '#00da3c'
+        }
+      })
+    }
+    const sellIndex = data.findIndex(d => d[0] === transaction.value.sellTime)
+    if (sellIndex !== -1) {
+      markPointData.push({
+        name: '卖出点',
+        symbol: 'arrow',
+        symbolRotate: 180,
+        coord: [sellIndex, transaction.value.sellPrice * 51 / 50],
+        value: transaction.value.sellPrice,
+        itemStyle: {
+          color: '#FF0000'
+        }
+      })
+    }
+  }
+  
   myChart.setOption({
     animation: false,
     legend: {
@@ -255,6 +292,15 @@ function renderChart() {
             signalIndex > 0 ? { xAxis: signalIndex } : null,
             { yAxis: signalPrice }
           ]
+        },
+        // 添加买入点标记
+        markPoint: {
+          data: markPointData,
+          symbolSize: 20,
+          label: {
+            formatter: '{b}\n{c}',
+            position: 'top'
+          }
         }
       },
       // maS
