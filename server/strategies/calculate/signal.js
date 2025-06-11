@@ -1,9 +1,9 @@
 import {
   calculateDayMetric
 } from './day.js'
-function calculateSignal ({dayLine,hourLine}) {
+function calculateSignals ({dayLine}) {
   const metrics = calculateDayMetric(dayLine)
-  const signal = metrics.reduce((result, item, i) => {
+  const signals = metrics.reduce((result, item, i) => {
     if(i>0 && item.sign1 >=0 && metrics[i-1].sign1 < -50 && metrics[i-1].sign2 < 0.2) {
       return [
         ...result,
@@ -14,19 +14,10 @@ function calculateSignal ({dayLine,hourLine}) {
     }
     return result
   }, [])
-  signal.map((item, i) => {
-    const transaction = calculateTransaction({...item, dayLine,hourLine})
-    return {
-      ...item,
-      ...transaction
-    }
-  })
-  return {
-    signal,
-    metrics
-  }
+  return signals
   // 计算信号
 };
+
 function calculateBuySignal ({signalTime,hourLine}) {
   // 将 signalTime 转换为时间戳以便比较
   const signalTimestamp = new Date(signalTime).getTime()
@@ -39,6 +30,7 @@ function calculateBuySignal ({signalTime,hourLine}) {
   
   return buySignal
 }
+
 function calculateSellSignal ({buyTime, hourLine}) {
   const buyTimestamp = new Date(buyTime).getTime()
   const sellSignal = hourLine.find(item => {
@@ -62,14 +54,30 @@ function calculateSellTransaction (props) {
     sellPrice: sellSignal.close
   }
 }
+
 function calculateTransaction (props) {
+  console.log(props)
   const buyTransaction = calculateBuyTransaction(props)
   return {
     ...buyTransaction,
     ...calculateSellTransaction({...props, ...buyTransaction})
   }
 }
+
+function calculateTransactions({dayLine, hourLine}) {
+  const signals = calculateSignals({dayLine})
+  const transactions = signals.map((item, i) => {
+    const transaction = calculateTransaction({...item, hourLine })
+    return {
+      ...item,
+      ...transaction
+    }
+  })
+  console.log(transactions)
+  return transactions
+}
 export {
-  calculateSignal,
-  calculateTransaction
+  calculateSignals,
+  calculateTransaction,
+  calculateTransactions
 }

@@ -2,7 +2,7 @@
  * 回测执行模块
  */
 import MongoDB from '../database/mongo.js';
-import { calculateSignal } from './calculate/signal.js';
+import { calculateTransactions } from './calculate/signal.js';
 import logger from '../utils/logger.js';
 class BacktestExecutor {
   /**
@@ -12,17 +12,12 @@ class BacktestExecutor {
    */
   async backtestSingle(symbol) {
     try {
-      // 获取日线数据
+      // 获取数据
       const stock = await MongoDB.getStock(symbol);
-      // 计算日线信号
-      const { signal } = calculateSignal(stock)
-      // 保存信号数据
-      await MongoDB.saveSignal(symbol, signal);
-      // 计算交易数据
-      // const transaction = await calculateTransaction(symbol, signal)
-      
-      console.log(signal)
-      // await MongoDB.saveTransaction(symbol, signal);
+      // 计算交易信息
+      const transactions = calculateTransactions(stock)
+      // 保存交易信息数据
+      await MongoDB.saveTransaction(symbol, transactions);
 
       return {
         symbol,
@@ -53,21 +48,22 @@ class BacktestExecutor {
    * @returns {Promise<Object[]>} 回测结果列表
    */
   async backtestAll(strategy) {
-    await MongoDB.clearSignal();
+    await MongoDB.clearTransaction();
         
     // 获取股票列表
     const stockList = await MongoDB.getList();
     
     // 对每个股票执行回测策略
-    for (const stock of stockList) {
-        logger.info(`开始对 ${stock.code} 执行回测策略...`);
+    for (let i = 0; i < stockList.length; i++) {
+        const stock = stockList[i];
+        logger.info(`开始对第 ${i+1}/${stockList.length} 个股票 ${stock.code} 执行回测策略...`);
         
         // 使用BacktestExecutor执行单个股票回测
         const result = await this.backtestSingle(stock.code);
         if (result.success) {
-            logger.info(`${stock.code} ${result.message}`);
+            logger.info(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} ${result.message}`);
         } else {
-            logger.error(`${stock.code} 回测失败: ${result.message}`);
+            logger.error(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} 回测失败: ${result.message}`);
         }
     }
   }

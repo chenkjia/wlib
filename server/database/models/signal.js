@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const signalSchema = new mongoose.Schema({
     stockCode: { type: String, required: true, index: true },
     signalTime: { type: Date },
-    signalPrice: { type: Number }
+    signalPrice: { type: Number },
 });
 
 // 创建复合索引以提高查询效率
