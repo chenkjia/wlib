@@ -56,11 +56,25 @@ function calculateSellTransaction (props) {
 }
 
 function calculateTransaction (props) {
-  console.log(props)
   const buyTransaction = calculateBuyTransaction(props)
+  
+  // 只有当buyPrice存在时才计算sell相关逻辑
+  let sellTransaction = {}
+  let profit = null
+  
+  if (buyTransaction.buyPrice) {
+    sellTransaction = calculateSellTransaction({...props, ...buyTransaction})
+    
+    // 计算利润百分比
+    if (sellTransaction.sellPrice) {
+      profit = ((sellTransaction.sellPrice - buyTransaction.buyPrice) / buyTransaction.buyPrice) * 100
+    }
+  }
+  
   return {
     ...buyTransaction,
-    ...calculateSellTransaction({...props, ...buyTransaction})
+    ...sellTransaction,
+    profit
   }
 }
 
