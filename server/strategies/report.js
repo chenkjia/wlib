@@ -2,7 +2,7 @@
  * 回测报告模块
  */
 import { Report } from '../database/models/report.js';
-import { Signal } from '../database/models/signal.js';
+import { Transaction } from '../database/models/transaction.js';
 import logger from '../utils/logger.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -16,15 +16,15 @@ class BacktestReport {
   async generateReport() {
     try {
       // 获取该股票的所有交易信号
-      const signals = await Signal.find();
+      const transactions = await Transaction.find();
       
-      if (signals.length === 0) {
-        logger.info(`股票 ${stockCode} (${stockName || '未知'}) 没有交易信号，跳过...`);
+      if (transactions.length === 0) {
+        logger.info(`没有交易信号，跳过...`);
         return null;
       }
       
       
-      const report = this.calculateReport(signals);
+      const report = this.calculateReport(transactions);
       
       // 保存到数据库
       try {

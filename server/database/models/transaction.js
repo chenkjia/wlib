@@ -12,6 +12,8 @@ const transactionSchema = new mongoose.Schema({
     sellPrice: { type: Number },
     sellVolume: { type: Number },
     sellAmount: { type: Number },
+    isBuySuccess: { type: Boolean },
+    isSellSuccess: { type: Boolean },
     profit: { type: Number }
 });
 

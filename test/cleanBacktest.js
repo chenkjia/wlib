@@ -8,6 +8,7 @@ async function cleanBacktestData() {
         
         // 获取股票列表
         await MongoDB.clearSignal();
+        await MongoDB.clearTransaction();
         
         
         logger.info('所有股票的回测数据清理完成');

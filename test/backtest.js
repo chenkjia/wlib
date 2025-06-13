@@ -9,9 +9,10 @@ async function runBacktest() {
         // 创建回测执行器实例
         const executor = new BacktestExecutor();
 
-        // await executor.backtestAll();
-        const result = await executor.backtestSingle('ETH');
-        console.log(result);
+        await MongoDB.clearTransaction();
+        await executor.backtestAll();
+        // const result = await executor.backtestSingle('ETH');
+        // console.log(result);
         
         logger.info('所有股票回测完成');
     } catch (error) {

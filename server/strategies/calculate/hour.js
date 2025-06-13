@@ -23,7 +23,7 @@ function calculateHourMetric(hourLine) {
   // const maXL = calculateMA(hourClose, 240);
 
   return hourLine.map((item, index) => ({
-      date: item.date,
+      time: item.time,
       maS: maS[index],
       maM: maM[index],
       maL: maL[index],

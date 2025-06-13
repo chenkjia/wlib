@@ -112,11 +112,11 @@ function handleSearch() {
 
 function toggleSort(id) {
   if (sorting.value[0]?.id === id) {
-    if (!sorting.value[0].desc) {
-      // 升序→降序
-      sorting.value = [{ id, desc: true }]
+    if (sorting.value[0].desc) {
+      // 降序→升序
+      sorting.value = [{ id, desc: false }]
     } else {
-      // 降序→无排序
+      // 升序→无排序
       sorting.value = []
     }
   } else {
