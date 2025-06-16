@@ -14,8 +14,21 @@ export default defineEventHandler(async (event) => {
     const stockCode = query.stockCode as string;
     const sortBy = (query.sortBy as string) || 'buyTime';
     const sortOrder = (query.sortOrder as string) || 'desc';
+    const isSellSuccess = query.isSellSuccess as string;
 
-    const filter = stockCode ? { stockCode } : {};
+    // 构建过滤条件
+    let filter: Record<string, any> = {};
+    
+    // 添加股票代码过滤
+    if (stockCode) {
+      filter.stockCode = stockCode;
+    }
+    
+    // 添加卖出成功状态过滤
+    if (isSellSuccess !== undefined) {
+      filter.isSellSuccess = isSellSuccess === 'true';
+    }
+    
     const sortOptions = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
     
     const total = await Transaction.countDocuments(filter);

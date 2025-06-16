@@ -37,6 +37,7 @@ const page = ref(1)
 const pageSize = ref(18)
 const stockCode = ref('')
 const selectedTransaction = ref(null)
+const sellSuccessFilter = ref('all') // 添加卖出成功状态过滤器
 
 const sorting = ref([{
   id: 'buyTime',
@@ -75,6 +76,16 @@ const columns = [
         ? `${profit > 0 ? '+' : ''}${profit.toFixed(2)}%` 
         : '-'
     }
+  },
+  { 
+    accessorKey: 'isSellSuccess', 
+    header: ({ column }) => getHeader(column, '卖出状态'),
+    cell: ({ row }) => {
+      const isSellSuccess = row.getValue('isSellSuccess')
+      return isSellSuccess !== undefined 
+        ? (isSellSuccess ? '成功' : '超时') 
+        : '-'
+    }
   }
 ]
 
@@ -92,6 +103,10 @@ async function fetchTransactions() {
       const sort = sorting.value[0]
       params.append('sortBy', sort.id)
       params.append('sortOrder', sort.desc ? 'desc' : 'asc')
+    }
+    // 添加卖出成功状态过滤
+    if (sellSuccessFilter.value !== 'all') {
+      params.append('isSellSuccess', sellSuccessFilter.value === 'success' ? 'true' : 'false')
     }
     const response = await fetch(`/api/transactions?${params}`)
     const data = await response.json()
@@ -129,7 +144,7 @@ onMounted(() => {
   fetchTransactions()
 })
 
-watch([page, sorting], () => {
+watch([page, sorting, sellSuccessFilter], () => {
   fetchTransactions()
 })
 </script>
@@ -138,26 +153,38 @@ watch([page, sorting], () => {
   <div class="h-screen flex flex-col overflow-hidden">
     <div class="flex items-center justify-between px-6 py-3 border-b bg-white">
       <h1 class="text-2xl font-bold">交易记录列表</h1>
-      <div class="flex gap-4 items-center">
-        <UInput
-          v-model="stockCode"
-          placeholder="输入股票代码筛选"
-          class="w-64"
-        />
-        <UButton
-          color="primary"
-          @click="handleSearch"
-        >
-          搜索
-        </UButton>
-      </div>
     </div>
 
     <div class="flex-1 flex overflow-hidden">
-      <div class="w-1/3 border-r overflow-auto">
+      <div class="w-1/3 border-r overflow-visible">
         <div v-if="!error" class="h-full">
           <USkeleton v-if="loading" class="h-full" />
           <template v-else>
+            <!-- 过滤器区域 -->
+            <div class="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
+              <UInput
+                v-model="stockCode"
+                placeholder="输入股票代码筛选"
+                class="w-48 mr-2"
+              />
+              <div class="flex items-center gap-2">
+                <select
+                  v-model="sellSuccessFilter"
+                  class="w-32 px-2 py-1 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">全部状态</option>
+                  <option value="success">卖出成功</option>
+                  <option value="timeout">卖出超时</option>
+                </select>
+                <UButton
+                  color="primary"
+                  size="sm"
+                  @click="handleSearch"
+                >
+                  搜索
+                </UButton>
+              </div>
+            </div>
             <table class="w-full text-sm">
               <thead>
                 <tr>
@@ -189,6 +216,15 @@ watch([page, sorting], () => {
                     </span>
                   </th>
                   <th class="px-4 py-2">
+                    <span @click="toggleSort('isSellSuccess')" class="cursor-pointer select-none flex items-center">
+                      卖出状态
+                      <span v-if="sorting[0]?.id === 'isSellSuccess'">
+                        <span v-if="!sorting[0].desc">▲</span>
+                        <span v-else>▼</span>
+                      </span>
+                    </span>
+                  </th>
+                  <th class="px-4 py-2">
                     <span @click="toggleSort('profit')" class="cursor-pointer select-none flex items-center">
                       盈亏
                       <span v-if="sorting[0]?.id === 'profit'">
@@ -204,13 +240,19 @@ watch([page, sorting], () => {
                   <td class="px-4 py-2">{{ row.stockCode }}</td>
                   <td class="px-4 py-2">{{ new Date(row.buyTime).toLocaleDateString() }}</td>
                   <td class="px-4 py-2">{{ row.buyPrice }}</td>
+                  <td class="px-4 py-2" :class="row.isSellSuccess ? 'text-green-600' : 'text-orange-500'">
+                    {{ row.isSellSuccess !== undefined ? (row.isSellSuccess ? '成功' : '超时') : '-' }}
+                  </td>
                   <td class="px-4 py-2" :class="row.profit > 0 ? 'text-green-600' : row.profit < 0 ? 'text-red-600' : ''">
                     {{ row.profit !== null && row.profit !== undefined ? `${row.profit > 0 ? '+' : ''}${row.profit.toFixed(2)}%` : '-' }}
                   </td>
                 </tr>
               </tbody>
             </table>
-            <div class="sticky bottom-0 py-2 flex justify-end border-t px-4 bg-white">
+            <div class="sticky bottom-0 py-2 flex justify-between border-t px-4 bg-white">
+              <div class="flex items-center text-sm text-gray-600">
+                共 <span class="font-medium mx-1">{{ total }}</span> 条记录
+              </div>
               <UPagination
                 v-model:page="page"
                 :total="total"
