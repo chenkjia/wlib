@@ -499,12 +499,24 @@ onMounted(() => {
   if (chartContainer.value) {
     myChart = echarts.init(chartContainer.value, 'light')
   }
+  
+  // 添加窗口大小变化的监听器
+  window.addEventListener('resize', handleResize)
 })
+
+// 处理窗口大小变化
+function handleResize() {
+  if (myChart) {
+    myChart.resize()
+  }
+}
 
 onUnmounted(() => {
   if (myChart) {
     myChart.dispose()
   }
+  // 移除窗口大小变化的监听器
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 

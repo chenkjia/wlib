@@ -253,15 +253,20 @@ onMounted(async () => {
   myChart = echarts.init(chartContainer.value, 'dark')
   await initChart()
 
-  const handleResize = () => myChart?.resize()
   window.addEventListener('resize', handleResize)
+})
 
-  onUnmounted(() => {
-    if (myChart) {
-      myChart.dispose()
-    }
-    window.removeEventListener('resize', handleResize)
-  })
+const handleResize = () => {
+  if (myChart) {
+    myChart.resize()
+  }
+}
+
+onUnmounted(() => {
+  if (myChart) {
+    myChart.dispose()
+  }
+  window.removeEventListener('resize', handleResize)
 })
 </script>
 
