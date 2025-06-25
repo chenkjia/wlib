@@ -1,7 +1,12 @@
 
 <template>
   <div class="stock-detail">
-    <div ref="chartContainer" class="chart-container"></div>
+    <div class="chart-wrapper relative">
+      <button @click="toggleFullScreen" class="absolute top-2 right-2 z-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
+        {{ isFullScreen ? '退出全屏' : '全屏显示' }}
+      </button>
+      <div ref="chartContainer" class="chart-container"></div>
+    </div>
   </div>
 </template>
 
@@ -12,7 +17,31 @@ import * as echarts from 'echarts'
 
 const route = useRoute()
 const chartContainer = ref(null)
+const isFullScreen = ref(false)
 let myChart = null
+
+// 切换全屏显示
+function toggleFullScreen() {
+  isFullScreen.value = !isFullScreen.value
+  
+  const chartWrapper = document.querySelector('.chart-wrapper')
+  if (isFullScreen.value) {
+    // 进入全屏模式
+    chartWrapper.classList.add('fullscreen-mode')
+    document.body.style.overflow = 'hidden'
+  } else {
+    // 退出全屏模式
+    chartWrapper.classList.remove('fullscreen-mode')
+    document.body.style.overflow = ''
+  }
+  
+  // 调整图表大小
+  setTimeout(() => {
+    if (myChart) {
+      myChart.resize()
+    }
+  }, 100)
+}
 
 // 颜色配置
 const upColor = '#00da3c'
@@ -100,16 +129,8 @@ async function initChart() {
           backgroundColor: '#777'
         }
       },
-      toolbox: {
-        feature: {
-          dataZoom: {
-            yAxisIndex: false
-          },
-          brush: {
-            type: ['lineX', 'clear']
-          }
-        }
-      },
+      // 移除了工具箱配置
+
       brush: {
         xAxisIndex: 'all',
         brushLink: 'all',
@@ -272,15 +293,57 @@ onUnmounted(() => {
 
 <style scoped>
 .stock-detail {
-  width: 100vw;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chart-wrapper {
+  position: relative;
+  flex: 1;
+  width: 100%;
 }
 
 .chart-container {
   width: 100%;
   height: 100%;
+  min-height: 400px;
+  z-index: 10;
+}
+
+.relative {
+  position: relative;
+}
+
+.absolute {
+  position: absolute;
+}
+
+.top-2 {
+  top: 0.5rem;
+}
+
+.right-2 {
+  right: 0.5rem;
+}
+
+.z-20 {
+  z-index: 20;
+}
+
+/* 全屏模式样式 */
+.fullscreen-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: white;
+  z-index: 1000;
+  padding: 10px;
+}
+
+.fullscreen-mode .chart-container {
+  height: calc(100vh - 20px);
 }
 </style>
