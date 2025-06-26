@@ -2,8 +2,8 @@
 <template>
   <div class="stock-detail">
     <div class="chart-wrapper relative">
-      <button @click="toggleFullScreen" class="absolute top-2 right-2 z-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
-        {{ isFullScreen ? '退出全屏' : '全屏显示' }}
+      <button @click="toggleFullScreen" class="absolute top-2 right-2 z-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" title="全屏切换">
+        <i :class="isFullScreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'" aria-hidden="true"></i>
       </button>
       <div ref="chartContainer" class="chart-container"></div>
     </div>
@@ -99,11 +99,8 @@ async function initChart() {
     // 配置项
     const option = {
       animation: false,
-      legend: {
-        top: 10,
-        left: 'center',
-        data: ['K线', 'MA7', 'MA50', 'MA100']
-      },
+      // 移除了legend
+
       tooltip: {
         trigger: 'axis',
         axisPointer: {
@@ -142,13 +139,13 @@ async function initChart() {
         {
           left: '10%',
           right: '8%',
-          height: '50%'
+          height: '60%'
         },
         {
           left: '10%',
           right: '8%',
           top: '65%',
-          height: '25%'
+          height: '30%'
         }
       ],
       xAxis: [
@@ -329,6 +326,19 @@ onUnmounted(() => {
 
 .z-20 {
   z-index: 20;
+}
+
+/* 全屏图标 */
+.icon-fullscreen::before {
+  content: '\2922';
+  font-style: normal;
+  font-size: 16px;
+}
+
+.icon-fullscreen-exit::before {
+  content: '\2923';
+  font-style: normal;
+  font-size: 16px;
 }
 
 /* 全屏模式样式 */

@@ -58,8 +58,8 @@
     </div>
     
     <div class="chart-wrapper relative">
-      <button @click="toggleFullScreen" class="absolute top-2 right-2 z-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
-        {{ isFullScreen ? '退出全屏' : '全屏显示' }}
+      <button @click="toggleFullScreen" class="absolute top-2 right-2 z-20 bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm" title="全屏切换">
+        <i :class="isFullScreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'" aria-hidden="true"></i>
       </button>
       <div ref="chartContainer" class="chart-container"></div>
     </div>
@@ -240,13 +240,8 @@ function renderChart() {
   
   myChart.setOption({
     animation: false,
-    legend: {
-      data: ['maS', 'maM', 'maL', 'maXL', 'volumeMaS', 'volumeMaM', 'volumeMaL', 'volumeMaXL'],
-      top: 0,
-      left: 'center',
-      icon: 'line',
-      textStyle: { fontSize: 12 }
-    },
+    // 移除了legend
+
     // 移除了工具箱配置
 
     axisPointer: {
@@ -259,8 +254,8 @@ function renderChart() {
     },
     dataset: [{ source: data }],
     grid: [
-      { left: 60, right: 20, top: 20, bottom: 120 },
-      { left: 60, right: 20, height: 80, bottom: 40 }
+      { left: 60, right: 20, top: 20, bottom: 180 },
+      { left: 60, right: 20, height: 140, bottom: 40 }
     ],
     tooltip: {
       trigger: 'axis',
@@ -590,6 +585,19 @@ onUnmounted(() => {
 
 .z-20 {
   z-index: 20;
+}
+
+/* 全屏图标 */
+.icon-fullscreen::before {
+  content: '\2922';
+  font-style: normal;
+  font-size: 16px;
+}
+
+.icon-fullscreen-exit::before {
+  content: '\2923';
+  font-style: normal;
+  font-size: 16px;
 }
 
 /* 全屏模式样式 */
