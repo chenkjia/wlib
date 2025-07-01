@@ -217,7 +217,7 @@ function renderChart() {
     markPointData.push({
       name: '买入点',
       symbol: 'arrow', 
-      coord: [buyIndex, buyPrice * 49/50],
+      coord: [buyIndex, buyPrice],
       value: buyPrice,
       itemStyle: {
         color: '#00da3c'
@@ -230,7 +230,7 @@ function renderChart() {
       name: '卖出点',
       symbol: 'arrow',
       symbolRotate: 180,
-      coord: [sellIndex, sellPrice * 51 / 50],
+      coord: [sellIndex, sellPrice],
       value: sellPrice,
       itemStyle: {
         color: '#FF0000'
