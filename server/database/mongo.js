@@ -4,6 +4,7 @@ import DayLineDB from './dayLine.js';
 import HourLineDB from './hourLine.js';
 import TransactionDB from './transaction.js';
 import SignalDB from './signal.js';
+import GoalDB from './goal.js';
 
 /**
  * MongoDB 数据库连接和基础操作类
@@ -33,6 +34,12 @@ class MongoDB {
     static getHourLine = HourLineDB.getHourLine;
     static saveHourLine = HourLineDB.saveHourLine;
     static clearHourLine = HourLineDB.clearHourLine;
+    
+    static getGoal = GoalDB.getGoal;
+    static getGoalsByStock = GoalDB.getGoalsByStock;
+    static saveGoal = GoalDB.saveGoal;
+    static updateGoal = GoalDB.updateGoal;
+    static clearGoal = GoalDB.clearGoal;
 }
 
 export default MongoDB;
