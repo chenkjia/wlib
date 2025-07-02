@@ -381,34 +381,53 @@ function splitData(rawData) {
     dateToIndexMap[item.date] = i
   }
   
-  // 只添加经过goals过滤后的点
+  // 添加所有趋势点（恢复原来的逻辑，确保点能显示）
+  for (let i = 0; i < rawData.length; i++) {
+    const item = rawData[i]
+    
+    // 添加趋势开始和结束标记点
+    if (item.trendStart) {
+      trendStartPoints.push({
+        coord: [i, item.low],
+        value: '趋势开始',
+        itemStyle: {
+          color: '#1E90FF'
+        }
+      })
+    }
+    
+    if (item.trendEnd) {
+      trendEndPoints.push({
+        coord: [i, item.high],
+        value: '趋势结束',
+        itemStyle: {
+          color: '#FF4500'
+        }
+      })
+    }
+  }
+  
+  // 如果有goals，为它们添加goalId，用于高亮显示
   if (goals.value && goals.value.length > 0) {
     goals.value.forEach(goal => {
-      // 查找开始日期对应的索引
-      const startIndex = dateToIndexMap[goal.startTime]
-      // 查找结束日期对应的索引
-      const endIndex = dateToIndexMap[goal.endTime]
+      // 查找与goal.startTime和goal.endTime匹配的点
+      const startPoint = trendStartPoints.find((point, idx) => {
+        const date = rawData[point.coord[0]].time
+        return date === goal.startTime
+      })
       
-      if (startIndex !== undefined) {
-        trendStartPoints.push({
-          coord: [startIndex, rawData[startIndex].low],
-          value: '趋势开始',
-          itemStyle: {
-            color: '#1E90FF'
-          },
-          goalId: goal.id // 使用goal.id作为唯一标识
-        })
+      const endPoint = trendEndPoints.find((point, idx) => {
+        const date = rawData[point.coord[0]].time
+        return date === goal.endTime
+      })
+      
+      // 为找到的点添加goalId
+      if (startPoint) {
+        startPoint.goalId = goal.id
       }
       
-      if (endIndex !== undefined) {
-        trendEndPoints.push({
-          coord: [endIndex, rawData[endIndex].high],
-          value: '趋势结束',
-          itemStyle: {
-            color: '#FF4500'
-          },
-          goalId: goal.id // 使用goal.id作为唯一标识
-        })
+      if (endPoint) {
+        endPoint.goalId = goal.id
       }
     })
   }
@@ -436,7 +455,7 @@ async function refreshChart() {
     goals.value = calculateGoals(rawData)
     
     // 更新图表 - 注意顺序变化，先计算goals，再初始化图表
-    await initChart(rawData)
+    await initChart(rawData, goals.value)
     
     loading.value = false
   } catch (err) {
@@ -735,7 +754,7 @@ onMounted(async () => {
     goals.value = calculateGoals(rawData)
     
     // 初始化图表
-    await initChart(rawData)
+    await initChart(rawData, goals.value)
     
     loading.value = false
   } catch (err) {
