@@ -5,18 +5,65 @@
       <!-- 左侧K线图 -->
       <div class="chart-wrapper md:w-2/3">
         <div class="chart-container" ref="chartContainer"></div>
-        <div class="absolute top-2 right-2 z-20 flex items-center space-x-2">
+        <div class="absolute top-2 right-2 z-20 flex flex-col items-end space-y-2">
           <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
             <label for="trendInterval" class="mr-2 text-sm">趋势间隔:</label>
-            <input 
-              id="trendInterval"
-              v-model.number="trendInterval" 
-              type="number" 
-              min="1" 
-              max="30" 
-              class="w-12 bg-gray-700 text-white rounded px-1 py-0.5 text-sm" 
-              @change="refreshChart"
-            />
+            <div class="flex items-center">
+              <input 
+                id="trendInterval"
+                v-model.number="trendInterval" 
+                type="number" 
+                min="1" 
+                max="30" 
+                class="w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
+              />
+              <button 
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
+                @click="refreshChart"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+          
+          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
+            <label for="profitFilter" class="mr-2 text-sm">利润过滤(%):</label>
+            <div class="flex items-center">
+              <input 
+                id="profitFilter"
+                v-model.number="profitFilter" 
+                type="number" 
+                min="0" 
+                step="0.1"
+                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
+              />
+              <button 
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
+                @click="refreshChart"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+          
+          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
+            <label for="dailyProfitFilter" class="mr-2 text-sm">日均利润(%):</label>
+            <div class="flex items-center">
+              <input 
+                id="dailyProfitFilter"
+                v-model.number="dailyProfitFilter" 
+                type="number" 
+                min="0" 
+                step="0.01"
+                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
+              />
+              <button 
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
+                @click="refreshChart"
+              >
+                确认
+              </button>
+            </div>
           </div>
           <button 
             class="bg-gray-800 text-white p-2 rounded-md"
@@ -27,115 +74,146 @@
         </div>
       </div>
       
-      <!-- 右侧交易记录 -->
-      <div class="w-full md:w-1/3 border-l overflow-auto">
-        <div class="p-4 bg-gray-50 border-b">
-          <h2 class="text-lg font-semibold">{{ stockCode }} 交易记录</h2>
+      <!-- 右侧目标趋势 -->
+      <div class="w-full md:w-1/3 p-4 bg-white rounded-lg shadow">
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold">{{ stockCode }} 目标趋势 <span class="text-sm text-gray-500">(总数: {{ goals.length }})</span></h2>
         </div>
-        
-        <div v-if="loading" class="p-4 flex justify-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div v-if="loading" class="flex justify-center items-center h-64">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
         </div>
-        
-        <div v-else-if="error" class="p-4 text-red-500">
+        <div v-else-if="error" class="text-red-500 p-4">
           {{ error }}
         </div>
-        
-        <div v-else-if="goals.length === 0" class="p-4 text-gray-500 text-center">
-          暂无交易记录
+        <div v-else-if="goals.length === 0" class="text-gray-500 p-4">
+          暂无目标趋势数据
         </div>
         
-        <div v-else class="divide-y">
-          <div 
-            v-for="goal in goals" 
-            :key="transaction._id"
-            class="p-4 hover:bg-gray-50 cursor-pointer transition"
-            @click="selectedTransaction = transaction"
-            :class="{'bg-blue-50': selectedTransaction && selectedTransaction._id === transaction._id}"
-          >
-            <div class="flex justify-between items-center mb-2">
-              <div class="font-medium">买入时间: {{ formatDate(transaction.buyTime) }}</div>
-              <div 
-                :class="transaction.profit > 0 ? 'text-green-600' : transaction.profit < 0 ? 'text-red-600' : ''"
-                class="font-bold"
-              >
-                {{ transaction.profit !== null && transaction.profit !== undefined ? `${transaction.profit > 0 ? '+' : ''}${transaction.profit.toFixed(2)}%` : '-' }}
+        <div v-else class="divide-y overflow-auto max-h-[calc(100vh-200px)]">
+            <div 
+              v-for="(goal, index) in goals" 
+              :key="index"
+              class="p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
+              @click="selectedGoal = goal"
+              @mouseover="highlightGoalPoints(goal)"
+              @mouseout="resetHighlight()"
+              :class="{'bg-blue-50': selectedGoal && selectedGoal.id === goal.id}"
+            >
+              <div class="flex justify-between items-center mb-2">
+                <div class="font-medium flex items-center space-x-2">
+                  <span>{{ formatDate(goal.startTime) }}</span>
+                  <span class="text-gray-400">→</span>
+                  <span>{{ formatDate(goal.endTime) || '进行中' }}</span>
+                </div>
+                <div :class="getProfitClass(goal.profit)" class="text-lg font-bold">
+                  {{ goal.profit !== null && goal.profit !== undefined ? `${goal.profit > 0 ? '+' : ''}${goal.profit.toFixed(2)}%` : '-' }}
+                </div>
               </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 text-sm">
-              <div>买入价: {{ transaction.buyPrice }}</div>
-              <div>卖出价: {{ transaction.sellPrice || '-' }}</div>
-              <div>买入金额: {{ formatAmount(transaction.buyAmount) }}</div>
-              <div>卖出状态: 
-                <span :class="transaction.isSellSuccess ? 'text-green-600' : 'text-orange-500'">
-                  {{ transaction.isSellSuccess !== undefined ? (transaction.isSellSuccess ? '成功' : '超时') : '-' }}
-                </span>
+              <div class="grid grid-cols-4 gap-2 text-sm text-gray-600">
+                <div class="flex items-center">
+                  <span class="mr-1">起始:</span>
+                  <span class="font-medium">{{ goal.startPrice }}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="mr-1">目标:</span>
+                  <span class="font-medium">{{ goal.endPrice || '-' }}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="mr-1">持续:</span>
+                  <span class="font-medium">{{ goal.duration || '-' }}天</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="mr-1">日均:</span>
+                  <span :class="getProfitClass(goal.dailyProfit)" class="font-medium">{{ goal.dailyProfit ? goal.dailyProfit.toFixed(2) + '%' : '-' }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    
-    <!-- 交易详情弹窗 -->
-    <div v-if="selectedTransaction" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+ 
+    <!-- 目标趋势详情弹窗 -->
+    <div v-if="selectedGoal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-auto">
         <div class="p-4 border-b flex justify-between items-center">
-          <h3 class="text-lg font-bold">交易详情</h3>
-          <button @click="selectedTransaction = null" class="text-gray-500 hover:text-gray-700">
-            <span class="text-2xl">&times;</span>
+          <h3 class="text-lg font-bold">目标趋势详情</h3>
+          <button @click="selectedGoal = null" class="text-gray-500 hover:text-gray-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
-        <div class="p-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <h4 class="font-semibold mb-2">买入信息</h4>
-              <div class="grid grid-cols-2 gap-2 text-sm">
-                <div class="font-medium">股票代码:</div>
-                <div>{{ selectedTransaction.stockCode }}</div>
-                <div class="font-medium">买入时间:</div>
-                <div>{{ formatDate(selectedTransaction.buyTime) }}</div>
-                <div class="font-medium">买入价格:</div>
-                <div>{{ selectedTransaction.buyPrice }}</div>
-                <div class="font-medium">买入数量:</div>
-                <div>{{ selectedTransaction.buyVolume }}</div>
-                <div class="font-medium">买入金额:</div>
-                <div>{{ formatAmount(selectedTransaction.buyAmount) }}</div>
+        
+        <div class="p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="text-md font-semibold mb-3 text-gray-700">起始信息</h4>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="font-medium text-gray-600">股票代码:</div>
+                <div>{{ selectedGoal.stockCode }}</div>
+                <div class="font-medium text-gray-600">开始时间:</div>
+                <div>{{ formatDate(selectedGoal.startTime) }}</div>
+                <div class="font-medium text-gray-600">开始价格:</div>
+                <div>{{ selectedGoal.startPrice }}</div>
+                <div class="font-medium text-gray-600">趋势类型:</div>
+                <div>{{ selectedGoal.goalType === 'buy' ? '买入' : '卖出' }}</div>
               </div>
             </div>
-            <div>
-              <h4 class="font-semibold mb-2">卖出信息</h4>
-              <div class="grid grid-cols-2 gap-2 text-sm">
-                <div class="font-medium">卖出时间:</div>
-                <div>{{ formatDate(selectedTransaction.sellTime) || '-' }}</div>
-                <div class="font-medium">卖出价格:</div>
-                <div>{{ selectedTransaction.sellPrice || '-' }}</div>
-                <div class="font-medium">卖出数量:</div>
-                <div>{{ selectedTransaction.sellVolume || '-' }}</div>
-                <div class="font-medium">卖出金额:</div>
-                <div>{{ formatAmount(selectedTransaction.sellAmount) }}</div>
-                <div class="font-medium">盈亏:</div>
-                <div :class="getProfitClass(selectedTransaction.profit)">
-                  {{ formatProfit(selectedTransaction.profit) }}
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="text-md font-semibold mb-3 text-gray-700">结果信息</h4>
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="font-medium text-gray-600">结束时间:</div>
+                <div>{{ formatDate(selectedGoal.endTime) || '-' }}</div>
+                <div class="font-medium text-gray-600">结束价格:</div>
+                <div>{{ selectedGoal.endPrice || '-' }}</div>
+                <div class="font-medium text-gray-600">持续天数:</div>
+                <div>{{ selectedGoal.duration || '-' }} 天</div>
+                <div class="font-medium text-gray-600">盈亏率:</div>
+                <div :class="getProfitClass(selectedGoal.profit)" class="font-bold">
+                  {{ selectedGoal.profit !== null && selectedGoal.profit !== undefined ? `${selectedGoal.profit > 0 ? '+' : ''}${selectedGoal.profit.toFixed(2)}%` : '-' }}
                 </div>
-                <div class="font-medium">盈亏率:</div>
-                <div :class="getProfitClass(selectedTransaction.profit)">
-                  {{ formatProfitPercentage(selectedTransaction.profit) }}
+                <div class="font-medium text-gray-600">日均盈亏:</div>
+                <div :class="getProfitClass(selectedGoal.dailyProfit)" class="font-bold">
+                  {{ selectedGoal.dailyProfit !== null && selectedGoal.dailyProfit !== undefined ? `${selectedGoal.dailyProfit > 0 ? '+' : ''}${selectedGoal.dailyProfit.toFixed(2)}%` : '-' }}
                 </div>
               </div>
             </div>
           </div>
+          
+          <div class="bg-gray-50 p-4 rounded-lg">
+            <h4 class="text-md font-semibold mb-3 text-gray-700">趋势描述</h4>
+            <p class="text-sm text-gray-600">{{ selectedGoal.description || '无描述信息' }}</p>
+          </div>
         </div>
       </div>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { dayLineFormat } from '../server/strategies/calculate/goal'
 import * as echarts from 'echarts'
+
+// 直接在组件中实现 dayLineFormat 函数，避免从服务器端导入
+const dayLineFormat = (dayLine, n) => {
+  // 计算出dayLine里每个数据的max和min,max为前后n天的high最大值,min为前后n天的low最小值
+  const result = dayLine.map((item, i) => {
+    const max = Math.max(...dayLine.slice(Math.max(0, i - n), Math.min(dayLine.length, i + n + 1)).map(item => item.high))
+    const min = Math.min(...dayLine.slice(Math.max(0, i - n), Math.min(dayLine.length, i + n + 1)).map(item => item.low))
+    return {
+      ...item,
+      max,
+      min,
+      // 趋势开始
+      trendStart: min === item.low,
+      // 趋势结束
+      trendEnd: max === item.high
+    }
+  })
+  return result
+}
 
 const route = useRoute()
 const chartContainer = ref(null)
@@ -143,8 +221,10 @@ const isFullScreen = ref(false)
 const goals = ref([])
 const loading = ref(true)
 const error = ref('')
-const selectedTransaction = ref(null)
-const trendInterval = ref(5) // 默认趋势间隔为5天
+const selectedGoal = ref(null)
+const trendInterval = ref(14) // 默认趋势间隔为14天
+const profitFilter = ref(0) // 默认利润过滤器为0，不过滤任何数据
+const dailyProfitFilter = ref(0) // 默认日均利润过滤器为0，不过滤任何数据
 let myChart = null
 
 // 获取股票代码
@@ -214,13 +294,49 @@ function formatProfit(profit) {
 
 // 格式化盈亏百分比
 function formatProfitPercentage(profit) {
-  if (profit === null || profit === undefined || !selectedTransaction.value) return '-'
-  const percentage = (profit / selectedTransaction.value.buyAmount) * 100
-  return `${percentage > 0 ? '+' : ''}${percentage.toFixed(2)}%`
+  if (profit === null || profit === undefined) return '-'
+  return `${profit > 0 ? '+' : ''}${profit.toFixed(2)}%`
 }
 
+// 保留此函数供用户实现
 function calculateGoals(dayLine) {
-  const goals = []
+
+  const tmp = dayLine.filter(item => item.trendStart || item.trendEnd)
+  const goals = tmp.reduce((result, item, index) => {
+    const next = tmp[index + 1]
+    if (item.trendStart && next && next.trendEnd) {
+      const duration = (new Date(next.time).getTime() - new Date(item.time).getTime()) / (1000 * 60 * 60 * 24)
+      const profit = (next.high - item.low) / item.low * 100
+      const dailyProfit = profit / duration
+      
+      // 应用过滤器：如果利润或日均利润小于过滤器值，则跳过此项
+      if (profit < profitFilter.value || dailyProfit < dailyProfitFilter.value) {
+        return result
+      }
+      
+      // 为每个goal添加唯一标识符
+      const goalId = item.time + '-' + next.time
+      
+      return [
+        ...result,
+        {
+          id: goalId, // 添加唯一标识符
+          startPrice: item.low,
+          endPrice: next.high,
+          goalType: item.low < next.high ? 'buy' : 'sell',
+          startTime: item.time,
+          endTime: next.time,
+          profit,
+          // 计算duration,time是Date格式,需要转换为毫秒
+          duration,
+          // 日均涨幅
+          dailyProfit,
+        }
+      ]
+    }
+    return result
+  }, [])
+  console.log(goals)
   return goals;
 }
 
@@ -252,6 +368,8 @@ function splitData(rawData) {
   const volumes = []
   const trendStartPoints = []
   const trendEndPoints = []
+  // 存储日期到索引的映射，用于高亮显示
+  const dateToIndexMap = {}
 
   for (let i = 0; i < rawData.length; i++) {
     const item = rawData[i]
@@ -259,26 +377,40 @@ function splitData(rawData) {
     values.push([item.open, item.close, item.low, item.high])
     volumes.push([i, item.volume, item.open > item.close ? 1 : -1])
     
-    // 添加趋势开始和结束标记点
-    if (item.trendStart) {
-      trendStartPoints.push({
-        coord: [i, item.low],
-        value: '趋势开始',
-        itemStyle: {
-          color: '#1E90FF'
-        }
-      })
-    }
-    
-    if (item.trendEnd) {
-      trendEndPoints.push({
-        coord: [i, item.high],
-        value: '趋势结束',
-        itemStyle: {
-          color: '#FF4500'
-        }
-      })
-    }
+    // 存储日期到索引的映射
+    dateToIndexMap[item.date] = i
+  }
+  
+  // 只添加经过goals过滤后的点
+  if (goals.value && goals.value.length > 0) {
+    goals.value.forEach(goal => {
+      // 查找开始日期对应的索引
+      const startIndex = dateToIndexMap[goal.startTime]
+      // 查找结束日期对应的索引
+      const endIndex = dateToIndexMap[goal.endTime]
+      
+      if (startIndex !== undefined) {
+        trendStartPoints.push({
+          coord: [startIndex, rawData[startIndex].low],
+          value: '趋势开始',
+          itemStyle: {
+            color: '#1E90FF'
+          },
+          goalId: goal.id // 使用goal.id作为唯一标识
+        })
+      }
+      
+      if (endIndex !== undefined) {
+        trendEndPoints.push({
+          coord: [endIndex, rawData[endIndex].high],
+          value: '趋势结束',
+          itemStyle: {
+            color: '#FF4500'
+          },
+          goalId: goal.id // 使用goal.id作为唯一标识
+        })
+      }
+    })
   }
 
   return {
@@ -292,20 +424,105 @@ function splitData(rawData) {
 
 // 刷新图表
 async function refreshChart() {
-  if (myChart) {
-    await initChart()
-  }
-}
-
-// 初始化图表
-async function initChart() {
   try {
+    loading.value = true
     const response = await fetch(`/api/dayLine?code=${route.params.code}`)
     let rawData = await response.json()
     
     // 使用dayLineFormat处理数据，添加趋势标记
     rawData = dayLineFormat(rawData, trendInterval.value)
     
+    // 重新计算目标趋势
+    goals.value = calculateGoals(rawData)
+    
+    // 更新图表 - 注意顺序变化，先计算goals，再初始化图表
+    await initChart(rawData)
+    
+    loading.value = false
+  } catch (err) {
+    console.error('更新数据失败:', err)
+    error.value = '更新数据失败: ' + err.message
+    loading.value = false
+  }
+}
+
+// 存储当前高亮的goalId
+const currentHighlightGoalId = ref(null)
+
+// 高亮显示目标点
+function highlightGoalPoints(goal) {
+  if (!myChart) return
+  
+  // 设置当前高亮的goalId
+  currentHighlightGoalId.value = goal.id
+  
+  // 更新图表，触发高亮效果
+  myChart.dispatchAction({
+    type: 'highlight',
+    seriesIndex: 0,
+    dataIndex: [] // 这里不需要指定dataIndex，我们在markPoint中通过自定义itemStyle来高亮
+  })
+  
+  // 重新设置图表选项，应用高亮效果
+  myChart.setOption({
+    series: [{
+      name: 'K线',
+      markPoint: {
+        data: myChart.getOption().series[0].markPoint.data.map(point => {
+          // 如果是当前高亮的goal，增加symbolSize和改变颜色
+          if (point.goalId === currentHighlightGoalId.value) {
+            return {
+              ...point,
+              symbolSize: 40, // 增大尺寸
+              itemStyle: {
+                color: point.itemStyle.color === '#1E90FF' ? '#00BFFF' : '#FF6347', // 稍微改变颜色
+                shadowBlur: 10,
+                shadowColor: '#fff'
+              }
+            }
+          }
+          return point
+        })
+      }
+    }]
+  })
+}
+
+// 重置高亮效果
+function resetHighlight() {
+  if (!myChart) return
+  
+  // 清除当前高亮的goalId
+  currentHighlightGoalId.value = null
+  
+  // 更新图表，取消高亮效果
+  myChart.dispatchAction({
+    type: 'downplay',
+    seriesIndex: 0
+  })
+  
+  // 重新设置图表选项，恢复原始效果
+  myChart.setOption({
+    series: [{
+      name: 'K线',
+      markPoint: {
+        data: myChart.getOption().series[0].markPoint.data.map(point => {
+          return {
+            ...point,
+            symbolSize: 30, // 恢复原始尺寸
+            itemStyle: {
+              color: point.itemStyle.color === '#00BFFF' ? '#1E90FF' : '#FF4500' // 恢复原始颜色
+            }
+          }
+        })
+      }
+    }]
+  })
+}
+
+// 初始化图表
+async function initChart(rawData) {
+  try {
     const data = splitData(rawData)
 
     // 计算MA数据
@@ -447,6 +664,12 @@ async function initChart() {
               position: 'top',
               distance: 5,
               fontSize: 10
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowColor: '#fff'
+              }
             }
           }
         },
@@ -499,20 +722,36 @@ async function initChart() {
 }
 
 onMounted(async () => {
-  // 初始化图表
-  myChart = echarts.init(chartContainer.value, 'dark')
-  await initChart()
-  goals = calculateGoals(data.values);
+  try {
+    // 初始化图表
+    myChart = echarts.init(chartContainer.value, 'dark')
+    // 获取日线数据并计算目标趋势
+    const response = await fetch(`/api/dayLine?code=${route.params.code}`)
+    let rawData = await response.json()
+    // 使用 dayLineFormat 处理数据
+    rawData = dayLineFormat(rawData, trendInterval.value)
+
+    // 计算目标趋势
+    goals.value = calculateGoals(rawData)
+    
+    // 初始化图表
+    await initChart(rawData)
+    
+    loading.value = false
+  } catch (err) {
+    console.error('加载数据失败:', err)
+    error.value = '加载数据失败: ' + err.message
+    loading.value = false
+  }
 
   // 添加窗口大小变化的监听器
   window.addEventListener('resize', handleResize)
 })
 
-// 监听趋势间隔变化
-watch(trendInterval, async (newValue) => {
+// 监听趋势间隔变化，仅进行范围限制
+watch(trendInterval, (newValue) => {
   if (newValue < 1) trendInterval.value = 1
   if (newValue > 30) trendInterval.value = 30
-  await refreshChart()
 })
 
 const handleResize = () => {
