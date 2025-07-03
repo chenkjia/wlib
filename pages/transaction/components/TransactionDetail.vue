@@ -69,8 +69,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
-import { getSmallerOrderValue } from '../../../server/utils/common.js'
-import { calculateHourMetric } from '../../../server/strategies/calculate/hour.js'
+import { getSmallerOrderValue, calculateHourMetric } from '../../../utils/chartUtils.js'
 
 const props = defineProps({
   transaction: {

@@ -7,9 +7,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
-import { getSmallerOrderValue } from '../../../server/utils/common.js'
-import { calculateHourMetric } from '../../../server/strategies/calculate/hour.js'
-import { calculateTransaction } from '../../../server/strategies/calculate/signal.js'
+import { getSmallerOrderValue, calculateHourMetric, calculateTransaction } from '../../../utils/chartUtils.js'
 const props = defineProps({
   signal: {
     type: Object,

@@ -196,7 +196,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 
-// 直接在组件中实现 dayLineFormat 函数，避免从服务器端导入
+// 从共享工具模块导入函数
 import { dayLineFormat, calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
 
 const route = useRoute()
@@ -282,7 +282,7 @@ function calculateGoals(dayLine) {
 const upColor = '#00da3c'
 const downColor = '#ec0000'
 
-// 计算MA数据
+// 计算MA数据 - 使用自定义实现，因为图表数据格式与工具函数不同
 function calculateMA(dayCount, data) {
   const result = []
   for (let i = 0, len = data.length; i < len; i++) {
