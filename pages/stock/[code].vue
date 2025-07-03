@@ -601,7 +601,18 @@ async function initChart(rawData, goals) {
       axisPointer: {
         link: [{ xAxisIndex: 'all' }],
         label: {
-          backgroundColor: '#777'
+          backgroundColor: '#777',
+          formatter: function(params) {
+            // 格式化日期显示
+            if (params.axisDimension === 'x') {
+              const date = new Date(params.value);
+              const year = date.getFullYear();
+              const month = String(date.getMonth() + 1).padStart(2, '0');
+              const day = String(date.getDate()).padStart(2, '0');
+              return `${year}-${month}-${day}`;
+            }
+            return params.value;
+          }
         }
       },
       // 移除了工具箱配置
@@ -645,7 +656,17 @@ async function initChart(rawData, goals) {
             }
           },
           axisPointer: {
-            z: 100
+            z: 100,
+            label: {
+              formatter: function(params) {
+                // 格式化日期显示
+                const date = new Date(params.value);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+              }
+            }
           }
         },
         {
