@@ -264,6 +264,25 @@ function formatDate(dateString) {
   })
 }
 
+// 格式化日期为YYYY-MM-DD格式
+function formatDateYYYYMMDD(dateValue) {
+  if (!dateValue) return ''
+  const date = new Date(dateValue)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 格式化日期为MM-DD格式
+function formatDateMMDD(dateValue) {
+  if (!dateValue) return ''
+  const date = new Date(dateValue)
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${month}-${day}`
+}
+
 // 格式化金额
 function formatAmount(amount) {
   if (amount === null || amount === undefined) return '-'
@@ -556,11 +575,7 @@ async function initChart(rawData, goals) {
           if (!param) return '';
           
           // 获取日期并格式化
-          const date = new Date(param.axisValue);
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const formattedDate = `${year}-${month}-${day}`;
+          const formattedDate = formatDateYYYYMMDD(param.axisValue);
           
           // 获取K线数据
           // 数据结构：values.push([item.open, item.close, item.low, item.high])
@@ -605,11 +620,7 @@ async function initChart(rawData, goals) {
           formatter: function(params) {
             // 格式化日期显示
             if (params.axisDimension === 'x') {
-              const date = new Date(params.value);
-              const year = date.getFullYear();
-              const month = String(date.getMonth() + 1).padStart(2, '0');
-              const day = String(date.getDate()).padStart(2, '0');
-              return `${year}-${month}-${day}`;
+              return formatDateYYYYMMDD(params.value);
             }
             return params.value;
           }
@@ -648,11 +659,7 @@ async function initChart(rawData, goals) {
           max: 'dataMax',
           axisLabel: {
             formatter: function(value) {
-              const date = new Date(value)
-              const year = date.getFullYear()
-              const month = String(date.getMonth() + 1).padStart(2, '0')
-              const day = String(date.getDate()).padStart(2, '0')
-              return `${year}-${month}-${day}`
+              return formatDateYYYYMMDD(value)
             }
           },
           axisPointer: {
@@ -660,11 +667,7 @@ async function initChart(rawData, goals) {
             label: {
               formatter: function(params) {
                 // 格式化日期显示
-                const date = new Date(params.value);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+                return formatDateYYYYMMDD(params.value);
               }
             }
           }
@@ -680,10 +683,7 @@ async function initChart(rawData, goals) {
           axisLabel: { 
             show: true,
             formatter: function(value) {
-              const date = new Date(value)
-              const month = String(date.getMonth() + 1).padStart(2, '0')
-              const day = String(date.getDate()).padStart(2, '0')
-              return `${month}-${day}`
+              return formatDateMMDD(value)
             }
           },
           min: 'dataMin',
@@ -692,11 +692,7 @@ async function initChart(rawData, goals) {
             label: {
               formatter: function(params) {
                 // 格式化日期显示
-                const date = new Date(params.value);
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+                return formatDateYYYYMMDD(params.value);
               }
             }
           }
