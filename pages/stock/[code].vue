@@ -197,23 +197,7 @@ import { useRoute } from 'vue-router'
 import * as echarts from 'echarts'
 
 // 直接在组件中实现 dayLineFormat 函数，避免从服务器端导入
-const dayLineFormat = (dayLine, n) => {
-  // 计算出dayLine里每个数据的max和min,max为前后n天的high最大值,min为前后n天的low最小值
-  const result = dayLine.map((item, i) => {
-    const max = Math.max(...dayLine.slice(Math.max(0, i - n), Math.min(dayLine.length, i + n + 1)).map(item => item.high))
-    const min = Math.min(...dayLine.slice(Math.max(0, i - n), Math.min(dayLine.length, i + n + 1)).map(item => item.low))
-    return {
-      ...item,
-      max,
-      min,
-      // 趋势开始
-      trendStart: min === item.low,
-      // 趋势结束
-      trendEnd: max === item.high
-    }
-  })
-  return result
-}
+import { dayLineFormat, calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
 
 const route = useRoute()
 const chartContainer = ref(null)
@@ -283,78 +267,15 @@ function formatDateMMDD(dateValue) {
   return `${month}-${day}`
 }
 
-// 格式化金额
-function formatAmount(amount) {
-  if (amount === null || amount === undefined) return '-'
-  return new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: 'CNY',
-    minimumFractionDigits: 2
-  }).format(amount)
-}
-
 // 获取盈亏样式类
 function getProfitClass(profit) {
   if (!profit && profit !== 0) return ''
   return profit > 0 ? 'text-green-600' : profit < 0 ? 'text-red-600' : ''
 }
 
-// 格式化盈亏
-function formatProfit(profit) {
-  if (profit === null || profit === undefined) return '-'
-  return new Intl.NumberFormat('zh-CN', {
-    style: 'currency',
-    currency: 'CNY',
-    minimumFractionDigits: 2
-  }).format(profit)
-}
-
-// 格式化盈亏百分比
-function formatProfitPercentage(profit) {
-  if (profit === null || profit === undefined) return '-'
-  return `${profit > 0 ? '+' : ''}${profit.toFixed(2)}%`
-}
-
-// 保留此函数供用户实现
+// 使用工具函数并应用过滤器
 function calculateGoals(dayLine) {
-
-  const tmp = dayLine.filter(item => item.trendStart || item.trendEnd)
-  const goals = tmp.reduce((result, item, index) => {
-    const next = tmp[index + 1]
-    if (item.trendStart && next && next.trendEnd) {
-      const duration = (new Date(next.time).getTime() - new Date(item.time).getTime()) / (1000 * 60 * 60 * 24)
-      const profit = (next.high - item.low) / item.low * 100
-      const dailyProfit = profit / duration
-      
-      // 应用过滤器：如果利润或日均利润小于过滤器值，则跳过此项
-      if (profit < profitFilter.value || dailyProfit < dailyProfitFilter.value) {
-        return result
-      }
-      
-      // 不再需要为每个goal添加唯一标识符，将使用数组索引
-      return [
-        ...result,
-        {
-          // 不再添加id字段
-          startPrice: item.low,
-          endPrice: next.high,
-          goalType: item.low < next.high ? 'buy' : 'sell',
-          startTime: item.time,
-          endTime: next.time,
-          profit,
-          // 计算duration,time是Date格式,需要转换为毫秒
-          duration,
-          // 日均涨幅
-          dailyProfit,
-        }
-      ]
-    }
-    return result
-  }, [])
-  console.log(goals)
-  return goals.map((goal, index) => { 
-    return {...goal, index }
-  });
+  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value);
 }
 
 // 颜色配置
