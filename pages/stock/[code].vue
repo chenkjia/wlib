@@ -95,9 +95,9 @@
               :key="index"
               class="p-4 hover:bg-gray-50 cursor-pointer transition-colors duration-200"
               @click="selectedGoal = goal"
-              @mouseover="highlightGoalPoints(goal)"
+              @mouseover="highlightGoalPoints(goal, index)"
               @mouseout="resetHighlight()"
-              :class="{'bg-blue-50': selectedGoal && selectedGoal.id === goal.id}"
+              :class="{'bg-blue-50': selectedGoal && goals.indexOf(selectedGoal) === index}"
             >
               <div class="flex justify-between items-center mb-2">
                 <div class="font-medium flex items-center space-x-2">
@@ -260,9 +260,7 @@ function formatDate(dateString) {
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: '2-digit'
   })
 }
 
@@ -314,13 +312,11 @@ function calculateGoals(dayLine) {
         return result
       }
       
-      // 为每个goal添加唯一标识符
-      const goalId = item.time + '-' + next.time
-      
+      // 不再需要为每个goal添加唯一标识符，将使用数组索引
       return [
         ...result,
         {
-          id: goalId, // 添加唯一标识符
+          // 不再添加id字段
           startPrice: item.low,
           endPrice: next.high,
           goalType: item.low < next.high ? 'buy' : 'sell',
@@ -337,7 +333,9 @@ function calculateGoals(dayLine) {
     return result
   }, [])
   console.log(goals)
-  return goals;
+  return goals.map((goal, index) => { 
+    return {...goal, index }
+  });
 }
 
 // 颜色配置
@@ -362,7 +360,7 @@ function calculateMA(dayCount, data) {
 }
 
 // 格式化数据
-function splitData(rawData) {
+function splitData(rawData, goals) {
   const categoryData = []
   const values = []
   const volumes = []
@@ -373,64 +371,51 @@ function splitData(rawData) {
 
   for (let i = 0; i < rawData.length; i++) {
     const item = rawData[i]
-    categoryData.push(item.date)
+    // 使用原始时间数据，格式化将在axisLabel中处理
+    categoryData.push(item.time)
     values.push([item.open, item.close, item.low, item.high])
     volumes.push([i, item.volume, item.open > item.close ? 1 : -1])
     
     // 存储日期到索引的映射
-    dateToIndexMap[item.date] = i
+    dateToIndexMap[item.time] = i
   }
   
-  // 添加所有趋势点（恢复原来的逻辑，确保点能显示）
-  for (let i = 0; i < rawData.length; i++) {
-    const item = rawData[i]
-    
-    // 添加趋势开始和结束标记点
-    if (item.trendStart) {
-      trendStartPoints.push({
-        coord: [i, item.low],
-        value: '趋势开始',
-        itemStyle: {
-          color: '#1E90FF'
+  // 只添加与过滤后的goals相关的趋势点
+  if (goals && goals.length > 0) {
+    // 遍历过滤后的goals，找到对应的趋势开始和结束点
+    goals.forEach((goal, goalIndex) => {
+      // 查找与goal.startTime匹配的趋势开始点
+      for (let i = 0; i < rawData.length; i++) {
+        const item = rawData[i]
+        
+        // 添加趋势开始点（买入点）
+        if (item.time === goal.startTime && item.trendStart) {
+          trendStartPoints.push({
+            coord: [i, item.low],
+            value: '趋势开始',
+            goalIndex: goalIndex, // 使用索引而不是id
+            itemStyle: {
+              color: '#1E90FF'
+            }
+          })
         }
-      })
-    }
-    
-    if (item.trendEnd) {
-      trendEndPoints.push({
-        coord: [i, item.high],
-        value: '趋势结束',
-        itemStyle: {
-          color: '#FF4500'
+        
+        // 添加趋势结束点（卖出点）
+        if (item.time === goal.endTime && item.trendEnd) {
+          trendEndPoints.push({
+            coord: [i, item.high],
+            value: '趋势结束',
+            goalIndex: goalIndex, // 使用索引而不是id
+            itemStyle: {
+              color: '#FF4500'
+            }
+          })
         }
-      })
-    }
-  }
-  
-  // 如果有goals，为它们添加goalId，用于高亮显示
-  if (goals.value && goals.value.length > 0) {
-    goals.value.forEach(goal => {
-      // 查找与goal.startTime和goal.endTime匹配的点
-      const startPoint = trendStartPoints.find((point, idx) => {
-        const date = rawData[point.coord[0]].time
-        return date === goal.startTime
-      })
-      
-      const endPoint = trendEndPoints.find((point, idx) => {
-        const date = rawData[point.coord[0]].time
-        return date === goal.endTime
-      })
-      
-      // 为找到的点添加goalId
-      if (startPoint) {
-        startPoint.goalId = goal.id
-      }
-      
-      if (endPoint) {
-        endPoint.goalId = goal.id
       }
     })
   }
+  
+  // 趋势点已经在添加时直接设置了goalId，不需要额外处理
 
   return {
     categoryData,
@@ -465,15 +450,16 @@ async function refreshChart() {
   }
 }
 
-// 存储当前高亮的goalId
-const currentHighlightGoalId = ref(null)
+// 存储当前高亮的goal索引
+const currentHighlightIndex = ref(null)
 
 // 高亮显示目标点
-function highlightGoalPoints(goal) {
+function highlightGoalPoints(goal, index) {
+  console.log(index)
   if (!myChart) return
   
-  // 设置当前高亮的goalId
-  currentHighlightGoalId.value = goal.id
+  // 设置当前高亮的索引
+  currentHighlightIndex.value = index
   
   // 更新图表，触发高亮效果
   myChart.dispatchAction({
@@ -489,15 +475,10 @@ function highlightGoalPoints(goal) {
       markPoint: {
         data: myChart.getOption().series[0].markPoint.data.map(point => {
           // 如果是当前高亮的goal，增加symbolSize和改变颜色
-          if (point.goalId === currentHighlightGoalId.value) {
+          if (point.goalIndex === currentHighlightIndex.value) {
             return {
               ...point,
-              symbolSize: 40, // 增大尺寸
-              itemStyle: {
-                color: point.itemStyle.color === '#1E90FF' ? '#00BFFF' : '#FF6347', // 稍微改变颜色
-                shadowBlur: 10,
-                shadowColor: '#fff'
-              }
+              symbolSize: 50,
             }
           }
           return point
@@ -511,8 +492,8 @@ function highlightGoalPoints(goal) {
 function resetHighlight() {
   if (!myChart) return
   
-  // 清除当前高亮的goalId
-  currentHighlightGoalId.value = null
+  // 清除当前高亮的索引
+  currentHighlightIndex.value = null
   
   // 更新图表，取消高亮效果
   myChart.dispatchAction({
@@ -528,10 +509,7 @@ function resetHighlight() {
         data: myChart.getOption().series[0].markPoint.data.map(point => {
           return {
             ...point,
-            symbolSize: 30, // 恢复原始尺寸
-            itemStyle: {
-              color: point.itemStyle.color === '#00BFFF' ? '#1E90FF' : '#FF4500' // 恢复原始颜色
-            }
+            symbolSize: 30,
           }
         })
       }
@@ -540,9 +518,9 @@ function resetHighlight() {
 }
 
 // 初始化图表
-async function initChart(rawData) {
+async function initChart(rawData, goals) {
   try {
-    const data = splitData(rawData)
+    const data = splitData(rawData, goals)
 
     // 计算MA数据
     const ma7 = calculateMA(7, data.values)
@@ -571,6 +549,53 @@ async function initChart(rawData) {
           }
           obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30
           return obj
+        },
+        formatter: function (params) {
+          // 获取第一个数据点（K线图）
+          const param = params[0];
+          if (!param) return '';
+          
+          // 获取日期并格式化
+          const date = new Date(param.axisValue);
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const formattedDate = `${year}-${month}-${day}`;
+          
+          // 获取K线数据
+          // 数据结构：values.push([item.open, item.close, item.low, item.high])
+          const data = param.data;
+          if (!data || !Array.isArray(data)) {
+            return formattedDate;
+          }
+          
+          // 构建tooltip内容
+          let result = [`日期: ${formattedDate}`];
+          
+          // K线数据
+          if (data.length >= 4) {
+            result.push(
+              `开盘: ${data[0]}`,
+              `收盘: ${data[1]}`,
+              `最低: ${data[2]}`,
+              `最高: ${data[3]}`
+            );
+          }
+          
+          // 添加均线数据
+          params.forEach(param => {
+            if (param.seriesName.includes('MA') && param.value !== undefined) {
+              result.push(`${param.seriesName}: ${param.value}`);
+            }
+          });
+          
+          // 添加成交量数据
+          const volumeParam = params.find(p => p.seriesName === '成交量');
+          if (volumeParam && volumeParam.data && volumeParam.data.length > 1) {
+            result.push(`成交量: ${volumeParam.data[1]}`);
+          }
+          
+          return result.join('<br/>');
         }
       },
       axisPointer: {
@@ -610,6 +635,15 @@ async function initChart(rawData) {
           splitLine: { show: false },
           min: 'dataMin',
           max: 'dataMax',
+          axisLabel: {
+            formatter: function(value) {
+              const date = new Date(value)
+              const year = date.getFullYear()
+              const month = String(date.getMonth() + 1).padStart(2, '0')
+              const day = String(date.getDate()).padStart(2, '0')
+              return `${year}-${month}-${day}`
+            }
+          },
           axisPointer: {
             z: 100
           }
@@ -622,7 +656,15 @@ async function initChart(rawData) {
           axisLine: { onZero: false },
           axisTick: { show: false },
           splitLine: { show: false },
-          axisLabel: { show: false },
+          axisLabel: { 
+            show: true,
+            formatter: function(value) {
+              const date = new Date(value)
+              const month = String(date.getMonth() + 1).padStart(2, '0')
+              const day = String(date.getDate()).padStart(2, '0')
+              return `${month}-${day}`
+            }
+          },
           min: 'dataMin',
           max: 'dataMax'
         }
