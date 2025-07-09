@@ -20,12 +20,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // 确保MongoDB已连接
     await MongoDB.connect();
-    const dayLine = await MongoDB.getDayLine(
-      code as string, 
-      startTime ? startTime as Date : undefined, 
-      endTime ? endTime as Date : undefined
-    );
+    
+    // 添加超时处理
+    const dayLine = await Promise.race([
+      MongoDB.getDayLine(
+        code as string, 
+        startTime ? startTime as Date : undefined, 
+        endTime ? endTime as Date : undefined
+      ),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('获取日线数据超时')), 5000)
+      )
+    ]);
     return dayLine;
   } catch (error) {
     logger.error(`获取股票 ${code} 日线数据失败:`, error);

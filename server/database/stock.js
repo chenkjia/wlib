@@ -16,20 +16,26 @@ class StockDB {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
             
-            // 查询总数
-            const total = await Stock.countDocuments({});
+            // 使用Promise.all并行执行查询总数和查询数据，提高性能
+            const [total, stocks] = await Promise.all([
+                // 查询总数 - 使用索引提高性能
+                Stock.countDocuments({}).hint({ code: 1 }),
+                
+                // 查询当前页的数据 - 明确指定只获取需要的字段，使用索引
+                Stock.find({}, {
+                    _id: 0, // 不返回_id字段
+                    code: 1,
+                    name: 1
+                })
+                .hint({ code: 1 }) // 明确使用code索引
+                .sort({ code: 1 }) // 按股票代码排序
+                .skip(skip)
+                .limit(pageSize)
+                .lean() // 返回纯JavaScript对象，而不是Mongoose文档，提高性能
+            ]);
             
             // 计算总页数
             const totalPages = Math.ceil(total / pageSize);
-            
-            // 查询当前页的数据
-            const stocks = await Stock.find({}, {
-                code: 1,
-                name: 1
-            })
-            .sort({ code: 1 }) // 按股票代码排序
-            .skip(skip)
-            .limit(pageSize);
             
             return {
                 stocks,

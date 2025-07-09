@@ -7,7 +7,9 @@ import { Signal } from '../database/models/signal.js';
  */
 export default defineEventHandler(async (event) => {
   try {
+    // 确保MongoDB已连接
     await MongoDB.connect();
+    
     const query = getQuery(event);
     const page = parseInt(query.page as string) || 1;
     const pageSize = parseInt(query.pageSize as string) || 10;
@@ -18,11 +20,20 @@ export default defineEventHandler(async (event) => {
     const filter = stockCode ? { stockCode } : {};
     const sortOptions = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
     
-    const total = await Signal.countDocuments(filter);
-    const signals = await Signal.find(filter)
-      .sort(sortOptions as { [key: string]: import('mongoose').SortOrder })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize);
+    // 使用Promise.all并行执行查询，提高性能
+    const [total, signals] = await Promise.race([
+      Promise.all([
+        Signal.countDocuments(filter),
+        Signal.find(filter)
+          .sort(sortOptions as { [key: string]: import('mongoose').SortOrder })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .lean() // 返回纯JavaScript对象，提高性能
+      ]),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('获取交易信号列表超时')), 5000)
+      )
+    ]);
 
     return {
       total,

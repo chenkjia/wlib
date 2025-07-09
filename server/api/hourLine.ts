@@ -20,12 +20,20 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
+    // 确保MongoDB已连接
     await MongoDB.connect();
-    const hourLine = await MongoDB.getHourLine(
-      code as string,
-      startTime ? startTime as Date : undefined,
-      endTime ? endTime as Date : undefined
-    );
+    
+    // 添加超时处理
+    const hourLine = await Promise.race([
+      MongoDB.getHourLine(
+        code as string,
+        startTime ? startTime as Date : undefined,
+        endTime ? endTime as Date : undefined
+      ),
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('获取小时线数据超时')), 5000)
+      )
+    ]);
     return hourLine;
   } catch (error) {
     logger.error(`获取股票 ${code} 小时线数据失败:`, error);

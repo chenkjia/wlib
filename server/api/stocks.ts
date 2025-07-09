@@ -22,9 +22,16 @@ export default defineEventHandler(async (event) => {
     const page = parseInt(query.page as string) || 1
     const pageSize = parseInt(query.pageSize as string) || 20
     
+    // 确保MongoDB已连接
     await MongoDB.connect();
-    // 获取分页数据
-    const result = await MongoDB.getList(page, pageSize) as StockListResult;
+    
+    // 获取分页数据 - 添加超时处理
+    const result = await Promise.race([
+      MongoDB.getList(page, pageSize) as Promise<StockListResult>,
+      new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('获取股票列表超时')), 5000)
+      )
+    ]);
     
     if (!result || !result.stocks || !Array.isArray(result.stocks)) {
       throw new Error('获取的股票数据格式不正确');
