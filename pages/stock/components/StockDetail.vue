@@ -64,6 +64,27 @@
               </button>
             </div>
           </div>
+          
+          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
+            <label for="durationFilter" class="mr-2 text-sm">持续天数(天):</label>
+            <div class="flex items-center">
+              <input 
+                id="durationFilter"
+                v-model.number="durationFilter" 
+                type="number" 
+                min="0" 
+                step="1"
+                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
+              />
+              <button 
+                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
+                @click="refreshChart"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+          
           <button 
             class="bg-gray-800 text-white p-2 rounded-md"
             @click="toggleFullScreen"
@@ -212,9 +233,10 @@ const goals = ref([])
 const loading = ref(true)
 const error = ref('')
 const selectedGoal = ref(null)
-const trendInterval = ref(14) // 默认趋势间隔为14天
-const profitFilter = ref(0) // 默认利润过滤器为0，不过滤任何数据
-const dailyProfitFilter = ref(0) // 默认日均利润过滤器为0，不过滤任何数据
+const trendInterval = ref(40) // 默认趋势间隔为14天
+const profitFilter = ref(50) // 默认利润过滤器为0，不过滤任何数据
+const dailyProfitFilter = ref(2) // 默认日均利润过滤器为0，不过滤任何数据
+const durationFilter = ref(7) // 默认持续天数过滤器为0，不过滤任何数据
 let myChart = null
 
 // 切换全屏显示
@@ -279,8 +301,8 @@ function getProfitClass(profit) {
 
 // 使用工具函数并应用过滤器
 function calculateGoals(dayLine) {
-  // 添加斜率阈值和窗口大小参数
-  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value);
+  // 添加斜率阈值、窗口大小参数和持续天数过滤参数
+  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value, durationFilter.value);
 }
 
 // 颜色配置
@@ -777,7 +799,7 @@ async function loadStockData() {
 // 监听趋势间隔变化，仅进行范围限制
 watch(trendInterval, (newValue) => {
   if (newValue < 1) trendInterval.value = 1
-  if (newValue > 30) trendInterval.value = 30
+  if (newValue > 60) trendInterval.value = 60
 })
 
 // 监听股票代码变化

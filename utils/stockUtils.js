@@ -94,9 +94,10 @@ function calculateSlope(prices) {
  * @param {Number} dailyProfitFilter - 日均利润过滤器值，低于此值的趋势将被过滤
  * @param {Number} slopeThreshold - 斜率阈值，用于确定趋势变化点，默认为0.5
  * @param {Number} windowSize - 计算斜率的窗口大小，默认为14
+ * @param {Number} durationFilter - 持续天数过滤器值，低于此值的趋势将被过滤，默认为0
  * @returns {Array} 目标趋势列表
  */
-export const calculateGoals = (dayLine, profitFilter = 0, dailyProfitFilter = 0, slopeThreshold = 0.5, windowSize = 14) => {
+export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7) => {
   // 使用斜率分析法识别趋势变化点
   const tmp = dayLine.filter(item => item.slopeTrendStart || item.slopeTrendEnd || item.trendStart || item.trendEnd);
   
@@ -117,8 +118,8 @@ export const calculateGoals = (dayLine, profitFilter = 0, dailyProfitFilter = 0,
       const profit = (next.high - current.low) / current.low * 100;
       const dailyProfit = profit / duration;
       
-      // 应用过滤器：如果利润或日均利润小于过滤器值，则跳过此项
-      if (profit < profitFilter || dailyProfit < dailyProfitFilter) {
+      // 应用过滤器：如果利润、日均利润或持续天数小于过滤器值，则跳过此项
+      if (profit < profitFilter || dailyProfit < dailyProfitFilter || duration < durationFilter) {
         continue;
       }
       
