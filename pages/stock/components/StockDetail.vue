@@ -279,7 +279,8 @@ function getProfitClass(profit) {
 
 // 使用工具函数并应用过滤器
 function calculateGoals(dayLine) {
-  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value);
+  // 添加斜率阈值和窗口大小参数
+  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value);
 }
 
 // 颜色配置
@@ -332,11 +333,11 @@ function splitData(rawData, goals) {
       for (let i = 0; i < rawData.length; i++) {
         const item = rawData[i]
         
-        // 添加趋势开始点（买入点）
-        if (item.time === goal.startTime && item.trendStart) {
+        // 添加趋势开始点（买入点）- 支持传统方法和斜率分析法
+        if (item.time === goal.startTime && (item.trendStart || item.slopeTrendStart)) {
           trendStartPoints.push({
             coord: [i, item.low],
-            value: '趋势开始',
+            value: item.slopeTrendStart ? '斜率趋势开始' : '趋势开始',
             goalIndex: goalIndex, // 使用索引而不是id
             itemStyle: {
               color: '#1E90FF'
@@ -344,11 +345,11 @@ function splitData(rawData, goals) {
           })
         }
         
-        // 添加趋势结束点（卖出点）
-        if (item.time === goal.endTime && item.trendEnd) {
+        // 添加趋势结束点（卖出点）- 支持传统方法和斜率分析法
+        if (item.time === goal.endTime && (item.trendEnd || item.slopeTrendEnd)) {
           trendEndPoints.push({
             coord: [i, item.high],
-            value: '趋势结束',
+            value: item.slopeTrendEnd ? '斜率趋势结束' : '趋势结束',
             goalIndex: goalIndex, // 使用索引而不是id
             itemStyle: {
               color: '#FF4500'
@@ -377,8 +378,8 @@ async function refreshChart() {
     const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
     let rawData = await response.json()
     
-    // 使用dayLineFormat处理数据，添加趋势标记
-    rawData = dayLineFormat(rawData, trendInterval.value)
+    // 使用dayLineFormat处理数据，添加趋势标记，包括斜率分析
+    rawData = dayLineFormat(rawData, trendInterval.value, 0.5)
     
     // 重新计算目标趋势
     goals.value = calculateGoals(rawData)

@@ -1,78 +1,117 @@
 <template>
-  <div class="flex flex-col md:flex-row h-screen">
-    <!-- 左侧股票列表 -->
-    <div class="w-full md:w-1/4 p-4 bg-gray-50 border-r overflow-auto">
-      <div class="mb-4">
-        <h2 class="text-xl font-bold mb-4">股票列表</h2>
-        <div class="relative">
-          <input 
-            v-model="searchQuery" 
-            type="text" 
-            placeholder="搜索股票代码或名称" 
-            class="w-full p-2 border rounded-md pl-8"
-          />
-          <div class="absolute left-2 top-2.5 text-gray-400">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+  <div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row gap-6">
+      <!-- 左侧股票列表 -->
+      <div class="w-full md:w-1/3 lg:w-1/4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+          <h2 class="text-xl font-bold mb-4">股票列表</h2>
+          
+          <!-- 搜索框 -->
+          <div class="mb-4 relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索股票代码或名称"
+              class="w-full px-3 py-2 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+            />
+            <!-- 搜索图标 -->
+            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <!-- 搜索中指示器 -->
+            <div v-if="searchQuery && searchQuery !== debouncedSearchQuery.value" class="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+            </div>
+          </div>
+          
+          <!-- 加载状态 -->
+          <div v-if="stocksLoading" class="py-4 text-center">
+            <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="mt-2">加载中...</p>
+          </div>
+          
+          <!-- 错误信息 -->
+          <div v-else-if="stocksError" class="py-4 text-center text-red-500">
+            <p>{{ stocksError }}</p>
+            <button 
+              @click="fetchStocks" 
+              class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            >
+              重试
+            </button>
+          </div>
+          
+          <!-- 股票列表 -->
+          <div v-else-if="displayedStocks.length > 0" class="max-h-[calc(100vh-260px)] overflow-y-auto">
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+              <li 
+                v-for="stock in displayedStocks" 
+                :key="stock.code"
+                @click="selectStock(stock.code)"
+                :class="{
+                  'bg-blue-50 dark:bg-blue-900': selectedStockCode === stock.code,
+                  'hover:bg-gray-50 dark:hover:bg-gray-700': selectedStockCode !== stock.code
+                }"
+                class="px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md"
+              >
+                <div class="flex justify-between items-center">
+                  <span class="font-medium">{{ stock.code }}</span>
+                  <span>{{ stock.name }}</span>
+                </div>
+              </li>
+            </ul>
+            
+            <!-- 分页控件 -->
+            <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between border-t pt-3">
+              <div class="text-sm text-gray-500">
+                共 {{ totalStocks }} 条，{{ currentPage }}/{{ totalPages }} 页
+              </div>
+              <div class="flex space-x-2">
+                <button 
+                  @click="changePage(currentPage - 1)" 
+                  :disabled="currentPage <= 1"
+                  :class="{
+                    'opacity-50 cursor-not-allowed': currentPage <= 1,
+                    'hover:bg-blue-600': currentPage > 1
+                  }"
+                  class="px-3 py-1 bg-blue-500 text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                  上一页
+                </button>
+                <button 
+                  @click="changePage(currentPage + 1)" 
+                  :disabled="currentPage >= totalPages"
+                  :class="{
+                    'opacity-50 cursor-not-allowed': currentPage >= totalPages,
+                    'hover:bg-blue-600': currentPage < totalPages
+                  }"
+                  class="px-3 py-1 bg-blue-500 text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                >
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 无结果 -->
+          <div v-else class="py-4 text-center text-gray-500 dark:text-gray-400">
+            <p>没有找到匹配的股票</p>
           </div>
         </div>
       </div>
       
-      <!-- 加载状态 -->
-      <div v-if="stocksLoading" class="flex justify-center items-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-      
-      <!-- 错误状态 -->
-      <div v-else-if="stocksError" class="text-red-500 p-4 text-center">
-        {{ stocksError }}
-        <button @click="fetchStocks" class="mt-2 text-blue-500 underline">重试</button>
-      </div>
-      
-      <!-- 无结果状态 -->
-      <div v-else-if="filteredStocks.length === 0" class="text-gray-500 p-4 text-center">
-        未找到匹配的股票
-      </div>
-      
-      <!-- 股票列表 -->
-      <div v-else class="divide-y">
-        <div 
-          v-for="stock in filteredStocks" 
-          :key="stock.code"
-          @click="selectStock(stock.code)"
-          class="p-3 hover:bg-blue-50 cursor-pointer transition-colors duration-200 flex justify-between items-center"
-          :class="{'bg-blue-100': selectedStockCode === stock.code}"
-        >
-          <div>
-            <div class="font-medium">{{ stock.code }}</div>
-            <div class="text-sm text-gray-600">{{ stock.name }}</div>
-          </div>
-          <div class="text-blue-500">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </div>
+      <!-- 右侧股票详情 -->
+      <div class="w-full md:w-2/3 lg:w-3/4">
+        <StockDetail 
+          v-if="selectedStockCode" 
+          :stock-code="selectedStockCode"
+          @error="handleStockDetailError"
+        />
+        <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+          <p class="text-gray-500 dark:text-gray-400">请选择一个股票查看详情</p>
         </div>
-      </div>
-    </div>
-    
-    <!-- 右侧股票详情 -->
-    <div v-if="selectedStockCode" class="w-full md:w-3/4 overflow-hidden">
-      <StockDetail 
-        :stock-code="selectedStockCode" 
-        @error="handleStockDetailError"
-      />
-    </div>
-    
-    <!-- 未选择股票时的提示 -->
-    <div v-else class="w-full md:w-3/4 flex items-center justify-center bg-gray-100">
-      <div class="text-center p-8">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-        <h3 class="text-xl font-medium text-gray-700 mb-2">请选择股票</h3>
-        <p class="text-gray-500">从左侧列表中选择一个股票以查看详细信息</p>
       </div>
     </div>
   </div>
@@ -83,6 +122,24 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import StockDetail from '~/pages/stock/components/StockDetail.vue'
 
+// 防抖函数
+function useDebounce(value, delay = 300) {
+  const debouncedValue = ref(value)
+  let timeout
+  
+  watch(
+    () => value,
+    (newValue) => {
+      clearTimeout(timeout)
+      timeout = setTimeout(() => {
+        debouncedValue.value = newValue
+      }, delay)
+    }
+  )
+  
+  return debouncedValue
+}
+
 const route = useRoute()
 
 // 状态变量
@@ -90,17 +147,45 @@ const stocks = ref([])
 const stocksLoading = ref(true)
 const stocksError = ref('')
 const searchQuery = ref('')
+// 使用防抖处理搜索查询，延迟300毫秒
+const debouncedSearchQuery = useDebounce(searchQuery, 300)
 const selectedStockCode = ref('')
+
+// 分页相关状态
+const currentPage = ref(1)
+const pageSize = ref(20)
+const totalStocks = ref(0)
+const totalPages = ref(1)
 
 // 过滤后的股票列表
 const filteredStocks = computed(() => {
-  if (!searchQuery.value) return stocks.value
+  if (!debouncedSearchQuery.value) return stocks.value
   
-  const query = searchQuery.value.toLowerCase()
+  const query = debouncedSearchQuery.value.toLowerCase()
   return stocks.value.filter(stock => 
     stock.code.toLowerCase().includes(query) || 
     stock.name.toLowerCase().includes(query)
   )
+})
+
+// 当前显示的股票列表（考虑搜索和分页）
+const displayedStocks = computed(() => {
+  // 如果有搜索查询，则显示过滤后的结果
+  if (debouncedSearchQuery.value) {
+    // 在客户端对搜索结果进行分页，避免返回过多数据
+    const start = (currentPage.value - 1) * pageSize.value
+    const end = start + pageSize.value
+    const filtered = filteredStocks.value
+    
+    // 更新总数和总页数
+    totalStocks.value = filtered.length
+    totalPages.value = Math.ceil(filtered.length / pageSize.value)
+    
+    // 返回当前页的数据
+    return filtered.slice(start, end)
+  }
+  // 否则显示当前页的数据（由服务器分页）
+  return stocks.value
 })
 
 // 选择股票
@@ -114,19 +199,33 @@ function handleStockDetailError(error) {
   // 可以在这里添加错误处理逻辑，如显示通知等
 }
 
+// 切换页码
+function changePage(page) {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  
+  // 如果不是搜索模式，则从服务器获取新页的数据
+  // 如果是搜索模式，displayedStocks计算属性会自动更新
+  if (!searchQuery.value) {
+    fetchStocks()
+  }
+}
+
 // 获取股票列表
 async function fetchStocks() {
   try {
     stocksLoading.value = true
     stocksError.value = ''
     
-    const response = await fetch('/api/stocks')
+    const response = await fetch(`/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
     
     const data = await response.json()
-    stocks.value = data
+    stocks.value = data.stocks
+    totalStocks.value = data.total
+    totalPages.value = data.totalPages
     
     // 如果列表不为空且没有选中股票，默认选择第一个
     if (stocks.value.length > 0 && !selectedStockCode.value) {
@@ -140,6 +239,17 @@ async function fetchStocks() {
     stocksLoading.value = false
   }
 }
+
+// 监听防抖后的搜索查询变化，重置分页
+watch(debouncedSearchQuery, () => {
+  // 无论是否有搜索内容，都重置到第一页
+  currentPage.value = 1
+  
+  // 如果清空了搜索，则重新从服务器获取数据
+  if (!debouncedSearchQuery.value) {
+    fetchStocks()
+  }
+})
 
 // 监听路由查询参数变化
 watch(() => route.query.stock, (newStock) => {

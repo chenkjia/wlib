@@ -7,15 +7,37 @@ import { Stock } from './models/stock.js';
 class StockDB {
     /**
      * 获取股票列表（不包含历史数据）
-     * @returns {Promise<Array>} 股票列表基本数据
+     * @param {number} page - 页码，从1开始
+     * @param {number} pageSize - 每页数量
+     * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList() {
+    static async getList(page = 1, pageSize = 20) {
         try {
-            const list = await Stock.find({}, {
+            // 计算跳过的文档数量
+            const skip = (page - 1) * pageSize;
+            
+            // 查询总数
+            const total = await Stock.countDocuments({});
+            
+            // 计算总页数
+            const totalPages = Math.ceil(total / pageSize);
+            
+            // 查询当前页的数据
+            const stocks = await Stock.find({}, {
                 code: 1,
                 name: 1
-            });
-            return list;
+            })
+            .sort({ code: 1 }) // 按股票代码排序
+            .skip(skip)
+            .limit(pageSize);
+            
+            return {
+                stocks,
+                total,
+                page,
+                pageSize,
+                totalPages
+            };
         } catch (error) {
             logger.error('获取股票列表失败:', error);
             throw error;

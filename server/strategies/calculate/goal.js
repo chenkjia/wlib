@@ -7,10 +7,10 @@ import { dayLineFormat, calculateGoals as calculateGoalsUtil } from '../../utils
  * @returns {Array} 所有目标列表
  */
 function calculateGoals({ dayLine }) {
-  // 使用默认趋势区间14天
-  const formattedDayLine = dayLineFormat(dayLine, 14);
-  // 使用默认过滤器值0
-  return calculateGoalsUtil(formattedDayLine, 0, 0);
+  // 使用默认趋势区间14天，斜率阈值0.5
+  const formattedDayLine = dayLineFormat(dayLine, 14, 0.5);
+  // 使用默认过滤器值0，斜率阈值0.5，窗口大小14
+  return calculateGoalsUtil(formattedDayLine, 0, 0, 0.5, 14);
 }
 
 export {
