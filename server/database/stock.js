@@ -9,20 +9,27 @@ class StockDB {
      * 获取股票列表（不包含历史数据）
      * @param {number} page - 页码，从1开始
      * @param {number} pageSize - 每页数量
+     * @param {string} search - 搜索关键词
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20) {
+    static async getList(page = 1, pageSize = 20, search = '') {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
             
+            // 构建查询条件，区分大小写的搜索
+            let query = { };
+            if (search) {
+                query = { code: search };
+            }
+            
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
             const [total, stocks] = await Promise.all([
-                // 查询总数 - 使用索引提高性能
-                Stock.countDocuments({}).hint({ code: 1 }),
+                // 查询总数 - 使用查询条件
+                Stock.countDocuments(query).hint({ code: 1 }),
                 
-                // 查询当前页的数据 - 明确指定只获取需要的字段，使用索引
-                Stock.find({}, {
+                // 查询当前页的数据 - 明确指定只获取需要的字段
+                Stock.find(query, {
                     _id: 0, // 不返回_id字段
                     code: 1,
                     name: 1

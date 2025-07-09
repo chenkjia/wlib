@@ -157,34 +157,8 @@ const pageSize = ref(20)
 const totalStocks = ref(0)
 const totalPages = ref(1)
 
-// 过滤后的股票列表
-const filteredStocks = computed(() => {
-  if (!debouncedSearchQuery.value) return stocks.value
-  
-  const query = debouncedSearchQuery.value.toLowerCase()
-  return stocks.value.filter(stock => 
-    stock.code.toLowerCase().includes(query) || 
-    stock.name.toLowerCase().includes(query)
-  )
-})
-
-// 当前显示的股票列表（考虑搜索和分页）
+// 当前显示的股票列表
 const displayedStocks = computed(() => {
-  // 如果有搜索查询，则显示过滤后的结果
-  if (debouncedSearchQuery.value) {
-    // 在客户端对搜索结果进行分页，避免返回过多数据
-    const start = (currentPage.value - 1) * pageSize.value
-    const end = start + pageSize.value
-    const filtered = filteredStocks.value
-    
-    // 更新总数和总页数
-    totalStocks.value = filtered.length
-    totalPages.value = Math.ceil(filtered.length / pageSize.value)
-    
-    // 返回当前页的数据
-    return filtered.slice(start, end)
-  }
-  // 否则显示当前页的数据（由服务器分页）
   return stocks.value
 })
 
@@ -204,11 +178,8 @@ function changePage(page) {
   if (page < 1 || page > totalPages.value) return
   currentPage.value = page
   
-  // 如果不是搜索模式，则从服务器获取新页的数据
-  // 如果是搜索模式，displayedStocks计算属性会自动更新
-  if (!searchQuery.value) {
-    fetchStocks()
-  }
+  // 从服务器获取新页的数据
+  fetchStocks()
 }
 
 // 获取股票列表
@@ -217,7 +188,13 @@ async function fetchStocks() {
     stocksLoading.value = true
     stocksError.value = ''
     
-    const response = await fetch(`/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`)
+    // 构建URL，包含搜索参数
+    let url = `/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`
+    if (debouncedSearchQuery.value) {
+      url += `&search=${encodeURIComponent(debouncedSearchQuery.value)}`
+    }
+    
+    const response = await fetch(url)
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)
     }
@@ -240,15 +217,13 @@ async function fetchStocks() {
   }
 }
 
-// 监听防抖后的搜索查询变化，重置分页
+// 监听防抖后的搜索查询变化，重置分页并重新获取数据
 watch(debouncedSearchQuery, () => {
   // 无论是否有搜索内容，都重置到第一页
   currentPage.value = 1
   
-  // 如果清空了搜索，则重新从服务器获取数据
-  if (!debouncedSearchQuery.value) {
-    fetchStocks()
-  }
+  // 重新从服务器获取数据
+  fetchStocks()
 })
 
 // 监听路由查询参数变化

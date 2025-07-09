@@ -12,26 +12,31 @@ interface StockListResult {
 
 /**
  * 获取股票列表
- * @param {Object} query - 查询参数，包含页码和每页数量
- * @returns {Object} 包含股票列表和总数的对象
+ * @returns {Object} 包含所有股票列表的对象
  */
 export default defineEventHandler(async (event) => {
+  // 设置超时处理
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error('获取股票列表超时'));
+    }, 5000); // 5秒超时
+  });
+
   try {
-    // 获取分页参数
-    const query = getQuery(event)
-    const page = parseInt(query.page as string) || 1
-    const pageSize = parseInt(query.pageSize as string) || 20
-    
+    // 获取查询参数
+    const query = getQuery(event);
+    const page = parseInt(query.page as string) || 1;
+    const pageSize = parseInt(query.pageSize as string) || 20;
+    const search = query.search as string || '';
+
     // 确保MongoDB已连接
     await MongoDB.connect();
     
-    // 获取分页数据 - 添加超时处理
+    // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize) as Promise<StockListResult>,
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('获取股票列表超时')), 5000)
-      )
-    ]);
+      MongoDB.getList(page, pageSize, search),
+      timeoutPromise
+    ]) as StockListResult;
     
     if (!result || !result.stocks || !Array.isArray(result.stocks)) {
       throw new Error('获取的股票数据格式不正确');
