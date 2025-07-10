@@ -1,6 +1,6 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex flex-col md:flex-row gap-6">
+  <div class="w-full h-screen px-0 py-8">
+    <div class="flex flex-col md:flex-row gap-6 h-full">
       <!-- 左侧股票列表 -->
       <div class="w-full md:w-1/3 lg:w-1/4">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
@@ -251,6 +251,15 @@ onMounted(() => {
     height: auto;
     min-height: 100vh;
   }
+}
+
+/* 确保页面铺满屏幕 */
+:deep(body), :deep(html) {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
 }
 
 /* 列表分隔线 */

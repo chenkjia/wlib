@@ -535,13 +535,14 @@ async function initChart(rawData, goals) {
           // 构建tooltip内容
           let result = [`日期: ${formattedDate}`];
           
+          console.log(data)
           // K线数据
-          if (data.length >= 4) {
+          if (data.length >= 5) {
             result.push(
-              `开盘: ${data[0]}`,
-              `收盘: ${data[1]}`,
-              `最低: ${data[2]}`,
-              `最高: ${data[3]}`
+              `开盘: ${data[1]}`,
+              `收盘: ${data[2]}`,
+              `最低: ${data[3]}`,
+              `最高: ${data[4]}`
             );
           }
           
@@ -698,7 +699,7 @@ async function initChart(rawData, goals) {
               ...data.trendEndPoints
             ],
             label: {
-              formatter: '{b}',
+              formatter: '{d}',
               position: 'top',
               distance: 5,
               fontSize: 10
