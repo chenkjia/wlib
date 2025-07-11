@@ -150,7 +150,7 @@ const selectedStockCode = ref('')
 
 // 分页相关状态
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(15)
 const totalStocks = ref(0)
 const totalPages = ref(1)
 
