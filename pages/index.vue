@@ -2,8 +2,8 @@
   <div class="w-full h-screen px-0 py-0">
     <div class="flex flex-col md:flex-row gap-6 h-full">
       <!-- 左侧股票列表 -->
-      <div class="w-full md:w-1/3 lg:w-1/4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div class="w-full md:w-1/3 lg:w-1/4 h-full flex flex-col">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col h-full">
           <h2 class="text-xl font-bold mb-4">股票列表</h2>
           
           <!-- 搜索框 -->
@@ -44,7 +44,7 @@
           </div>
           
           <!-- 股票列表 -->
-          <div v-else-if="displayedStocks.length > 0" class="max-h-[calc(100vh-260px)] overflow-y-auto">
+          <div v-else-if="displayedStocks.length > 0" class="flex-grow overflow-y-auto">
             <ul class="divide-y divide-gray-200 dark:divide-gray-700">
               <li 
                 v-for="stock in displayedStocks" 
@@ -63,8 +63,10 @@
               </li>
             </ul>
             
-            <!-- 分页控件 -->
-            <div v-if="totalPages > 1" class="mt-4 flex items-center justify-between border-t pt-3">
+          </div>
+          
+          <!-- 分页控件 -->
+          <div v-if="totalPages > 1" class="mt-auto pt-3 border-t flex items-center justify-between">
               <div class="text-sm text-gray-500">
                 共 {{ totalStocks }} 条，{{ currentPage }}/{{ totalPages }} 页
               </div>
@@ -93,17 +95,16 @@
                 </button>
               </div>
             </div>
-          </div>
           
           <!-- 无结果 -->
-          <div v-else class="py-4 text-center text-gray-500 dark:text-gray-400">
+          <div v-else class="flex-grow py-4 text-center text-gray-500 dark:text-gray-400">
             <p>没有找到匹配的股票</p>
           </div>
         </div>
       </div>
       
       <!-- 右侧股票详情 -->
-      <div class="w-full md:w-2/3 lg:w-3/4">
+      <div class="w-full md:w-2/3 lg:w-3/4 h-full">
         <StockDetail 
           :stock-code="selectedStockCode || 'ETH'" 
           @error="handleStockDetailError"
@@ -253,6 +254,10 @@ onMounted(() => {
     height: auto;
     min-height: 100vh;
   }
+  
+  .flex-col {
+    height: auto !important;
+  }
 }
 
 /* 确保页面铺满屏幕 */
@@ -274,5 +279,20 @@ onMounted(() => {
 /* 选中状态高亮 */
 .bg-blue-100 {
   background-color: #dbeafe;
+}
+
+/* 确保列表区域占满高度 */
+.h-full {
+  height: 100%;
+}
+
+.flex-grow {
+  flex-grow: 1;
+}
+
+/* 股票列表滚动区域 */
+.overflow-y-auto {
+  min-height: 200px;
+  max-height: calc(100vh - 180px);
 }
 </style>

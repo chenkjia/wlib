@@ -110,7 +110,7 @@
           暂无目标趋势数据
         </div>
         
-        <div v-else class="divide-y overflow-auto max-h-[calc(100vh-200px)]">
+        <div v-else class="divide-y overflow-auto max-h-[calc(100vh-60px)]">
             <div 
               v-for="(goal, index) in goals" 
               :key="index"
