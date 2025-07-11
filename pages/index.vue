@@ -105,13 +105,9 @@
       <!-- 右侧股票详情 -->
       <div class="w-full md:w-2/3 lg:w-3/4">
         <StockDetail 
-          v-if="selectedStockCode" 
-          :stock-code="selectedStockCode"
+          :stock-code="selectedStockCode || 'ETH'" 
           @error="handleStockDetailError"
         />
-        <div v-else class="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-          <p class="text-gray-500 dark:text-gray-400">请选择一个股票查看详情</p>
-        </div>
       </div>
     </div>
   </div>
@@ -207,6 +203,9 @@ async function fetchStocks() {
     // 如果列表不为空且没有选中股票，默认选择第一个
     if (stocks.value.length > 0 && !selectedStockCode.value) {
       selectedStockCode.value = stocks.value[0].code
+    } else if (!selectedStockCode.value) {
+      // 如果列表为空且没有选中股票，默认选择ETH
+      selectedStockCode.value = 'ETH'
     }
     
     stocksLoading.value = false
@@ -240,6 +239,9 @@ onMounted(() => {
   const stockFromQuery = route.query.stock
   if (stockFromQuery && typeof stockFromQuery === 'string') {
     selectedStockCode.value = stockFromQuery
+  } else if (!selectedStockCode.value) {
+    // 如果没有从URL或股票列表中选择股票，默认设置为ETH
+    selectedStockCode.value = 'ETH'
   }
 })
 </script>

@@ -212,7 +212,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 // 从共享工具模块导入函数
@@ -423,78 +423,93 @@ const currentHighlightIndex = ref(null)
 
 // 高亮显示目标点
 function highlightGoalPoints(goal, index) {
-  if (!myChart) return
-  
-  // 设置当前高亮的索引
-  currentHighlightIndex.value = index
-  
-  // 更新图表，触发高亮效果
-  myChart.dispatchAction({
-    type: 'highlight',
-    seriesIndex: 0,
-    dataIndex: [] // 这里不需要指定dataIndex，我们在markPoint中通过自定义itemStyle来高亮
-  })
-  
-  // 重新设置图表选项，应用高亮效果
-  myChart.setOption({
-    series: [{
-      name: 'K线',
-      markPoint: {
-        data: myChart.getOption().series[0].markPoint.data.map(point => {
-          // 如果是当前高亮的goal，增加symbolSize和改变颜色
-          if (point.goalIndex === currentHighlightIndex.value) {
-            return {
-              ...point,
-              symbolSize: 50,
+  try {
+    if (!myChart) return
+    
+    // 设置当前高亮的索引
+    currentHighlightIndex.value = index
+    
+    // 更新图表，触发高亮效果
+    myChart.dispatchAction({
+      type: 'highlight',
+      seriesIndex: 0,
+      dataIndex: [] // 这里不需要指定dataIndex，我们在markPoint中通过自定义itemStyle来高亮
+    })
+    
+    // 重新设置图表选项，应用高亮效果
+    myChart.setOption({
+      series: [{
+        name: 'K线',
+        markPoint: {
+          data: myChart.getOption().series[0].markPoint.data.map(point => {
+            // 如果是当前高亮的goal，增加symbolSize和改变颜色
+            if (point.goalIndex === currentHighlightIndex.value) {
+              return {
+                ...point,
+                symbolSize: 50,
+              }
             }
-          }
-          return point
-        })
-      }
-    }]
-  })
+            return point
+          })
+        }
+      }]
+    })
+  } catch (err) {
+    console.error('高亮目标点失败:', err)
+  }
 }
 
 // 重置高亮效果
 function resetHighlight() {
-  if (!myChart) return
-  
-  // 清除当前高亮的索引
-  currentHighlightIndex.value = null
-  
-  // 更新图表，取消高亮效果
-  myChart.dispatchAction({
-    type: 'downplay',
-    seriesIndex: 0
-  })
-  
-  // 重新设置图表选项，恢复原始效果
-  myChart.setOption({
-    series: [{
-      name: 'K线',
-      markPoint: {
-        data: myChart.getOption().series[0].markPoint.data.map(point => {
-          return {
-            ...point,
-            symbolSize: 30,
-          }
-        })
-      }
-    }]
-  })
+  try {
+    if (!myChart) return
+    
+    // 清除当前高亮的索引
+    currentHighlightIndex.value = null
+    
+    // 更新图表，取消高亮效果
+    myChart.dispatchAction({
+      type: 'downplay',
+      seriesIndex: 0
+    })
+    
+    // 重新设置图表选项，恢复原始效果
+    myChart.setOption({
+      series: [{
+        name: 'K线',
+        markPoint: {
+          data: myChart.getOption().series[0].markPoint.data.map(point => {
+            return {
+              ...point,
+              symbolSize: 30,
+            }
+          })
+        }
+      }]
+    })
+  } catch (err) {
+    console.error('重置高亮效果失败:', err)
+  }
 }
 
 // 初始化图表
 async function initChart(rawData, goals) {
   try {
+    // 检查 myChart 是否存在
+    if (!myChart) {
+      console.error('图表未初始化')
+      return
+    }
+    
+    // 处理数据
     const data = splitData(rawData, goals)
-
-    // 计算MA数据
+    
+    // 计算均线数据
     const ma7 = calculateMA(7, data.values)
     const ma50 = calculateMA(50, data.values)
     const ma100 = calculateMA(100, data.values)
-
-    // 配置项
+    
+    // 设置图表选项
     const option = {
       animation: false,
       // 移除了legend
@@ -535,7 +550,6 @@ async function initChart(rawData, goals) {
           // 构建tooltip内容
           let result = [`日期: ${formattedDate}`];
           
-          console.log(data)
           // K线数据
           if (data.length >= 5) {
             result.push(
@@ -773,8 +787,21 @@ async function loadStockData() {
       myChart = null
     }
     
-    // 重新初始化图表
-    myChart = echarts.init(chartContainer.value, 'dark')
+    // 确保 DOM 元素已经挂载
+    await nextTick()
+    
+    // 检查 chartContainer 是否存在
+    if (!chartContainer.value) {
+      throw new Error('图表容器不存在')
+    }
+    
+    try {
+      // 重新初始化图表
+      myChart = echarts.init(chartContainer.value, 'dark')
+    } catch (chartError) {
+      console.error('初始化图表失败:', chartError)
+      throw new Error('初始化图表失败: ' + chartError.message)
+    }
     
     // 获取日线数据并计算目标趋势
     const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
@@ -804,28 +831,58 @@ watch(trendInterval, (newValue) => {
 })
 
 // 监听股票代码变化
-watch(() => props.stockCode, (newCode, oldCode) => {
+watch(() => props.stockCode, async (newCode, oldCode) => {
   if (newCode && newCode !== oldCode) {
-    loadStockData()
+    try {
+      // 确保组件已经挂载
+      await nextTick()
+      
+      // 确保 chartContainer 已经存在
+      if (!chartContainer.value) {
+        console.warn('图表容器尚未准备好，等待下一个渲染周期')
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      
+      loadStockData()
+    } catch (err) {
+      console.error('监听股票代码变化时出错:', err)
+      error.value = '加载数据失败: ' + err.message
+    }
   }
 }, { immediate: true })
 
-onMounted(() => {
-  // 添加窗口大小变化的监听器
-  window.addEventListener('resize', handleResize)
+onMounted(async () => {
+  try {
+    // 确保 DOM 元素已经挂载
+    await nextTick()
+    
+    // 添加窗口大小变化的监听器
+    window.addEventListener('resize', handleResize)
+  } catch (err) {
+    console.error('组件挂载时出错:', err)
+  }
 })
 
 const handleResize = () => {
-  if (myChart) {
-    myChart.resize()
+  try {
+    if (myChart) {
+      myChart.resize()
+    }
+  } catch (err) {
+    console.error('调整图表大小失败:', err)
   }
 }
 
 onUnmounted(() => {
-  if (myChart) {
-    myChart.dispose()
+  try {
+    if (myChart) {
+      myChart.dispose()
+      myChart = null
+    }
+    window.removeEventListener('resize', handleResize)
+  } catch (err) {
+    console.error('组件卸载时出错:', err)
   }
-  window.removeEventListener('resize', handleResize)
 })
 </script>
 
