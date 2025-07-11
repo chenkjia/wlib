@@ -2,96 +2,97 @@
   <div class="stock-detail">
     <div class="flex flex-col md:flex-row h-full">
       <!-- 中间K线图 -->
-      <div class="chart-wrapper w-full md:w-2/3">
-        <div class="chart-container" ref="chartContainer"></div>
-        <div class="absolute top-2 right-2 z-20 flex flex-col items-end space-y-2">
-          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
-            <label for="trendInterval" class="mr-2 text-sm">趋势间隔:</label>
-            <div class="flex items-center">
-              <input 
-                id="trendInterval"
-                v-model.number="trendInterval" 
-                type="number" 
-                min="1" 
-                max="30" 
-                class="w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
-              />
-              <button 
-                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
-                @click="refreshChart"
-              >
-                确认
-              </button>
-            </div>
+      <div class="chart-wrapper w-full md:w-2/3 relative">
+        <!-- 图表顶部控制面板 -->
+        <div class="absolute top-0 left-0 right-0 z-20 flex flex-row items-center flex-wrap p-2 bg-gray-900 bg-opacity-80 overflow-x-auto">
+        <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+          <label for="trendInterval" class="mr-1 text-xs sm:text-sm">趋势间隔:</label>
+          <div class="flex items-center">
+            <input 
+              id="trendInterval"
+              v-model.number="trendInterval" 
+              type="number" 
+              min="1" 
+              max="30" 
+              class="w-10 sm:w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+            />
+            <button 
+              class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
+              @click="refreshChart"
+            >
+              确认
+            </button>
           </div>
-          
-          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
-            <label for="profitFilter" class="mr-2 text-sm">利润过滤(%):</label>
-            <div class="flex items-center">
-              <input 
-                id="profitFilter"
-                v-model.number="profitFilter" 
-                type="number" 
-                min="0" 
-                step="0.1"
-                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
-              />
-              <button 
-                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
-                @click="refreshChart"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-          
-          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
-            <label for="dailyProfitFilter" class="mr-2 text-sm">日均利润(%):</label>
-            <div class="flex items-center">
-              <input 
-                id="dailyProfitFilter"
-                v-model.number="dailyProfitFilter" 
-                type="number" 
-                min="0" 
-                step="0.01"
-                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
-              />
-              <button 
-                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
-                @click="refreshChart"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-          
-          <div class="bg-gray-800 text-white p-2 rounded-md flex items-center">
-            <label for="durationFilter" class="mr-2 text-sm">持续天数(天):</label>
-            <div class="flex items-center">
-              <input 
-                id="durationFilter"
-                v-model.number="durationFilter" 
-                type="number" 
-                min="0" 
-                step="1"
-                class="w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-sm" 
-              />
-              <button 
-                class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-2 py-0.5 text-sm"
-                @click="refreshChart"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-          
-          <button 
-            class="bg-gray-800 text-white p-2 rounded-md"
-            @click="toggleFullScreen"
-          >
-            <i :class="isFullScreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'"></i>
-          </button>
         </div>
+        
+        <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+          <label for="profitFilter" class="mr-1 text-xs sm:text-sm">利润(%):</label>
+          <div class="flex items-center">
+            <input 
+              id="profitFilter"
+              v-model.number="profitFilter" 
+              type="number" 
+              min="0" 
+              step="0.1"
+              class="w-12 sm:w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+            />
+            <button 
+              class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
+              @click="refreshChart"
+            >
+              确认
+            </button>
+          </div>
+        </div>
+        
+        <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+          <label for="dailyProfitFilter" class="mr-1 text-xs sm:text-sm">日均(%):</label>
+          <div class="flex items-center">
+            <input 
+              id="dailyProfitFilter"
+              v-model.number="dailyProfitFilter" 
+              type="number" 
+              min="0" 
+              step="0.01"
+              class="w-12 sm:w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+            />
+            <button 
+              class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
+              @click="refreshChart"
+            >
+              确认
+            </button>
+          </div>
+        </div>
+        
+        <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+          <label for="durationFilter" class="mr-1 text-xs sm:text-sm">天数:</label>
+          <div class="flex items-center">
+            <input 
+              id="durationFilter"
+              v-model.number="durationFilter" 
+              type="number" 
+              min="0" 
+              step="1"
+              class="w-10 sm:w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+            />
+            <button 
+              class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
+              @click="refreshChart"
+            >
+              确认
+            </button>
+          </div>
+        </div>
+        
+        <button 
+          class="bg-gray-800 text-white p-1.5 rounded-md ml-auto mb-1"
+          @click="toggleFullScreen"
+        >
+          <i :class="isFullScreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'"></i>
+        </button>
+        </div>
+        <div class="chart-container" ref="chartContainer"></div>
       </div>
       
       <!-- 右侧目标趋势 -->
@@ -244,7 +245,7 @@ function toggleFullScreen() {
   isFullScreen.value = !isFullScreen.value
   
   // 获取当前K线图容器
-  const chartWrapper = document.querySelector('.chart-container').parentElement
+  const chartWrapper = document.querySelector('.chart-wrapper')
   if (isFullScreen.value) {
     // 进入全屏模式
     chartWrapper.classList.add('fullscreen-mode')
@@ -258,7 +259,11 @@ function toggleFullScreen() {
   // 调整图表大小
   setTimeout(() => {
     if (myChart) {
-      myChart.resize()
+      try {
+        myChart.resize()
+      } catch (err) {
+        console.error('调整图表大小失败:', err)
+      }
     }
   }, 100)
 }
@@ -713,7 +718,13 @@ async function initChart(rawData, goals) {
               ...data.trendEndPoints
             ],
             label: {
-              formatter: '{d}',
+              formatter: function(params) {
+                // 获取对应点的索引
+                const index = params.data.coord[0];
+                // 获取对应点的收盘价
+                const close = data.values[index][1];
+                return close.toFixed(2);
+              },
               position: 'top',
               distance: 5,
               fontSize: 10
@@ -906,6 +917,16 @@ onUnmounted(() => {
   height: 100%;
   min-height: 400px;
   z-index: 10;
+  position: relative; /* 确保相对定位，使absolute元素相对于它定位 */
+}
+
+
+.stock-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative; /* 确保相对定位 */
 }
 
 .relative {
@@ -946,16 +967,29 @@ onUnmounted(() => {
   position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
-  background-color: white;
   z-index: 1000;
-  padding: 10px;
+  background-color: #121212;
 }
 
 .fullscreen-mode .chart-container {
-  height: calc(100vh - 20px);
+  height: 100%;
 }
+
+@media (max-width: 768px) {
+  .stock-detail {
+    height: auto;
+  }
+  
+  .chart-wrapper {
+    height: 50vh;
+    width: 100% !important;
+  }
+}
+</style>
 
 /* 交易记录样式 */
 .bg-blue-50 {
@@ -979,16 +1013,3 @@ onUnmounted(() => {
   border-top-style: solid;
   border-top-color: #e5e7eb;
 }
-
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .stock-detail {
-    height: auto;
-  }
-  
-  .chart-wrapper {
-    height: 50vh;
-    width: 100% !important;
-  }
-}
-</style>

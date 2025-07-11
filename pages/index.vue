@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full h-screen px-0 py-8">
+  <div class="w-full h-screen px-0 py-0">
     <div class="flex flex-col md:flex-row gap-6 h-full">
       <!-- 左侧股票列表 -->
       <div class="w-full md:w-1/3 lg:w-1/4">
