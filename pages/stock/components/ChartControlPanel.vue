@@ -1,103 +1,72 @@
 <template>
   <div class="absolute top-0 left-0 right-0 z-20 flex flex-row items-center flex-wrap p-2 bg-gray-900 bg-opacity-80 overflow-x-auto">
-    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
-      <label for="trendInterval" class="mr-1 text-xs sm:text-sm">趋势间隔:</label>
-      <div class="flex items-center">
+    <div class="flex flex-wrap items-center">
+      <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+        <label for="trendInterval" class="mr-1 text-xs sm:text-sm">趋势间隔:</label>
         <input 
           id="trendInterval"
           v-model.number="localTrendInterval" 
           type="number" 
           min="1" 
           max="30" 
-          class="w-10 sm:w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+          class="w-10 sm:w-12 bg-gray-700 text-white rounded px-1 py-0.5 text-xs sm:text-sm" 
         />
-        <button 
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
-          @click="emitRefresh"
-        >
-          确认
-        </button>
       </div>
-    </div>
-    
-    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
-      <label for="profitFilter" class="mr-1 text-xs sm:text-sm">利润(%):</label>
-      <div class="flex items-center">
+      
+      <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+        <label for="profitFilter" class="mr-1 text-xs sm:text-sm">利润(%):</label>
         <input 
           id="profitFilter"
           v-model.number="localProfitFilter" 
           type="number" 
           min="0" 
           step="0.1"
-          class="w-12 sm:w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+          class="w-12 sm:w-14 bg-gray-700 text-white rounded px-1 py-0.5 text-xs sm:text-sm" 
         />
-        <button 
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
-          @click="emitRefresh"
-        >
-          确认
-        </button>
       </div>
-    </div>
-    
-    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
-      <label for="dailyProfitFilter" class="mr-1 text-xs sm:text-sm">日均(%):</label>
-      <div class="flex items-center">
+      
+      <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+        <label for="dailyProfitFilter" class="mr-1 text-xs sm:text-sm">日均(%):</label>
         <input 
           id="dailyProfitFilter"
           v-model.number="localDailyProfitFilter" 
           type="number" 
           min="0" 
           step="0.01"
-          class="w-12 sm:w-14 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+          class="w-12 sm:w-14 bg-gray-700 text-white rounded px-1 py-0.5 text-xs sm:text-sm" 
         />
-        <button 
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
-          @click="emitRefresh"
-        >
-          确认
-        </button>
       </div>
-    </div>
-    
-    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
-      <label for="durationFilter" class="mr-1 text-xs sm:text-sm">天数:</label>
-      <div class="flex items-center">
+      
+      <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+        <label for="durationFilter" class="mr-1 text-xs sm:text-sm">天数:</label>
         <input 
           id="durationFilter"
           v-model.number="localDurationFilter" 
           type="number" 
           min="0" 
           step="1"
-          class="w-10 sm:w-12 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+          class="w-10 sm:w-12 bg-gray-700 text-white rounded px-1 py-0.5 text-xs sm:text-sm" 
         />
-        <button 
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
-          @click="emitRefresh"
-        >
-          确认
-        </button>
       </div>
-    </div>
-    
-    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
-      <label for="liquidityFilter" class="mr-1 text-xs sm:text-sm">流动性(万):</label>
-      <div class="flex items-center">
+      
+      <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+        <label for="liquidityFilter" class="mr-1 text-xs sm:text-sm">流动性(万):</label>
         <input 
           id="liquidityFilter"
           v-model.number="localLiquidityFilter" 
           type="number" 
           min="0" 
           step="1"
-          class="w-12 sm:w-16 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+          class="w-12 sm:w-16 bg-gray-700 text-white rounded px-1 py-0.5 text-xs sm:text-sm" 
         />
-        <button 
-          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
-          @click="emitRefresh"
-        >
-          确认
-        </button>
       </div>
+      
+      <button 
+        class="bg-blue-600 hover:bg-blue-700 text-white rounded px-2 py-1 mb-1 mr-1 text-xs sm:text-sm"
+        @click="emitRefresh"
+      >
+        确认
+      </button>
     </div>
     
     <button 

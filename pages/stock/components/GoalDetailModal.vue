@@ -58,6 +58,29 @@
             {{ goal.usedSlopeAnalysis ? '斜率分析法' : '传统极值法' }}
           </div>
         </div>
+        
+        <!-- 流动性统计信息 -->
+        <div v-if="goal.liquidityStats" class="mt-4">
+          <div class="text-sm text-gray-600 mb-1">流动性统计</div>
+          <div class="grid grid-cols-2 gap-4 p-2 bg-gray-100 rounded">
+            <div>
+              <div class="text-xs text-gray-500">平均流动性</div>
+              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.avg) }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500">中位流动性</div>
+              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.median) }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500">最小流动性</div>
+              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.min) }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500">最大流动性</div>
+              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.max) }}</div>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div class="p-4 border-t flex justify-end">
@@ -89,4 +112,17 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close'])
+
+// 格式化流动性数值，将数值转换为更易读的形式（万/亿）
+function formatLiquidity(value) {
+  if (value === undefined || value === null) return '-';
+  
+  if (value >= 100000000) {
+    return (value / 100000000).toFixed(2) + '亿';
+  } else if (value >= 10000) {
+    return (value / 10000).toFixed(2) + '万';
+  } else {
+    return value.toFixed(2);
+  }
+}
 </script>

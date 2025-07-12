@@ -11,7 +11,7 @@
           v-model:durationFilter="durationFilter"
           v-model:liquidityFilter="liquidityFilter"
           :isFullScreen="isFullScreen"
-          @refresh="refreshChart"
+          @refresh="debouncedRefresh"
           @toggleFullScreen="toggleFullScreen"
         />
         <div class="chart-container" ref="chartContainer"></div>
@@ -96,6 +96,26 @@ const liquidityFilter = ref(100) // 流动性过滤器，默认100万
 const currentHighlightIndex = ref(null)
 let myChart = null
 
+// 性能监控指标
+const perfMetrics = {
+  renderTime: 0,
+  dataProcessTime: 0
+}
+
+// 防抖函数
+function debounce(fn, delay) {
+  let timer = null
+  return function(...args) {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => {
+      fn.apply(this, args)
+    }, delay)
+  }
+}
+
+// 使用防抖处理的刷新函数
+const debouncedRefresh = debounce(refreshChart, 300)
+
 // 切换全屏显示
 function toggleFullScreen() {
   isFullScreen.value = !isFullScreen.value
@@ -165,6 +185,8 @@ async function refreshChart() {
     loading.value = true
     error.value = ''
     
+    const startTime = performance.now()
+    
     // 获取日线数据并计算目标趋势
     const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
     let rawData = await response.json()
@@ -173,8 +195,14 @@ async function refreshChart() {
     // 计算目标趋势
     goals.value = calculateGoals(rawData)
     
+    perfMetrics.dataProcessTime = performance.now() - startTime
+    const renderStart = performance.now()
+    
     // 初始化图表
     await initChart(rawData, goals.value)
+    
+    perfMetrics.renderTime = performance.now() - renderStart
+    console.log('Performance metrics:', perfMetrics)
     
     loading.value = false
   } catch (err) {
@@ -285,6 +313,28 @@ function handleError(message, err) {
   emit('error', err.message)
 }
 
+// 添加恢复机制
+async function recoverFromError() {
+  try {
+    error.value = ''
+    loading.value = true
+    
+    // 清理资源
+    if (myChart) {
+      myChart.dispose()
+      myChart = null
+    }
+    
+    // 等待一段时间
+    await new Promise(resolve => setTimeout(resolve, 500))
+    
+    // 重新加载
+    await loadStockData()
+  } catch (err) {
+    handleError('恢复失败', err)
+  }
+}
+
 // 加载股票数据
 async function loadStockData() {
   try {
@@ -299,6 +349,15 @@ async function loadStockData() {
     
     // 确保 DOM 元素已经挂载
     await nextTick()
+    
+    // 增强检查逻辑
+    let retryCount = 0
+    const maxRetries = 3
+    
+    while (!chartContainer.value && retryCount < maxRetries) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      retryCount++
+    }
     
     if (!chartContainer.value) {
       throw new Error('图表容器不存在')
@@ -327,10 +386,19 @@ watch(trendInterval, (newValue) => {
 watch(() => props.stockCode, async (newCode, oldCode) => {
   if (newCode && newCode !== oldCode) {
     try {
+      // 清理旧图表资源
+      if (myChart) {
+        myChart.dispose()
+        myChart = null
+      }
+      
       await nextTick()
       
-      if (!chartContainer.value) {
+      // 更可靠的容器检查
+      let attempts = 0
+      while (!chartContainer.value && attempts < 5) {
         await new Promise(resolve => setTimeout(resolve, 100))
+        attempts++
       }
       
       loadStockData()
@@ -344,6 +412,11 @@ onMounted(async () => {
   try {
     await nextTick()
     window.addEventListener('resize', handleResize)
+    
+    // 给DOM足够的时间挂载
+    setTimeout(() => {
+      loadStockData()
+    }, 300)
   } catch (err) {
     console.error('组件挂载时出错:', err)
   }

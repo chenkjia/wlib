@@ -131,23 +131,37 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
         // 计算每天的流动性（交易量 * 收盘价）
         const dailyLiquidities = trendDayLines.map(day => day.volume * day.close);
         
-        // 计算日均流动性
-        const avgLiquidity = dailyLiquidities.reduce((sum, liquidity) => sum + liquidity, 0) / trendDayLines.length;
+        // 计算流动性统计指标
+        const liquidityStats = {
+          avg: dailyLiquidities.reduce((sum, liquidity) => sum + liquidity, 0) / trendDayLines.length,
+          min: Math.min(...dailyLiquidities),
+          max: Math.max(...dailyLiquidities),
+          median: [...dailyLiquidities].sort((a, b) => a - b)[Math.floor(dailyLiquidities.length / 2)]
+        };
         
-        // 应用过滤器：如果利润、日均利润、持续天数或日均流动性小于过滤器值，则跳过此项
-        if (profit < profitFilter || dailyProfit < dailyProfitFilter || duration < durationFilter || avgLiquidity < liquidityFilter) {
+        // 使用更复杂的过滤条件
+        if (profit < profitFilter || 
+            dailyProfit < dailyProfitFilter || 
+            duration < durationFilter || 
+            liquidityStats.avg < liquidityFilter || 
+            liquidityStats.min < liquidityFilter * 0.5) {
           continue;
         }
+        
+        // 将流动性统计信息添加到目标对象中，以便在UI中显示
+        current.liquidityStats = liquidityStats;
       } else {
         // 如果找不到完整的趋势期间数据，则跳过此项
         continue;
       }
       
+      // 将流动性统计信息添加到目标对象中
       goals.push({
         startPrice: current.low,
         endPrice: next.high,
         goalType: current.low < next.high ? 'buy' : 'sell',
         startTime: current.time,
+        liquidityStats: current.liquidityStats, // 添加流动性统计信息
         endTime: next.time,
         profit,
         // 计算duration,time是Date格式,需要转换为毫秒

@@ -37,6 +37,25 @@
           <span :class="getProfitClass(goal.dailyProfit)" class="font-medium">{{ goal.dailyProfit ? goal.dailyProfit.toFixed(2) + '%' : '-' }}</span>
         </div>
       </div>
+      <!-- 流动性统计信息 -->
+      <div v-if="goal.liquidityStats" class="mt-2 grid grid-cols-4 gap-2 text-xs text-gray-500 border-t pt-2">
+        <div class="flex items-center">
+          <span class="mr-1">平均流动性:</span>
+          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.avg) }}</span>
+        </div>
+        <div class="flex items-center">
+          <span class="mr-1">最小流动性:</span>
+          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.min) }}</span>
+        </div>
+        <div class="flex items-center">
+          <span class="mr-1">最大流动性:</span>
+          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.max) }}</span>
+        </div>
+        <div class="flex items-center">
+          <span class="mr-1">中位流动性:</span>
+          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.median) }}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -66,6 +85,19 @@ const emit = defineEmits([
   'highlightGoal',
   'resetHighlight'
 ])
+
+// 格式化流动性数值，将数值转换为更易读的形式（万/亿）
+function formatLiquidity(value) {
+  if (value === undefined || value === null) return '-';
+  
+  if (value >= 100000000) {
+    return (value / 100000000).toFixed(2) + '亿';
+  } else if (value >= 10000) {
+    return (value / 10000).toFixed(2) + '万';
+  } else {
+    return value.toFixed(2);
+  }
+}
 </script>
 
 <style scoped>
