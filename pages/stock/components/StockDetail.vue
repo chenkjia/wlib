@@ -92,7 +92,7 @@ const trendInterval = ref(40)
 const profitFilter = ref(50) 
 const dailyProfitFilter = ref(2) 
 const durationFilter = ref(7) 
-const liquidityFilter = ref(100) // 流动性过滤器，默认100万
+const liquidityFilter = ref(5) // 流动性过滤器，默认5万
 const currentHighlightIndex = ref(null)
 let myChart = null
 

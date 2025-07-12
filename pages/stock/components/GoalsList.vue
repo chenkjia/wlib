@@ -19,7 +19,7 @@
           {{ goal.profit !== null && goal.profit !== undefined ? `${goal.profit > 0 ? '+' : ''}${goal.profit.toFixed(2)}%` : '-' }}
         </div>
       </div>
-      <div class="grid grid-cols-4 gap-2 text-sm text-gray-600">
+      <div class="grid grid-cols-5 gap-2 text-sm text-gray-600">
         <div class="flex items-center">
           <span class="mr-1">起始:</span>
           <span class="font-medium">{{ goal.startPrice }}</span>
@@ -35,6 +35,14 @@
         <div class="flex items-center">
           <span class="mr-1">日均:</span>
           <span :class="getProfitClass(goal.dailyProfit)" class="font-medium">{{ goal.dailyProfit ? goal.dailyProfit.toFixed(2) + '%' : '-' }}</span>
+        </div>
+        <div class="flex items-center">
+          <span class="mr-1">类型:</span>
+          <span class="font-medium" :class="{
+            'text-red-600': goal.trendCategory === 'NEW_HIGH',
+            'text-green-600': goal.trendCategory === 'REBOUND',
+            'text-gray-600': goal.trendCategory === 'NORMAL'
+          }">{{ getTrendCategoryText(goal.trendCategory) }}</span>
         </div>
       </div>
       <!-- 流动性统计信息 -->
@@ -97,6 +105,19 @@ function formatLiquidity(value) {
   } else {
     return value.toFixed(2);
   }
+}
+
+// 将趋势类型的英文代码转换为中文显示文本
+function getTrendCategoryText(category) {
+  if (!category) return '正常';
+  
+  const categoryMap = {
+    'NEW_HIGH': '创新高',
+    'REBOUND': '反弹',
+    'NORMAL': '正常'
+  };
+  
+  return categoryMap[category] || '正常';
 }
 </script>
 

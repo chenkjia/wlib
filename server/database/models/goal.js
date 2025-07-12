@@ -7,7 +7,17 @@ const goalSchema = new mongoose.Schema({
     goalType: { type: String, enum: ['buy', 'sell'] },
     endTime: { type: Date },
     endPrice: { type: Number },
-    profit: { type: Number }
+    profit: { type: Number },
+    trendCategory: { type: String, enum: ['NEW_HIGH', 'REBOUND', 'NORMAL'], default: 'NORMAL' },
+    duration: { type: Number },
+    dailyProfit: { type: Number },
+    usedSlopeAnalysis: { type: Boolean, default: false },
+    liquidityStats: {
+        avg: { type: Number },
+        min: { type: Number },
+        max: { type: Number },
+        median: { type: Number }
+    }
 });
 
 // 创建复合索引以提高查询效率

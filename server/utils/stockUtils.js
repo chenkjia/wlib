@@ -117,6 +117,32 @@ const calculateGoals = (dayLine, profitFilter = 0, dailyProfitFilter = 0, slopeT
         continue;
       }
       
+      // 确定趋势类型（NEW_HIGH、REBOUND、NORMAL）
+      let trendCategory = 'NORMAL';
+      
+      // 获取趋势前的历史数据
+      const startIndex = dayLine.findIndex(item => item.time === current.time);
+      if (startIndex !== -1) {
+        const historyStartIndex = Math.max(0, startIndex - 60); // 查看前60个交易日
+        const historyData = dayLine.slice(historyStartIndex, startIndex);
+        
+        if (historyData.length > 0) {
+          // 获取历史最高价
+          const historyHighest = Math.max(...historyData.map(item => item.high));
+          // 获取历史最低价
+          const historyLowest = Math.min(...historyData.map(item => item.low));
+          
+          // 如果结束价格创了新高（超过历史最高价的5%），则为创新高
+          if (next.high > historyHighest * 1.05) {
+            trendCategory = 'NEW_HIGH';
+          }
+          // 如果是从低点反弹（开始价格接近历史最低价的10%范围内），则为反弹
+          else if (current.low < historyLowest * 1.1) {
+            trendCategory = 'REBOUND';
+          }
+        }
+      }
+      
       goals.push({
         startPrice: current.low,
         endPrice: next.high,
@@ -129,7 +155,9 @@ const calculateGoals = (dayLine, profitFilter = 0, dailyProfitFilter = 0, slopeT
         // 日均涨幅
         dailyProfit,
         // 标记是否使用斜率分析法
-        usedSlopeAnalysis: current.slopeTrendStart || next.slopeTrendEnd
+        usedSlopeAnalysis: current.slopeTrendStart || next.slopeTrendEnd,
+        // 添加趋势类型（NEW_HIGH、REBOUND、NORMAL）
+        trendCategory
       });
     }
   }

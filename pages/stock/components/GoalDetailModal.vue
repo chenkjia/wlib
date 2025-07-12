@@ -45,9 +45,19 @@
             </div>
           </div>
           <div>
-            <div class="text-sm text-gray-600">趋势类型</div>
+            <div class="text-sm text-gray-600">交易方向</div>
             <div class="font-medium">
               {{ goal.goalType === 'buy' ? '买入' : '卖出' }}
+            </div>
+          </div>
+          <div>
+            <div class="text-sm text-gray-600">趋势类型</div>
+            <div class="font-medium" :class="{
+              'text-red-600': goal.trendCategory === 'NEW_HIGH',
+              'text-green-600': goal.trendCategory === 'REBOUND',
+              'text-gray-600': goal.trendCategory === 'NORMAL'
+            }">
+              {{ getTrendCategoryText(goal.trendCategory) }}
             </div>
           </div>
         </div>
@@ -124,5 +134,18 @@ function formatLiquidity(value) {
   } else {
     return value.toFixed(2);
   }
+}
+
+// 将趋势类型的英文代码转换为中文显示文本
+function getTrendCategoryText(category) {
+  if (!category) return '正常';
+  
+  const categoryMap = {
+    'NEW_HIGH': '创新高',
+    'REBOUND': '反弹',
+    'NORMAL': '正常'
+  };
+  
+  return categoryMap[category] || '正常';
 }
 </script>

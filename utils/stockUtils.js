@@ -98,7 +98,7 @@ function calculateSlope(prices) {
  * @param {Number} liquidityFilter - 流动性过滤器值，交易量乘以收盘价低于此值的趋势将被过滤，默认为100万
  * @returns {Array} 目标趋势列表
  */
-export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7, liquidityFilter = 1000000) => {
+export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7, liquidityFilter = 50000) => {
   // 使用斜率分析法识别趋势变化点
   const tmp = dayLine.filter(item => item.slopeTrendStart || item.slopeTrendEnd || item.trendStart || item.trendEnd);
   
@@ -155,6 +155,29 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
         continue;
       }
       
+      // 确定趋势类型（NEW_HIGH、REBOUND、NORMAL）
+      let trendCategory = 'NORMAL';
+      
+      // 获取趋势前的历史数据
+      const historyStartIndex = Math.max(0, startIndex - 60); // 查看前60个交易日
+      const historyData = dayLine.slice(historyStartIndex, startIndex);
+      
+      if (historyData.length > 0) {
+        // 获取历史最高价
+        const historyHighest = Math.max(...historyData.map(item => item.high));
+        // 获取历史最低价
+        const historyLowest = Math.min(...historyData.map(item => item.low));
+        
+        // 如果结束价格创了新高（超过历史最高价的5%），则为创新高
+        if (next.high > historyHighest * 1.05) {
+          trendCategory = 'NEW_HIGH';
+        }
+        // 如果是从低点反弹（开始价格接近历史最低价的10%范围内），则为反弹
+        else if (current.low < historyLowest * 1.1) {
+          trendCategory = 'REBOUND';
+        }
+      }
+      
       // 将流动性统计信息添加到目标对象中
       goals.push({
         startPrice: current.low,
@@ -169,7 +192,9 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
         // 日均涨幅
         dailyProfit,
         // 标记是否使用斜率分析法
-        usedSlopeAnalysis: current.slopeTrendStart || next.slopeTrendEnd
+        usedSlopeAnalysis: current.slopeTrendStart || next.slopeTrendEnd,
+        // 添加趋势类型（创新高、反弹、正常）
+        trendCategory
       });
     }
   }
