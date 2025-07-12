@@ -115,9 +115,23 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
     const isValidEnd = next.slopeTrendEnd || next.trendEnd;
     
     if (isValidStart && isValidEnd) {
+      // 计算持续时间，确保不为NaN或无限值
       const duration = (new Date(next.time).getTime() - new Date(current.time).getTime()) / (1000 * 60 * 60 * 24);
-      const profit = (next.high - current.low) / current.low * 100;
-      const dailyProfit = profit / duration;
+      if (isNaN(duration) || !isFinite(duration) || duration <= 0) {
+        continue; // 跳过无效的持续时间
+      }
+      
+      // 计算利润，确保不为NaN或无限值
+      const profit = current.low > 0 ? ((next.high - current.low) / current.low * 100) : 0;
+      if (isNaN(profit) || !isFinite(profit)) {
+        continue; // 跳过无效的利润
+      }
+      
+      // 计算日均利润，确保不为NaN或无限值
+      const dailyProfit = duration > 0 ? (profit / duration) : 0;
+      if (isNaN(dailyProfit) || !isFinite(dailyProfit)) {
+        continue; // 跳过无效的日均利润
+      }
       
       // 计算趋势期间的日均流动性（所有交易日的交易量 * 收盘价的平均值）
       // 找出趋势开始和结束之间的所有日线数据
@@ -128,16 +142,29 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
         // 提取趋势期间的所有日线数据
         const trendDayLines = dayLine.slice(startIndex, endIndex + 1);
         
-        // 计算每天的流动性（交易量 * 收盘价）
-        const dailyLiquidities = trendDayLines.map(day => day.volume * day.close);
+        // 计算每天的流动性（交易量 * 收盘价），确保不为NaN或无限值
+        const dailyLiquidities = trendDayLines.map(day => {
+          const liquidity = (day.volume || 0) * (day.close || 0);
+          return isNaN(liquidity) || !isFinite(liquidity) ? 0 : liquidity;
+        });
         
-        // 计算流动性统计指标
+        // 确保有有效的流动性数据
+        if (dailyLiquidities.length === 0 || dailyLiquidities.every(l => l === 0)) {
+          continue; // 跳过无有效流动性数据的趋势
+        }
+        
+        // 计算流动性统计指标，确保不为NaN或无限值
         const liquidityStats = {
-          avg: dailyLiquidities.reduce((sum, liquidity) => sum + liquidity, 0) / trendDayLines.length,
-          min: Math.min(...dailyLiquidities),
-          max: Math.max(...dailyLiquidities),
-          median: [...dailyLiquidities].sort((a, b) => a - b)[Math.floor(dailyLiquidities.length / 2)]
+          avg: dailyLiquidities.length > 0 ? (dailyLiquidities.reduce((sum, liquidity) => sum + liquidity, 0) / dailyLiquidities.length) : 0,
+          min: dailyLiquidities.length > 0 ? Math.min(...dailyLiquidities) : 0,
+          max: dailyLiquidities.length > 0 ? Math.max(...dailyLiquidities) : 0,
+          median: dailyLiquidities.length > 0 ? [...dailyLiquidities].sort((a, b) => a - b)[Math.floor(dailyLiquidities.length / 2)] : 0
         };
+        
+        // 确保所有流动性统计值都是有效数字
+        if (Object.values(liquidityStats).some(val => isNaN(val) || !isFinite(val))) {
+          continue; // 跳过包含无效统计值的趋势
+        }
         
         // 使用更复杂的过滤条件
         if (profit < profitFilter || 
@@ -184,16 +211,21 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
         endPrice: next.high,
         goalType: current.low < next.high ? 'buy' : 'sell',
         startTime: current.time,
-        liquidityStats: current.liquidityStats, // 添加流动性统计信息
+        liquidityStats: current.liquidityStats || {
+          avg: 0,
+          min: 0,
+          max: 0,
+          median: 0
+        }, // 添加流动性统计信息，确保有默认值
         endTime: next.time,
-        profit,
+        profit: isNaN(profit) || !isFinite(profit) ? 0 : profit,
         // 计算duration,time是Date格式,需要转换为毫秒
-        duration,
+        duration: isNaN(duration) || !isFinite(duration) || duration <= 0 ? 1 : duration,
         // 日均涨幅
-        dailyProfit,
+        dailyProfit: isNaN(dailyProfit) || !isFinite(dailyProfit) ? 0 : dailyProfit,
         // 标记是否使用斜率分析法
         usedSlopeAnalysis: current.slopeTrendStart || next.slopeTrendEnd,
-        // 添加趋势类型（创新高、反弹、正常）
+        // 添加趋势类型（NEW_HIGH、REBOUND、NORMAL）
         trendCategory
       });
     }

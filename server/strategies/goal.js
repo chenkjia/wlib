@@ -17,6 +17,7 @@ class GoalExecutor {
       const stock = await MongoDB.getStock(symbol);
       // 计算目标信息
       const goals = calculateGoals(stock);
+      console.log(goals)
       // 保存目标信息数据
       await MongoDB.saveGoal(symbol, goals);
 

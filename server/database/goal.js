@@ -46,10 +46,36 @@ class GoalDB {
      */
     static async saveGoal(code, data) {
         try {
+            // // 过滤掉可能包含无效数据的目标
+            // const validGoals = data.filter(goal => {
+            //     // 检查必要字段是否存在且有效
+            //     if (!goal.startTime || !goal.endTime) return false;
+            //     if (isNaN(goal.profit) || !isFinite(goal.profit)) return false;
+            //     if (isNaN(goal.duration) || !isFinite(goal.duration) || goal.duration <= 0) return false;
+            //     if (isNaN(goal.dailyProfit) || !isFinite(goal.dailyProfit)) return false;
+                
+            //     // 检查流动性统计数据是否有效
+            //     if (goal.liquidityStats) {
+            //         const { avg, min, max, median } = goal.liquidityStats;
+            //         if (isNaN(avg) || !isFinite(avg) || avg < 0) return false;
+            //         if (isNaN(min) || !isFinite(min) || min < 0) return false;
+            //         if (isNaN(max) || !isFinite(max) || max < 0) return false;
+            //         if (isNaN(median) || !isFinite(median) || median < 0) return false;
+            //     }
+                
+            //     return true;
+            // });
+            
+            if (data.length === 0) {
+                logger.warn(`股票 ${code} 没有有效的目标数据可保存`);
+                return [];
+            }
+            
             const goalData = data.map(goal => ({
                 ...goal,
                 stockCode: code
             }));
+            
             const result = await Goal.insertMany(goalData);
             return result;
         } catch (error) {
