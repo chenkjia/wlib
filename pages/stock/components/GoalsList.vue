@@ -19,7 +19,7 @@
           {{ goal.profit !== null && goal.profit !== undefined ? `${goal.profit > 0 ? '+' : ''}${goal.profit.toFixed(2)}%` : '-' }}
         </div>
       </div>
-      <div class="grid grid-cols-5 gap-2 text-sm text-gray-600">
+      <div class="grid grid-cols-3 gap-2 text-sm text-gray-600">
         <div class="flex items-center">
           <span class="mr-1">起始:</span>
           <span class="font-medium">{{ goal.startPrice }}</span>
@@ -32,10 +32,9 @@
           <span class="mr-1">持续:</span>
           <span class="font-medium">{{ goal.duration || '-' }}天</span>
         </div>
-        <div class="flex items-center">
-          <span class="mr-1">日均:</span>
-          <span :class="getProfitClass(goal.dailyProfit)" class="font-medium">{{ goal.dailyProfit ? goal.dailyProfit.toFixed(2) + '%' : '-' }}</span>
-        </div>
+      </div>
+      <!-- 重新排列的内容，更紧凑的布局 -->
+      <div v-if="goal.liquidityStats" class="mt-2 grid grid-cols-3 gap-2 text-xs text-gray-500 border-t pt-2">
         <div class="flex items-center">
           <span class="mr-1">类型:</span>
           <span class="font-medium" :class="{
@@ -44,24 +43,13 @@
             'text-gray-600': goal.trendCategory === 'NORMAL'
           }">{{ getTrendCategoryText(goal.trendCategory) }}</span>
         </div>
-      </div>
-      <!-- 流动性统计信息 -->
-      <div v-if="goal.liquidityStats" class="mt-2 grid grid-cols-4 gap-2 text-xs text-gray-500 border-t pt-2">
         <div class="flex items-center">
-          <span class="mr-1">平均流动性:</span>
+          <span class="mr-1">流动性:</span>
           <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.avg) }}</span>
         </div>
         <div class="flex items-center">
-          <span class="mr-1">最小流动性:</span>
-          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.min) }}</span>
-        </div>
-        <div class="flex items-center">
-          <span class="mr-1">最大流动性:</span>
-          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.max) }}</span>
-        </div>
-        <div class="flex items-center">
-          <span class="mr-1">中位流动性:</span>
-          <span class="font-medium">{{ formatLiquidity(goal.liquidityStats.median) }}</span>
+          <span class="mr-1">日均:</span>
+          <span :class="getProfitClass(goal.dailyProfit)" class="font-medium">{{ goal.dailyProfit ? goal.dailyProfit.toFixed(2) + '%' : '-' }}</span>
         </div>
       </div>
     </div>

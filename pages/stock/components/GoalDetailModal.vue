@@ -69,27 +69,13 @@
           </div>
         </div>
         
-        <!-- 流动性统计信息 -->
+        <!-- 流动性信息 -->
         <div v-if="goal.liquidityStats" class="mt-4">
-          <div class="text-sm text-gray-600 mb-1">流动性统计</div>
-          <div class="grid grid-cols-2 gap-4 p-2 bg-gray-100 rounded">
-            <div>
-              <div class="text-xs text-gray-500">平均流动性</div>
-              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.avg) }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-gray-500">中位流动性</div>
-              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.median) }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-gray-500">最小流动性</div>
-              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.min) }}</div>
-            </div>
-            <div>
-              <div class="text-xs text-gray-500">最大流动性</div>
-              <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.max) }}</div>
-            </div>
+          <div class="flex justify-between items-center p-2 bg-gray-100 rounded">
+            <div class="text-sm text-gray-600">平均流动性</div>
+            <div class="font-medium">{{ formatLiquidity(goal.liquidityStats.avg) }}</div>
           </div>
+        </div>
         </div>
       </div>
       
@@ -102,7 +88,7 @@
         </button>
       </div>
     </div>
-  </div>
+  
 </template>
 
 <script setup>
