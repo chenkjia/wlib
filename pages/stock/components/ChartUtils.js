@@ -69,11 +69,15 @@ export function processTrendPoints(rawData, goals, data) {
   
   // 遍历所有目标，添加趋势起点和终点标记
   goals.forEach((goal, goalIndex) => {
+    let startPointAdded = false;
+    let endPointAdded = false;
+    
     for (let i = 0; i < rawData.length; i++) {
       const item = rawData[i]
       
       // 添加趋势起始点
-      if (item.time === goal.startTime && (item.trendStart || item.slopeTrendStart)) {
+      if (item.time === goal.startTime) {
+        startPointAdded = true;
         trendStartPoints.push({
           coord: [i, item.low],
           value: item.slopeTrendStart ? '斜率趋势开始' : '趋势开始',
@@ -83,13 +87,64 @@ export function processTrendPoints(rawData, goals, data) {
       }
       
       // 添加趋势结束点
-      if (item.time === goal.endTime && (item.trendEnd || item.slopeTrendEnd)) {
+      if (item.time === goal.endTime) {
+        endPointAdded = true;
         trendEndPoints.push({
           coord: [i, item.high],
           value: item.slopeTrendEnd ? '斜率趋势结束' : '趋势结束',
           goalIndex: goalIndex,
           itemStyle: { color: '#FF4500' }
         })
+      }
+    }
+    
+    // 如果没有找到对应的点，尝试找最接近的时间点
+    if (!startPointAdded && goal.startTime) {
+      const goalStartTime = new Date(goal.startTime).getTime();
+      let closestIndex = 0;
+      let minDiff = Infinity;
+      
+      for (let i = 0; i < rawData.length; i++) {
+        const itemTime = new Date(rawData[i].time).getTime();
+        const diff = Math.abs(itemTime - goalStartTime);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = i;
+        }
+      }
+      
+      if (closestIndex >= 0 && closestIndex < rawData.length) {
+        trendStartPoints.push({
+          coord: [closestIndex, rawData[closestIndex].low],
+          value: '趋势开始',
+          goalIndex: goalIndex,
+          itemStyle: { color: '#1E90FF' }
+        });
+      }
+    }
+    
+    // 同样为结束点添加近似匹配
+    if (!endPointAdded && goal.endTime) {
+      const goalEndTime = new Date(goal.endTime).getTime();
+      let closestIndex = 0;
+      let minDiff = Infinity;
+      
+      for (let i = 0; i < rawData.length; i++) {
+        const itemTime = new Date(rawData[i].time).getTime();
+        const diff = Math.abs(itemTime - goalEndTime);
+        if (diff < minDiff) {
+          minDiff = diff;
+          closestIndex = i;
+        }
+      }
+      
+      if (closestIndex >= 0 && closestIndex < rawData.length) {
+        trendEndPoints.push({
+          coord: [closestIndex, rawData[closestIndex].high],
+          value: '趋势结束',
+          goalIndex: goalIndex,
+          itemStyle: { color: '#FF4500' }
+        });
       }
     }
   })
@@ -259,24 +314,32 @@ export function createChartOption(data, ma7, ma50, ma100, formatDateYYYYMMDD, fo
         },
         markPoint: {
           symbol: 'pin',
-          symbolSize: 30,
+          symbolSize: 40,
           data: [...data.trendStartPoints, ...data.trendEndPoints],
           label: {
             formatter: function(params) {
               const index = params.data.coord[0];
               const close = data.values[index][1];
-              return close.toFixed(2);
+              return params.data.value + '\n' + close.toFixed(2);
             },
             position: 'top',
-            distance: 5,
-            fontSize: 10
+            distance: 10,
+            fontSize: 12,
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            padding: [4, 8],
+            borderRadius: 4,
+            color: '#fff'
           },
           emphasis: {
             itemStyle: {
-              shadowBlur: 10,
+              shadowBlur: 15,
               shadowColor: '#fff'
-            }
-          }
+            },
+            scale: 1.2
+          },
+          silent: false,
+          animation: true,
+          animationDuration: 300
         }
       },
       {
