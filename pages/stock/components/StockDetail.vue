@@ -9,6 +9,7 @@
           v-model:profitFilter="profitFilter"
           v-model:dailyProfitFilter="dailyProfitFilter"
           v-model:durationFilter="durationFilter"
+          v-model:liquidityFilter="liquidityFilter"
           :isFullScreen="isFullScreen"
           @refresh="refreshChart"
           @toggleFullScreen="toggleFullScreen"
@@ -91,6 +92,7 @@ const trendInterval = ref(40)
 const profitFilter = ref(50) 
 const dailyProfitFilter = ref(2) 
 const durationFilter = ref(7) 
+const liquidityFilter = ref(100) // 流动性过滤器，默认100万
 const currentHighlightIndex = ref(null)
 let myChart = null
 
@@ -150,7 +152,7 @@ function getProfitClass(profit) {
 
 // 使用工具函数并应用过滤器
 function calculateGoals(dayLine) {
-  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value, durationFilter.value);
+  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value, durationFilter.value, liquidityFilter.value * 10000); // 将流动性单位从万转为实际值
 }
 
 // 颜色配置

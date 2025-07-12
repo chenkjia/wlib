@@ -80,6 +80,26 @@
       </div>
     </div>
     
+    <div class="bg-gray-800 text-white p-1.5 rounded-md flex items-center mb-1 mr-1">
+      <label for="liquidityFilter" class="mr-1 text-xs sm:text-sm">流动性(万):</label>
+      <div class="flex items-center">
+        <input 
+          id="liquidityFilter"
+          v-model.number="localLiquidityFilter" 
+          type="number" 
+          min="0" 
+          step="1"
+          class="w-12 sm:w-16 bg-gray-700 text-white rounded-l px-1 py-0.5 text-xs sm:text-sm" 
+        />
+        <button 
+          class="bg-blue-600 hover:bg-blue-700 text-white rounded-r px-1 sm:px-2 py-0.5 text-xs sm:text-sm"
+          @click="emitRefresh"
+        >
+          确认
+        </button>
+      </div>
+    </div>
+    
     <button 
       class="bg-gray-800 text-white p-1.5 rounded-md ml-auto mb-1"
       @click="$emit('toggleFullScreen')"
@@ -109,6 +129,10 @@ const props = defineProps({
     type: Number,
     default: 7
   },
+  liquidityFilter: {
+    type: Number,
+    default: 100
+  },
   isFullScreen: {
     type: Boolean,
     default: false
@@ -120,6 +144,7 @@ const emit = defineEmits([
   'update:profitFilter',
   'update:dailyProfitFilter',
   'update:durationFilter',
+  'update:liquidityFilter',
   'refresh',
   'toggleFullScreen'
 ])
@@ -129,6 +154,7 @@ const localTrendInterval = ref(props.trendInterval)
 const localProfitFilter = ref(props.profitFilter)
 const localDailyProfitFilter = ref(props.dailyProfitFilter)
 const localDurationFilter = ref(props.durationFilter)
+const localLiquidityFilter = ref(props.liquidityFilter)
 
 // 监听本地状态变化，更新父组件
 watch(localTrendInterval, (newValue) => {
@@ -149,6 +175,10 @@ watch(localDurationFilter, (newValue) => {
   emit('update:durationFilter', newValue)
 })
 
+watch(localLiquidityFilter, (newValue) => {
+  emit('update:liquidityFilter', newValue)
+})
+
 // 监听props变化，更新本地状态
 watch(() => props.trendInterval, (newValue) => {
   localTrendInterval.value = newValue
@@ -166,12 +196,17 @@ watch(() => props.durationFilter, (newValue) => {
   localDurationFilter.value = newValue
 })
 
+watch(() => props.liquidityFilter, (newValue) => {
+  localLiquidityFilter.value = newValue
+})
+
 // 触发刷新事件
 function emitRefresh() {
   emit('update:trendInterval', localTrendInterval.value)
   emit('update:profitFilter', localProfitFilter.value)
   emit('update:dailyProfitFilter', localDailyProfitFilter.value)
   emit('update:durationFilter', localDurationFilter.value)
+  emit('update:liquidityFilter', localLiquidityFilter.value)
   emit('refresh')
 }
 </script>

@@ -95,9 +95,10 @@ function calculateSlope(prices) {
  * @param {Number} slopeThreshold - 斜率阈值，用于确定趋势变化点，默认为0.5
  * @param {Number} windowSize - 计算斜率的窗口大小，默认为14
  * @param {Number} durationFilter - 持续天数过滤器值，低于此值的趋势将被过滤，默认为0
+ * @param {Number} liquidityFilter - 流动性过滤器值，交易量乘以收盘价低于此值的趋势将被过滤，默认为100万
  * @returns {Array} 目标趋势列表
  */
-export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7) => {
+export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7, liquidityFilter = 1000000) => {
   // 使用斜率分析法识别趋势变化点
   const tmp = dayLine.filter(item => item.slopeTrendStart || item.slopeTrendEnd || item.trendStart || item.trendEnd);
   
@@ -118,8 +119,27 @@ export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2
       const profit = (next.high - current.low) / current.low * 100;
       const dailyProfit = profit / duration;
       
-      // 应用过滤器：如果利润、日均利润或持续天数小于过滤器值，则跳过此项
-      if (profit < profitFilter || dailyProfit < dailyProfitFilter || duration < durationFilter) {
+      // 计算趋势期间的日均流动性（所有交易日的交易量 * 收盘价的平均值）
+      // 找出趋势开始和结束之间的所有日线数据
+      const startIndex = dayLine.findIndex(item => item.time === current.time);
+      const endIndex = dayLine.findIndex(item => item.time === next.time);
+      
+      if (startIndex !== -1 && endIndex !== -1 && startIndex < endIndex) {
+        // 提取趋势期间的所有日线数据
+        const trendDayLines = dayLine.slice(startIndex, endIndex + 1);
+        
+        // 计算每天的流动性（交易量 * 收盘价）
+        const dailyLiquidities = trendDayLines.map(day => day.volume * day.close);
+        
+        // 计算日均流动性
+        const avgLiquidity = dailyLiquidities.reduce((sum, liquidity) => sum + liquidity, 0) / trendDayLines.length;
+        
+        // 应用过滤器：如果利润、日均利润、持续天数或日均流动性小于过滤器值，则跳过此项
+        if (profit < profitFilter || dailyProfit < dailyProfitFilter || duration < durationFilter || avgLiquidity < liquidityFilter) {
+          continue;
+        }
+      } else {
+        // 如果找不到完整的趋势期间数据，则跳过此项
         continue;
       }
       
