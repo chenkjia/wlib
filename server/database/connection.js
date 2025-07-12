@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import config from '../config/default.js';
-import logger from '../utils/logger.js';
+import logger from '~/utils/logger.js';
 
 /**
  * MongoDB 数据库连接类

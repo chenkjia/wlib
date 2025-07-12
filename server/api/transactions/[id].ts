@@ -1,5 +1,5 @@
 import MongoDB from '../../database/mongo.js';
-import logger from '../../utils/logger.js';
+import logger from '~/utils/logger.js';
 
 /**
  * 通过ID获取交易记录

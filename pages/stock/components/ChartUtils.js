@@ -33,7 +33,7 @@ export function calculateMA(dayCount, data) {
  * @param {Array} rawData - 原始数据
  * @returns {Object} 分割后的数据
  */
-export function splitData(rawData) {
+export function splitData(rawData = []) {
   const categoryData = []
   const values = []
   const volumes = []

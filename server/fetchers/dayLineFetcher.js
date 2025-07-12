@@ -1,5 +1,5 @@
 import MongoDB from '../database/mongo.js';
-import logger from '../utils/logger.js';
+import logger from '~/utils/logger.js';
 import axios from 'axios';
 import config from '../config/api.js';
 

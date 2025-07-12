@@ -3,7 +3,7 @@
  */
 import MongoDB from '../database/mongo.js';
 import { calculateTransactions } from './calculate/signal.js';
-import logger from '../utils/logger.js';
+import logger from '~/utils/logger.js';
 class BacktestExecutor {
   /**
    * 执行单个标的回测

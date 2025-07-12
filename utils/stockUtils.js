@@ -10,7 +10,7 @@
  * @param {Number} slopeThreshold - 斜率阈值，用于斜率分析法，默认为0.5
  * @returns {Array} 格式化后的日线数据
  */
-export const dayLineFormat = (dayLine, n, slopeThreshold = 0.5) => {
+const dayLineFormat = (dayLine, n, slopeThreshold = 0.5) => {
   if (!dayLine || dayLine.length === 0) {
     return [];
   }
@@ -89,16 +89,18 @@ function calculateSlope(prices) {
 
 /**
  * 计算目标趋势 - 使用斜率分析法
- * @param {Array} dayLine - 日线数据
+ * @param {Array} dayLineOrigin - 日线数据
  * @param {Number} profitFilter - 利润过滤器值，低于此值的趋势将被过滤
  * @param {Number} dailyProfitFilter - 日均利润过滤器值，低于此值的趋势将被过滤
- * @param {Number} slopeThreshold - 斜率阈值，用于确定趋势变化点，默认为0.5
- * @param {Number} windowSize - 计算斜率的窗口大小，默认为14
+ * @param {Number} slopeThreshold - 斜率阈值，用于斜率分析法，默认为0.5
+ * @param {Number} n - 趋势区间天数
  * @param {Number} durationFilter - 持续天数过滤器值，低于此值的趋势将被过滤，默认为0
  * @param {Number} liquidityFilter - 流动性过滤器值，交易量乘以收盘价低于此值的趋势将被过滤，默认为100万
  * @returns {Array} 目标趋势列表
  */
-export const calculateGoals = (dayLine, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, windowSize = 30, durationFilter = 7, liquidityFilter = 50000) => {
+export const calculateGoals = (dayLineOrigin, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, n = 40, durationFilter = 7, liquidityFilter = 50000) => {
+  const dayLine = dayLineFormat(dayLineOrigin, n, slopeThreshold)
+
   // 使用斜率分析法识别趋势变化点
   const tmp = dayLine.filter(item => item.slopeTrendStart || item.slopeTrendEnd || item.trendStart || item.trendEnd);
   

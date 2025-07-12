@@ -13,8 +13,15 @@ async function runGoalExecution() {
         await MongoDB.clearGoal();
         // 执行所有股票的目标计算
         // await executor.executeGoalAll();
-        // 单个股票测试
-        const result = await executor.executeGoalSingle('ETH');
+        // 单个股票测试，传递用户提供的参数
+        const result = await executor.executeGoalSingle('ETH', {
+            profitFilter: 0,           // 利润过滤器值
+            dailyProfitFilter: 0,      // 日均利润过滤器值
+            slopeThreshold: 0.5,       // 斜率阈值
+            trendInterval: 14,         // 趋势区间
+            durationFilter: 0,         // 持续时间过滤器值
+            liquidityFilter: 0         // 流动性过滤器值（单位：元）
+        });
         console.log(result);
         
         logger.info('所有股票目标计算完成');

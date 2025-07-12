@@ -1,5 +1,4 @@
 import MongoDB from '../database/mongo.js';
-import logger from '../utils/logger.js';
 
 // 定义股票列表返回类型
 interface StockListResult {

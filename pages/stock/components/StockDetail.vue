@@ -54,7 +54,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 // 从共享工具模块导入函数
-import { dayLineFormat, calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
+import { calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
 
 // 导入图表工具函数
 import { 
@@ -190,8 +190,6 @@ async function refreshChart() {
     // 获取日线数据并计算目标趋势
     const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
     let rawData = await response.json()
-    rawData = dayLineFormat(rawData, trendInterval.value, 0.5)
-
     // 计算目标趋势
     goals.value = calculateGoals(rawData)
     
