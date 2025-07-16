@@ -1,5 +1,5 @@
 import MongoDB from '../server/database/mongo.js';
-import logger from '../server/utils/logger.js';
+import logger from '../utils/logger.js';
 import BacktestExecutor from '../server/strategies/backtest.js';
 
 async function runBacktest() {

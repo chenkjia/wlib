@@ -1,6 +1,6 @@
 import MongoDB from '../database/mongo.js';
 import { Stock } from '../database/models/list.js';
-import logger from '~/utils/logger.js';
+import logger from '../utils/logger.js';
 
 /**
  * 测试文件：清除 StockList 集合中 dayLine 为空的记录

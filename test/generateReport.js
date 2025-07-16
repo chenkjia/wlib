@@ -1,6 +1,6 @@
 import MongoDB from '../server/database/mongo.js';
 import BacktestReport from '../server/strategies/report.js';
-import logger from '../server/utils/logger.js';
+import logger from '../utils/logger.js';
 
 /**
  * 生成并保存交易报告

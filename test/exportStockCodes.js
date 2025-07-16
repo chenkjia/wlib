@@ -1,7 +1,7 @@
 import MongoDB from '../server/database/mongo.js';
 import fs from 'fs/promises';
 import path from 'path';
-import logger from '../server/utils/logger.js';
+import logger from '../utils/logger.js';
 
 /**
  * 从数据库读取所有股票列表，提取代码并保存为JSON文件
