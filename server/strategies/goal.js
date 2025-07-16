@@ -2,7 +2,7 @@
  * 目标执行模块
  */
 import MongoDB from '../database/mongo.js';
-import { calculateGoals } from './calculate/goal.js';
+import { calculateGoals } from '~/utils/stockUtils.js';
 import logger from '~/utils/logger.js';
 
 class GoalExecutor {
@@ -18,17 +18,23 @@ class GoalExecutor {
       
       // 从选项中提取参数，如果没有则使用默认值
       const {
-        profitFilter = 0,
-        dailyProfitFilter = 0,
-        slopeThreshold = 0.5,
-        trendInterval = 14,
-        durationFilter = 0,
-        liquidityFilter = 0
+        profitFilter =50,           // 利润过滤器值
+        dailyProfitFilter = 2,      // 日均利润过滤器值
+        slopeThreshold= 0.5,       // 斜率阈值
+        trendInterval= 40,         // 趋势区间
+        durationFilter= 7,         // 持续时间过滤器值
+        liquidityFilter= 50000   
       } = options;
-      
       // 计算目标信息，传递所有参数
       const goals = calculateGoals(
-        stock,
+        stock.dayLine.map(item => ({
+          time: item.time,
+          close: item.close,
+          high: item.high,
+          low: item.low,
+          volume: item.volume,
+          amount: item.amount
+        })),
         profitFilter,
         dailyProfitFilter,
         slopeThreshold,
@@ -87,47 +93,22 @@ class GoalExecutor {
    * @returns {Promise<Object[]>} 执行结果列表
    */
   async executeGoalAll(options = {}) {
-    // 清空现有目标数据（如果需要）
-    if (options.clearExisting !== false) {
-      await MongoDB.clearGoal();
-    }
-    
+    await MongoDB.clearGoal();
     // 获取股票列表
-    const stockList = await MongoDB.getList();
-    
+    const stockList = await MongoDB.getAll();
     // 提取计算参数，其余参数保留在cleanOptions中
-    const { 
-      clearExisting, 
-      profitFilter, 
-      dailyProfitFilter, 
-      slopeThreshold, 
-      trendInterval, 
-      durationFilter, 
-      liquidityFilter,
-      ...cleanOptions 
-    } = options;
     
-    // 构建计算参数对象
-    const calculationOptions = {
-      profitFilter,
-      dailyProfitFilter,
-      slopeThreshold,
-      trendInterval,
-      durationFilter,
-      liquidityFilter,
-      ...cleanOptions
-    };
-    
+    console.log(stockList.length)
     // 对每个股票执行目标计算
     const results = [];
     for (let i = 0; i < stockList.length; i++) {
       const stock = stockList[i];
+      console.log(stock.code)
       logger.info(`开始对第 ${i+1}/${stockList.length} 个股票 ${stock.code} 执行目标计算...`);
       
       // 使用GoalExecutor执行单个股票目标计算，传递计算参数
-      const result = await this.executeGoalSingle(stock.code, calculationOptions);
+      const result = await this.executeGoalSingle(stock.code, options);
       results.push(result);
-      
       if (result.success) {
         logger.info(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} ${result.message}`);
       } else {

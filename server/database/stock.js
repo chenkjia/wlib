@@ -76,6 +76,36 @@ class StockDB {
     }
 
     /**
+     * 获取所有股票列表（不分页）
+     * @param {string} search - 搜索关键词
+     * @returns {Promise<Array>} 所有股票列表
+     */
+    static async getAll(search = '') {
+        try {
+            // 构建查询条件
+            let query = {};
+            if (search) {
+                query = { code: search };
+            }
+            
+            // 查询所有数据 - 只获取需要的字段
+            const stocks = await Stock.find(query, {
+                _id: 0, // 不返回_id字段
+                code: 1,
+                name: 1
+            })
+            .hint({ code: 1 }) // 使用code索引
+            .sort({ code: 1 }) // 按股票代码排序
+            .lean(); // 返回纯JavaScript对象，提高性能
+            
+            return stocks;
+        } catch (error) {
+            logger.error('获取所有股票列表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 保存股票列表
      * @param {Array} data - 股票列表数据
      * @returns {Promise} 保存结果

@@ -161,7 +161,7 @@ async function updateStockHourLine(stockCode) {
 async function fetchAllHourLines() {
     try {
         // 获取加密货币列表
-        const stockList = await MongoDB.getList();
+        const stockList = await MongoDB.getAll();
         logger.info(`开始获取所有加密货币的小时线数据，共 ${stockList.length} 个币种`);
 
         // 遍历每个币种

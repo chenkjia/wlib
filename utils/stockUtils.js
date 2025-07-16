@@ -10,11 +10,11 @@
  * @param {Number} slopeThreshold - 斜率阈值，用于斜率分析法，默认为0.5
  * @returns {Array} 格式化后的日线数据
  */
-const dayLineFormat = (dayLine, n, slopeThreshold = 0.5) => {
+const dayLineFormat = (dayLine, n = 40, slopeThreshold = 0.5) => {
+
   if (!dayLine || dayLine.length === 0) {
     return [];
   }
-  
   // 计算出dayLine里每个数据的max和min,max为前后n天的high最大值,min为前后n天的low最小值
   const result = dayLine.map((item, i) => {
     const max = Math.max(...dayLine.slice(Math.max(0, i - n), Math.min(dayLine.length, i + n + 1)).map(item => item.high));
@@ -100,7 +100,6 @@ function calculateSlope(prices) {
  */
 export const calculateGoals = (dayLineOrigin, profitFilter = 50, dailyProfitFilter = 2, slopeThreshold = 0.5, n = 40, durationFilter = 7, liquidityFilter = 50000) => {
   const dayLine = dayLineFormat(dayLineOrigin, n, slopeThreshold)
-
   // 使用斜率分析法识别趋势变化点
   const tmp = dayLine.filter(item => item.slopeTrendStart || item.slopeTrendEnd || item.trendStart || item.trendEnd);
   
