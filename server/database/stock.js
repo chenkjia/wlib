@@ -74,6 +74,19 @@ class StockDB {
             throw error;
         }
     }
+    static async removeStock(code) {
+        try {
+            const stock = await Stock.findOneAndRemove({ code });
+            if (!stock) {
+                throw new Error(`股票代码 ${code} 不存在`);
+            }
+            return stock;
+        } catch (error) {
+            logger.error('获取股票信息失败:', error);
+            throw error;
+        }
+    }
+    
 
     /**
      * 获取所有股票列表（不分页）

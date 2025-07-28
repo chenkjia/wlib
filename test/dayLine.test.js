@@ -8,7 +8,7 @@ async function main() {
         
         console.log('开始获取日线数据...');
         await fetchAllDayLines();
-        // await fetchDayLine('DOME');
+        // await fetchDayLine('0XVOX');
         console.log('所有日线数据获取完成');
     } catch (error) {
         console.error('测试失败:', error);

@@ -21,7 +21,6 @@ async function fetchDayLineFromAPI(stockCode) {
         fsym: stockCode,    // 交易对基础货币，如 BTC
         tsym: 'USD',        // 计价货币
         aggregate: 1,       // 不进行数据聚合
-        e: 'CCCAGG'        // 使用综合数据
     };
     if (!lastDayLine) {
         params.allData = true;  // 如果没有历史数据，获取全部数据
@@ -42,9 +41,9 @@ async function fetchDayLineFromAPI(stockCode) {
 
     const response = await axios.get(url, { headers, params });
     if (!response.data || !response.data.Data || !response.data.Data.Data) {
-        throw new Error('API 响应数据格式错误');
+        throw new Error(response.data.Message || 'API 响应数据格式错误');
     }
-
+    console.log('success')
     return response.data.Data.Data;
 }
 
@@ -108,8 +107,6 @@ async function needsUpdate(stockCode) {
 async function updateStockDayLine(stockCode) {
     try {
         await fetchDayLine(stockCode);
-        // 添加延迟，避免请求过于频繁
-        await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (error) {
         logger.error(`获取 ${stockCode} 日线数据时出错:`, error);
         throw error;
@@ -123,7 +120,7 @@ async function updateStockDayLine(stockCode) {
 async function fetchAllDayLines() {
     try {
         // 获取加密货币列表
-        const stockList = await MongoDB.getList();
+        const stockList = await MongoDB.getAll();
         logger.info(`开始获取所有加密货币的日线数据，共 ${stockList.length} 个币种`);
 
         // 遍历每个币种
@@ -139,6 +136,8 @@ async function fetchAllDayLines() {
                 }
                 // 更新该币种的日线数据
                 await updateStockDayLine(stock.code);
+                // 添加延迟，避免请求过于频繁
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 // 递增进度计数
             } catch (error) {
                 logger.error(`获取 ${stock.code} 日线数据时出错:`, error);

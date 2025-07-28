@@ -17,7 +17,7 @@ async function fetchListPage() {
     try {
         const url = `${api.baseURL}${api.endpoints.allcoins}`;
         const params = {
-            summary: true,  // 获取完整信息
+            summary: false,  // 获取完整信息
         };
         
         const headers = {

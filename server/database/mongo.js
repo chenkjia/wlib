@@ -15,6 +15,7 @@ class MongoDB {
     static getAll = StockDB.getAll;
     static getList = StockDB.getList;
     static getStock = StockDB.getStock;
+    static removeStock = StockDB.removeStock;
     static saveList = StockDB.saveList;
 
     static getLastDayLine = DayLineDB.getLastDayLine;
