@@ -53,7 +53,12 @@ export function calculateMA(data, period) {
     }
   }
 
-  return result;
+  // 找到第一个非null值
+  const firstNonNullValue = result.find(value => value !== null);
+  
+  const r = result.map(value => value ? value : firstNonNullValue)
+
+  return r;
 }
 
 /**
