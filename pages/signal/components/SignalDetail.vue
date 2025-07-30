@@ -17,7 +17,7 @@ const props = defineProps({
 
 const chartContainer = ref(null)
 const hourLine = ref([])
-const maLine = ref([])
+const hourMetric = ref([])
 const transaction = ref(null) // 添加买入信号状态变量
 let myChart = null
 
@@ -41,7 +41,7 @@ async function fetchHourLine(signal) {
   const res = await fetch(`/api/hourLine?code=${signal.stockCode}&startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`)
   hourLine.value = await res.json()
   console.log(hourLine)
-  maLine.value = calculateHourMetric(hourLine.value)
+  hourMetric.value = calculateHourMetric(hourLine.value, {})
   
   // 计算买入信号
   transaction.value = calculateTransaction({signalTime: signal.signalTime, hourLine: hourLine.value})
@@ -57,7 +57,7 @@ function renderChart() {
     myChart = echarts.init(chartContainer.value, 'light')
   }
   const data = splitData(hourLine.value)
-  const maData = maLine.value
+  const maData = hourMetric.value
   // 定位signalTime索引
   let signalIndex = 0
   let signalPrice = props.signal.signalPrice
@@ -305,7 +305,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'maS',
-        data: xData.map((_, i) => maData[i]?.maS ?? null),
+        data: maData.maS,
         xAxisIndex: 0,
         yAxisIndex: 0,
         showSymbol: false,
@@ -315,7 +315,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'maM',
-        data: xData.map((_, i) => maData[i]?.maM ?? null),
+        data: maData.maM,
         xAxisIndex: 0,
         yAxisIndex: 0,
         showSymbol: false,
@@ -325,7 +325,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'maL',
-        data: xData.map((_, i) => maData[i]?.maL ?? null),
+        data: maData.maL,
         xAxisIndex: 0,
         yAxisIndex: 0,
         showSymbol: false,
@@ -335,7 +335,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'maXL',
-        data: xData.map((_, i) => maData[i]?.maXL ?? null),
+        data: maData.maXL,
         xAxisIndex: 0,
         yAxisIndex: 0,
         showSymbol: false,
@@ -355,7 +355,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'volumeMaS',
-        data: xData.map((_, i) => maData[i]?.volumeMaS ?? null),
+        data: maData.volumeMaS,
         xAxisIndex: 1,
         yAxisIndex: 1,
         showSymbol: false,
@@ -366,7 +366,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'volumeMaM',
-        data: xData.map((_, i) => maData[i]?.volumeMaM ?? null),
+        data: maData.volumeMaM,
         xAxisIndex: 1,
         yAxisIndex: 1,
         showSymbol: false,
@@ -377,7 +377,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'volumeMaL',
-        data: xData.map((_, i) => maData[i]?.volumeMaL ?? null),
+        data: maData.volumeMaL,
         xAxisIndex: 1,
         yAxisIndex: 1,
         showSymbol: false,
@@ -388,7 +388,7 @@ function renderChart() {
       {
         type: 'line',
         name: 'volumeMaXL',
-        data: xData.map((_, i) => maData[i]?.volumeMaXL ?? null),
+        data: maData.volumeMaXL,
         xAxisIndex: 1,
         yAxisIndex: 1,
         showSymbol: false,

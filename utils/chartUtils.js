@@ -135,28 +135,26 @@ export function calculateSign2({maShort, maMiddle, maLong}) {
  * @param {Array<Object>} dayLine - 日线数据
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateDayMetric(dayLine) {
+export function calculateDayMetric(dayLine, {s=7, m=50, l=100}) {
   if (!Array.isArray(dayLine) || dayLine.length === 0) {
       return [];
   }
 
   const dayClose = dayLine.map(item => item.close);
-  const maShort = calculateMA(dayClose, 7);
-  const maMiddle = calculateMA(dayClose, 50);
-  const maLong = calculateMA(dayClose, 100);
-  const position = calculatePosition({maShort, maMiddle, maLong})
+  const maS = calculateMA(dayClose, s);
+  const maM = calculateMA(dayClose, m);
+  const maL = calculateMA(dayClose, l);
+  const position = calculatePosition({maS, maM, maL})
   const sign1 = calculateSign1({position})
-  const sign2 = calculateSign2({maShort, maMiddle, maLong})
-
-  return dayLine.map((item, index) => ({
-      date: item.date,
-      maShort: maShort[index],
-      maMiddle: maMiddle[index],
-      maLong: maLong[index],
-      position: position[index],
-      sign1: sign1[index],
-      sign2: sign2[index]
-  }));
+  const sign2 = calculateSign2({maS, maM, maL})
+  return {
+    maS,
+    maM,
+    maL,
+    position,
+    sign1,
+    sign2,
+  }
 }
 
 /**
@@ -164,33 +162,36 @@ export function calculateDayMetric(dayLine) {
  * @param {Array<Object>} hourLine - 小时线数据
  * @returns {Array<Object>} 包含技术指标的小时线数据
  */
-export function calculateHourMetric(hourLine) {
+export function calculateHourMetric(hourLine, {
+  s=7,
+  m=14,
+  l=50,
+  xl=100
+}) {
   if (!Array.isArray(hourLine) || hourLine.length === 0) {
       return [];
   }
-
   const hourClose = hourLine.map(item => item.close);
   const hourVolume = hourLine.map(item => item.volume);
-  const maS = calculateMA(hourClose, 7);
-  const maM = calculateMA(hourClose, 14);
-  const maL = calculateMA(hourClose, 50);
-  const maXL = calculateMA(hourClose, 100);
-  const volumeMaS = calculateMA(hourVolume, 7);
-  const volumeMaM = calculateMA(hourVolume, 14);
-  const volumeMaL = calculateMA(hourVolume, 50);
-  const volumeMaXL = calculateMA(hourVolume, 100);
+  const maS = calculateMA(hourClose, s);
+  const maM = calculateMA(hourClose, m);
+  const maL = calculateMA(hourClose, l);
+  const maXL = calculateMA(hourClose, xl);
+  const volumeMaS = calculateMA(hourVolume, s);
+  const volumeMaM = calculateMA(hourVolume, m);
+  const volumeMaL = calculateMA(hourVolume, l);
+  const volumeMaXL = calculateMA(hourVolume, xl);
 
-  return hourLine.map((item, index) => ({
-      time: item.time,
-      maS: maS[index],
-      maM: maM[index],
-      maL: maL[index],
-      maXL: maXL[index],
-      volumeMaS: volumeMaS[index],
-      volumeMaM: volumeMaM[index],
-      volumeMaL: volumeMaL[index],
-      volumeMaXL: volumeMaXL[index],
-  }));
+  return {
+    maS,
+    maM,
+    maL,
+    maXL,
+    volumeMaS,
+    volumeMaM,
+    volumeMaL,
+    volumeMaXL,
+  }
 }
 
 /**
@@ -200,10 +201,10 @@ export function calculateHourMetric(hourLine) {
  * @returns {Array<Object>} 交易信号数组
  */
 export function calculateSignals({dayLine}) {
-  const metrics = calculateDayMetric(dayLine)
+  const {sign1, sign2} = calculateDayMetric(dayLine)
   const signals = metrics.reduce((result, item, i) => {
     // 添加价格乘以成交量大于10万的条件
-    if(i>0 && item.sign1 >=0 && metrics[i-1].sign1 < -50 && metrics[i-1].sign2 < 0.2 && (dayLine[i].close * dayLine[i].volume > 100000)) {
+    if(i>0 && sign1[i] >=0 && sign1[i-1] < -50 && sign2[i-1] < 0.2 && (dayLine[i].close * dayLine[i].volume > 100000)) {
       return [
         ...result,
         {
@@ -248,17 +249,18 @@ export function calculateSellSignal({buyTime, hourLine}) {
   const buyTimestamp = new Date(buyTime).getTime()
   const twoDaysLater = buyTimestamp + (480 * 60 * 60 * 1000)
   // 寻找符合条件的卖出信号
+  const {
+    volumeMaS,
+    volumeMaM,
+    volumeMaL,
+    volumeMaXL,
+  } = calculateHourMetric(hourLine)
   const sellSignal = hourLine.find((item, i) => {
-    const maLine = calculateHourMetric(hourLine)
     // 检查成交量条件
     const {volume} = item
-    const {volumeMaS, volumeMaM, volumeMaL, volumeMaXL} = maLine[i]
     // 成交量需要大于所有移动平均线的4倍
-    const isVolume = volumeMaS != null && volumeMaM != null && 
-                    volumeMaL != null && volumeMaXL != null &&
-                    volume > volumeMaS * 4 && volume > volumeMaM * 4 && 
-                    volume > volumeMaL * 4 && volume > volumeMaXL * 4
-    
+    const isVolume = volume > volumeMaS[i] * 4 && volume > volumeMaM[i] * 4 && 
+                    volume > volumeMaL[i] * 4 && volume > volumeMaXL[i] * 4
     // 检查时间条件
     const itemTimestamp = new Date(item.time).getTime()
     return (itemTimestamp > buyTimestamp && isVolume) || itemTimestamp > twoDaysLater
