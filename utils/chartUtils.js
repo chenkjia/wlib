@@ -41,24 +41,14 @@ export function calculateMA(data, period) {
   if (!Array.isArray(data) || data.length === 0) {
     return [];
   }
-
   const result = [];
   for (let i = 0; i < data.length; i++) {
-    if (i >= period - 1) {
-      const sum = data.slice(i - period + 1, i + 1)
-        .reduce((acc, cur) => acc + cur, 0);
-      result.push(sum / period);
-    } else {
-      result.push(null);
-    }
+    const param = i >= period - 1 ? period : i + 1;
+    const sum = data.slice(i - param + 1, i + 1)
+      .reduce((acc, cur) => acc + cur, 0);
+    result.push(sum / param);
   }
-
-  // 找到第一个非null值
-  const firstNonNullValue = result.find(value => value !== null);
-  
-  const r = result.map(value => value ? value : firstNonNullValue)
-
-  return r;
+  return result;
 }
 
 /**
