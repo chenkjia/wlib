@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { h } from 'vue'
-import GoalDetail from './components/GoalDetail.vue'
+import GoalList from './components/GoalList.vue'
+import GoalChart from './components/GoalChart.vue'
+import GoalInfo from './components/GoalInfo.vue'
 const UButton = resolveComponent('UButton')
 
 function getHeader(column, label) {
@@ -39,6 +41,10 @@ const pageSize = ref(18)
 const stockCode = ref('')
 const selectedGoal = ref(null)
 const trendCategoryFilter = ref('all') // 添加趋势类型过滤器
+
+// 控制各栏的显示状态
+const leftPanelVisible = ref(true)
+const rightPanelVisible = ref(true)
 
 const sorting = ref([{
   id: 'startTime',
@@ -137,22 +143,16 @@ function handleSearch() {
   fetchGoals()
 }
 
+// 这个函数已经移到 GoalList 组件中
+// 保留这个空的实现以防其他地方还在调用
 function toggleSort(id) {
-  if (sorting.value[0]?.id === id) {
-    if (sorting.value[0].desc) {
-      // 降序→升序
-      sorting.value = [{ id, desc: false }]
-    } else {
-      // 升序→无排序
-      sorting.value = []
-    }
-  } else {
-    // 新列，降序（目标默认按时间降序）
-    sorting.value = [{ id, desc: true }]
-  }
+  console.log('toggleSort should be called from GoalList component')
 }
 
+// 这些函数已经移到 GoalList 和 GoalInfo 组件中
+// 保留这些空的实现以防其他地方还在调用
 function getTrendCategoryText(category) {
+  console.log('getTrendCategoryText should be called from components')
   const categoryMap = {
     'NEW_HIGH': '新高',
     'REBOUND': '反弹', 
@@ -162,6 +162,7 @@ function getTrendCategoryText(category) {
 }
 
 function getProfitClass(profit) {
+  console.log('getProfitClass should be called from components')
   if (!profit && profit !== 0) return ''
   return profit > 0 ? 'text-green-600' : profit < 0 ? 'text-red-600' : ''
 }
@@ -182,128 +183,55 @@ watch([page, sorting, trendCategoryFilter], () => {
     </div>
 
     <div class="flex-1 flex overflow-hidden">
-      <div class="w-1/3 border-r overflow-visible">
-        <div v-if="!error" class="h-full">
-          <USkeleton v-if="loading" class="h-full" />
-          <template v-else>
-            <!-- 过滤器区域 -->
-            <div class="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
-              <UInput
-                v-model="stockCode"
-                placeholder="输入股票代码筛选"
-                class="w-48 mr-2"
-              />
-              <div class="flex items-center gap-2">
-                <select
-                  v-model="trendCategoryFilter"
-                  class="w-32 px-2 py-1 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">全部类型</option>
-                  <option value="NEW_HIGH">新高</option>
-                  <option value="REBOUND">反弹</option>
-                  <option value="NORMAL">普通</option>
-                </select>
-                <UButton
-                  color="primary"
-                  size="sm"
-                  @click="handleSearch"
-                >
-                  搜索
-                </UButton>
-              </div>
-            </div>
-            <table class="w-full text-sm">
-              <thead>
-                <tr>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center">
-                      股票
-                      <span v-if="sorting[0]?.id === 'stockCode'">
-                        <span v-if="!sorting[0].desc">▲</span>
-                        <span v-else>▼</span>
-                      </span>
-                    </span>
-                  </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('startTime')" class="cursor-pointer select-none flex items-center">
-                      开始时间
-                      <span v-if="sorting[0]?.id === 'startTime'">
-                        <span v-if="!sorting[0].desc">▲</span>
-                        <span v-else>▼</span>
-                      </span>
-                    </span>
-                  </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('startPrice')" class="cursor-pointer select-none flex items-center">
-                      开始价格
-                      <span v-if="sorting[0]?.id === 'startPrice'">
-                        <span v-if="!sorting[0].desc">▲</span>
-                        <span v-else>▼</span>
-                      </span>
-                    </span>
-                  </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('trendCategory')" class="cursor-pointer select-none flex items-center">
-                      趋势类型
-                      <span v-if="sorting[0]?.id === 'trendCategory'">
-                        <span v-if="!sorting[0].desc">▲</span>
-                        <span v-else>▼</span>
-                      </span>
-                    </span>
-                  </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('profit')" class="cursor-pointer select-none flex items-center">
-                      盈亏
-                      <span v-if="sorting[0]?.id === 'profit'">
-                        <span v-if="!sorting[0].desc">▲</span>
-                        <span v-else>▼</span>
-                      </span>
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in goals" :key="row._id" :class="[selectedGoal && selectedGoal._id === row._id ? 'bg-blue-100' : 'cursor-pointer', 'transition']" @click="selectedGoal = row">
-                  <td class="px-4 py-2">{{ row.stockCode }}</td>
-                  <td class="px-4 py-2">{{ new Date(row.startTime).toLocaleDateString() }}</td>
-                  <td class="px-4 py-2">{{ row.startPrice }}</td>
-                  <td class="px-4 py-2" :class="{
-                    'text-red-600': row.trendCategory === 'NEW_HIGH',
-                    'text-green-600': row.trendCategory === 'REBOUND',
-                    'text-gray-600': row.trendCategory === 'NORMAL'
-                  }">
-                    {{ getTrendCategoryText(row.trendCategory) }}
-                  </td>
-                  <td class="px-4 py-2" :class="getProfitClass(row.profit)">
-                    {{ row.profit !== null && row.profit !== undefined ? `${row.profit > 0 ? '+' : ''}${row.profit.toFixed(2)}%` : '-' }}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div class="sticky bottom-0 py-2 flex justify-between border-t px-4 bg-white">
-              <div class="flex items-center text-sm text-gray-600">
-                共 <span class="font-medium mx-1">{{ total }}</span> 条记录
-              </div>
-              <UPagination
-                v-model:page="page"
-                :total="total"
-                :page-size="pageSize"
-                :page-count="Math.ceil(total / pageSize)"
-              />
-            </div>
-          </template>
-        </div>
-        <div v-else class="p-4 bg-red-50">
-          <div class="text-red-500">{{ error }}</div>
+      <!-- 左侧列表面板 -->
+      <div :class="['left-panel', { 'collapsed': !leftPanelVisible }]">
+        <GoalList
+          :goals="goals"
+          :loading="loading"
+          :error="error"
+          :total="total"
+          :page="page"
+          :page-size="pageSize"
+          :sorting="sorting"
+          :selected-goal="selectedGoal"
+          :stock-code="stockCode"
+          :trend-category-filter="trendCategoryFilter"
+          :visible="leftPanelVisible"
+          @update:page="page = $event"
+          @update:stock-code="stockCode = $event"
+          @update:trend-category-filter="trendCategoryFilter = $event"
+          @update:selected-goal="selectedGoal = $event"
+          @update:sorting="sorting = $event"
+          @update:visible="leftPanelVisible = $event"
+          @search="handleSearch"
+        />
+      </div>
+
+      <!-- 中间图表面板 -->
+      <div :class="['middle-panel', { 'expanded': !leftPanelVisible || !rightPanelVisible, 'fully-expanded': !leftPanelVisible && !rightPanelVisible }]">
+        <template v-if="selectedGoal">
+          <GoalChart
+            :goal="selectedGoal"
+            :visible="true"
+          />
+        </template>
+        <div v-else class="h-full flex items-center justify-center text-gray-500 bg-gray-50">
+          <div class="text-center space-y-4">
+            <div class="text-5xl mb-2 animate-bounce">👈</div>
+            <div class="text-xl">点击左侧列表查看详情</div>
+          </div>
         </div>
       </div>
 
-      <div class="w-2/3 overflow-auto">
-        <GoalDetail 
-          v-if="selectedGoal" 
-          :goal="selectedGoal"
-          class="h-full"
-        />
+      <!-- 右侧信息面板 -->
+      <div :class="['right-panel', { 'collapsed': !rightPanelVisible }]">
+        <template v-if="selectedGoal">
+          <GoalInfo
+            :goal="selectedGoal"
+            :visible="rightPanelVisible"
+            @update:visible="rightPanelVisible = $event"
+          />
+        </template>
         <div v-else class="h-full flex items-center justify-center text-gray-500 bg-gray-50">
           <div class="text-center space-y-4">
             <div class="text-5xl mb-2 animate-bounce">👈</div>
@@ -316,7 +244,41 @@ watch([page, sorting, trendCategoryFilter], () => {
 </template>
 
 <style scoped>
-.bg-blue-100 {
-  background-color: #dbeafe !important;
+/* 面板布局样式 */
+.left-panel {
+  width: 30%;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.middle-panel {
+  width: 40%;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.right-panel {
+  width: 30%;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+/* 面板折叠状态 */
+.left-panel.collapsed {
+  width: 40px;
+}
+
+.right-panel.collapsed {
+  width: 40px;
+}
+
+/* 当左侧或右侧面板折叠时，中间面板扩展 */
+.middle-panel.expanded {
+  width: calc(100% - 40px - 30%);
+}
+
+/* 当左侧和右侧面板都折叠时，中间面板占据大部分空间 */
+.middle-panel.fully-expanded {
+  width: calc(100% - 80px);
 }
 </style>
