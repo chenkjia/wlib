@@ -60,26 +60,38 @@ class DayLineDB {
      */
     static async getDayLine(code, startTime = null, endTime = null) {
         try {
-            const query = { code };
-            const projection = { _id: 0 };
-
             if (startTime && endTime) {
-                query['dayLine'] = {
-                    $elemMatch: {
-                        time: { $gte: startTime, $lte: endTime }
+                // 确保类型为Date
+                const start = new Date(startTime)
+                const end = new Date(endTime)
+                const result = await Stock.aggregate([{
+                    $match: {code}
+                  },
+                  {
+                    $project: {  // 重组字段
+                      dayLine: 1,
                     }
-                };
-                projection['dayLine.$'] = 1;
+                  },
+                  {
+                    $unwind: "$dayLine"  // 先展开数组
+                  },
+                  {
+                    $match: {  // 过滤时间范围
+                      "dayLine.time": {
+                        $gte: new Date(startTime),
+                        $lte: new Date(endTime)
+                      }
+                    }
+                  }
+                ])
+                
+                return result.map(item => item.dayLine) || [];
             } else {
-                projection['dayLine'] = 1;
+                // 没有时间区间就返回全部
+                const stock = await Stock.findOne({ code }, { _id: 0, dayLine: 1 });
+                if (!stock) throw new Error(`股票代码 ${code} 不存在`);
+                return stock.dayLine || [];
             }
-
-            const stock = await Stock.findOne(query, projection);
-            if (!stock) {
-                throw new Error(`股票代码 ${code} 不存在`);
-            }
-            
-            return stock.dayLine || [];
         } catch (error) {
             logger.error('获取日线数据失败:', error);
             throw error;
