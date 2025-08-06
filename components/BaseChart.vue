@@ -154,7 +154,8 @@ async function renderChart() {
         type: 'cross'
       },
       formatter: (params) => {
-        const date = params[0].axisValue
+        // 格式化日期为年月日
+        const date = formatDateYYYYMMDD(params[0].axisValue)
         let res = `日期: ${date}<br/>`
         
         // K线数据
@@ -178,7 +179,7 @@ async function renderChart() {
         // 成交量
         const volumeParam = params.find(p => p.seriesName === '成交量')
         if (volumeParam) {
-          res += `成交量: ${volumeParam.data[1]}<br/>`
+          res += `成交量: ${volumeParam.data[1].toLocaleString()}<br/>`
         }
         
         return res
@@ -230,7 +231,7 @@ async function renderChart() {
         max: 'dataMax',
         axisLabel: { 
           show: true,
-          formatter: value => formatDateMMDD(value)
+          formatter: value => formatDateYYYYMMDD(value)
         },
         axisPointer: {
           z: 100,
@@ -249,7 +250,7 @@ async function renderChart() {
         splitLine: { show: false },
         axisLabel: { 
           show: true,
-          formatter: value => formatDateMMDD(value)
+          formatter: value => formatDateYYYYMMDD(value)
         },
         min: 'dataMin',
         max: 'dataMax'
