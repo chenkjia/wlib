@@ -11,6 +11,7 @@ import GoalDB from './goal.js';
  */
 class MongoDB {
     static connect = MongoConnection.connect;
+    static disconnect = MongoConnection.disconnect;
 
     static getAll = StockDB.getAll;
     static getList = StockDB.getList;

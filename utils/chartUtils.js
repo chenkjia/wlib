@@ -54,16 +54,16 @@ export function calculateMA(data, period) {
 /**
  * 计算持仓方向
  * @param {Object} params - 输入参数对象
- * @param {Array<number>} params.maShort - 短期移动平均线数据
- * @param {Array<number>} params.maMiddle - 中期移动平均线数据
- * @param {Array<number>} params.maLong - 长期移动平均线数据
+ * @param {Array<number>} params.maS - 短期移动平均线数据
+ * @param {Array<number>} params.maM - 中期移动平均线数据
+ * @param {Array<number>} params.maL - 长期移动平均线数据
  * @returns {Array<number>} 持仓方向数组，1表示多头，-1表示空头，0表示无持仓
  */
-export function calculatePosition({maShort, maMiddle, maLong}) {
-  return maShort.map((short, index) => {
-    if (short > maMiddle[index] && maMiddle[index] > maLong[index]) {
+export function calculatePosition({maS, maM, maL}) {
+  return maS.map((short, index) => {
+    if (short > maM[index] && maM[index] > maL[index]) {
       return 1;
-    } else if (short < maMiddle[index] && maMiddle[index] < maLong[index]) {
+    } else if (short < maM[index] && maM[index] < maL[index]) {
       return -1;
     } else {
       return 0;
@@ -107,15 +107,15 @@ export function calculateSign1({position}) {
 /**
  * 计算均线离散度
  * @param {Object} params - 输入参数对象
- * @param {Array<number>} params.maShort - 短期移动平均线数据
- * @param {Array<number>} params.maMiddle - 中期移动平均线数据
- * @param {Array<number>} params.maLong - 长期移动平均线数据
+ * @param {Array<number>} params.maS - 短期移动平均线数据
+ * @param {Array<number>} params.maM - 中期移动平均线数据
+ * @param {Array<number>} params.maL - 长期移动平均线数据
  * @returns {Array<number>} 均线离散度数组
  */
-export function calculateSign2({maShort, maMiddle, maLong}) {
-  return maShort.map((ma, index) => {
-    const max = Math.max(ma, maMiddle[index], maLong[index])
-    const min = Math.min(ma, maMiddle[index], maLong[index])
+export function calculateSign2({maS, maM, maL}) {
+  return maS.map((ma, index) => {
+    const max = Math.max(ma, maM[index], maL[index])
+    const min = Math.min(ma, maM[index], maL[index])
     return (max - min)/min
   })
 }
@@ -190,9 +190,9 @@ export function calculateHourMetric(hourLine, {
  * @param {Array<Object>} params.dayLine - 日线数据
  * @returns {Array<Object>} 交易信号数组
  */
-export function calculateSignals({dayLine}) {
-  const {sign1, sign2} = calculateDayMetric(dayLine)
-  const signals = metrics.reduce((result, item, i) => {
+export function calculateSignals({dayLine}, param = {}) {
+  const {sign1, sign2} = calculateDayMetric(dayLine, param)
+  const signals = sign1.reduce((result, item, i) => {
     // 添加价格乘以成交量大于10万的条件
     if(i>0 && sign1[i] >=0 && sign1[i-1] < -50 && sign2[i-1] < 0.2 && (dayLine[i].close * dayLine[i].volume > 100000)) {
       return [
@@ -234,7 +234,7 @@ export function calculateBuySignal({signalTime, hourLine}) {
  * @param {Array<Object>} params.hourLine - 小时线数据
  * @returns {Object} 卖出信号
  */
-export function calculateSellSignal({buyTime, hourLine}) {
+export function calculateSellSignal({buyTime, hourLine}, param = {}) {
   // 计算买入时间戳和两天后的时间戳
   const buyTimestamp = new Date(buyTime).getTime()
   const twoDaysLater = buyTimestamp + (480 * 60 * 60 * 1000)
@@ -244,7 +244,7 @@ export function calculateSellSignal({buyTime, hourLine}) {
     volumeMaM,
     volumeMaL,
     volumeMaXL,
-  } = calculateHourMetric(hourLine)
+  } = calculateHourMetric(hourLine, param)
   const sellSignal = hourLine.find((item, i) => {
     // 检查成交量条件
     const {volume} = item
@@ -350,10 +350,10 @@ export function calculateTransaction(props) {
  * @param {Array<Object>} params.hourLine - 小时线数据
  * @returns {Array<Object>} 交易信息数组
  */
-export function calculateTransactions({dayLine, hourLine}) {
-  const signals = calculateSignals({dayLine})
+export function calculateTransactions({dayLine, hourLine}, param = {}) {
+  const signals = calculateSignals({dayLine}, param)
   const transactions = signals.map((item) => {
-    const transaction = calculateTransaction({...item, hourLine })
+    const transaction = calculateTransaction({...item, hourLine }, param) 
     return {
       ...item,
       ...transaction

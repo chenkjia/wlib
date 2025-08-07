@@ -2,7 +2,7 @@
  * 回测执行模块
  */
 import MongoDB from '../database/mongo.js';
-import { calculateTransactions } from './calculate/signal.js';
+import { calculateTransactions } from '../../utils/chartUtils.js';
 import logger from '~/utils/logger.js';
 class BacktestExecutor {
   /**
@@ -51,8 +51,8 @@ class BacktestExecutor {
     await MongoDB.clearTransaction();
         
     // 获取股票列表
-    const stockList = await MongoDB.getList();
-    
+    const stockList = await MongoDB.getAll();
+    console.log(stockList.length);
     // 对每个股票执行回测策略
     for (let i = 0; i < stockList.length; i++) {
         const stock = stockList[i];

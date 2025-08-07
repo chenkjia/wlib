@@ -35,6 +35,24 @@ class MongoConnection {
             throw error;
         }
     }
+    
+    /**
+     * 断开数据库连接
+     * @returns {Promise} 断开连接的Promise
+     */
+    static async disconnect() {
+        try {
+            if (mongoose.connection.readyState !== 0) { // 0 = disconnected
+                await mongoose.connection.close();
+                this.isConnected = false;
+                logger.info('MongoDB disconnected successfully');
+            }
+            return Promise.resolve();
+        } catch (error) {
+            logger.error('MongoDB disconnection error:', error);
+            throw error;
+        }
+    }
 }
 
 export default MongoConnection;
