@@ -12,7 +12,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:visible'])
+const emit = defineEmits(['update:visible', 'update:ma-params'])
 
 // Tab状态管理
 const activeTab = ref('basic')
@@ -37,7 +37,7 @@ const switchTab = (tab) => {
 // 保存表单
 const saveForm = () => {
   console.log('保存参数:', formData.value)
-  // TODO: 实现保存逻辑
+  emit('update:ma-params', formData.value)
 }
 
 // 格式化函数

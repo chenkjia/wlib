@@ -41,6 +41,7 @@ const pageSize = ref(18)
 const stockCode = ref('')
 const selectedGoal = ref(null)
 const trendCategoryFilter = ref('all') // 添加趋势类型过滤器
+const maParams = ref(null) // 移动平均线参数
 
 // 控制各栏的显示状态
 const leftPanelVisible = ref(true)
@@ -212,6 +213,7 @@ watch([page, sorting, trendCategoryFilter], () => {
         <template v-if="selectedGoal">
           <GoalChart
             :goal="selectedGoal"
+            :ma-params="maParams"
             :visible="true"
           />
         </template>
@@ -230,6 +232,7 @@ watch([page, sorting, trendCategoryFilter], () => {
             :goal="selectedGoal"
             :visible="rightPanelVisible"
             @update:visible="rightPanelVisible = $event"
+            @update:ma-params="maParams = $event"
           />
         </template>
         <div v-else class="h-full flex items-center justify-center text-gray-500 bg-gray-50">

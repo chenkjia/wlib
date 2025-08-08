@@ -7,6 +7,10 @@ const props = defineProps({
   goal: {
     type: Object,
     required: true
+  },
+  maParams: {
+    type: Object,
+    default: null
   }
 })
 
@@ -61,12 +65,12 @@ onUnmounted(() => {
     <div class="charts-container">
       <!-- 日线图 -->
       <div class="chart-section">
-        <DayLineChart ref="dayChart" :goal="goal" />
+        <DayLineChart ref="dayChart" :goal="goal" :ma-params="maParams" />
       </div>
       
       <!-- 小时线图 -->
       <div class="chart-section">
-        <HourLineChart ref="hourChart" :goal="goal" />
+        <HourLineChart ref="hourChart" :goal="goal" :ma-params="maParams" />
       </div>
     </div>
   </div>
