@@ -14,6 +14,28 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible'])
 
+// Tab状态管理
+const activeTab = ref('basic')
+
+// 表单数据
+const formData = ref({
+  maS: '',
+  maM: '',
+  maL: '',
+  maXL: ''
+})
+
+// Tab切换
+const switchTab = (tab) => {
+  activeTab.value = tab
+}
+
+// 保存表单
+const saveForm = () => {
+  console.log('保存参数:', formData.value)
+  // TODO: 实现保存逻辑
+}
+
 // 格式化函数
 function formatDate(date) {
   if (!date) return '-'
@@ -93,81 +115,169 @@ function toggleVisibility() {
     </div>
     
     <div v-if="visible" class="info-content">
-      <!-- 基本信息 -->
-      <div class="info-section">
-        <h3 class="section-title">基本信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">股票代码:</span>
-            <span class="value font-medium">{{ goal.stockCode }}</span>
+      <!-- Tab导航 -->
+      <div class="tab-nav">
+        <button 
+          v-for="tab in [{ key: 'basic', label: '基本信息' }, { key: 'params', label: '参数设置' }, { key: 'buy', label: '买入策略' }, { key: 'sell', label: '卖出策略' }]"
+          :key="tab.key"
+          @click="switchTab(tab.key)"
+          :class="['tab-btn', { active: activeTab === tab.key }]"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
+      <!-- Tab内容 -->
+      <div class="tab-content">
+        <!-- 基本信息Tab -->
+        <div v-if="activeTab === 'basic'" class="tab-panel">
+          <!-- 基本信息 -->
+          <div class="info-section">
+            <h3 class="section-title">基本信息</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">股票代码:</span>
+                <span class="value font-medium">{{ goal.stockCode }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">趋势类型:</span>
+                <span class="value" :class="getTrendCategoryClass(goal.trendCategory)">
+                  {{ getTrendCategoryText(goal.trendCategory) }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="label">开始时间:</span>
+                <span class="value">{{ formatDateTime(goal.startTime) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">开始价格:</span>
+                <span class="value">{{ formatPrice(goal.startPrice) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">结束时间:</span>
+                <span class="value">{{ formatDateTime(goal.endTime) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">结束价格:</span>
+                <span class="value">{{ formatPrice(goal.endPrice) }}</span>
+              </div>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">趋势类型:</span>
-            <span class="value" :class="getTrendCategoryClass(goal.trendCategory)">
-              {{ getTrendCategoryText(goal.trendCategory) }}
-            </span>
+          
+          <!-- 收益信息 -->
+          <div class="info-section">
+            <h3 class="section-title">收益信息</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">总盈亏:</span>
+                <span class="value font-medium" :class="getProfitClass(goal.profit)">
+                  {{ formatProfit(goal.profit) }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="label">持续天数:</span>
+                <span class="value">{{ formatDuration(goal.duration) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">日均利润:</span>
+                <span class="value" :class="getProfitClass(goal.dailyProfit)">
+                  {{ formatDailyProfit(goal.dailyProfit) }}
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="label">使用斜率分析:</span>
+                <span class="value">{{ goal.usedSlopeAnalysis ? '是' : '否' }}</span>
+              </div>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">开始时间:</span>
-            <span class="value">{{ formatDateTime(goal.startTime) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">开始价格:</span>
-            <span class="value">{{ formatPrice(goal.startPrice) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">结束时间:</span>
-            <span class="value">{{ formatDateTime(goal.endTime) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">结束价格:</span>
-            <span class="value">{{ formatPrice(goal.endPrice) }}</span>
+          
+          <!-- 流动性统计 -->
+          <div v-if="goal.liquidityStats" class="info-section">
+            <h3 class="section-title">流动性统计</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="label">平均成交量:</span>
+                <span class="value">{{ goal.liquidityStats.avgVolume?.toLocaleString() || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">平均成交额:</span>
+                <span class="value">{{ goal.liquidityStats.avgAmount?.toLocaleString() || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="label">换手率:</span>
+                <span class="value">{{ goal.liquidityStats.turnoverRate ? `${goal.liquidityStats.turnoverRate.toFixed(2)}%` : '-' }}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <!-- 收益信息 -->
-      <div class="info-section">
-        <h3 class="section-title">收益信息</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">总盈亏:</span>
-            <span class="value font-medium" :class="getProfitClass(goal.profit)">
-              {{ formatProfit(goal.profit) }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="label">持续天数:</span>
-            <span class="value">{{ formatDuration(goal.duration) }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">日均利润:</span>
-            <span class="value" :class="getProfitClass(goal.dailyProfit)">
-              {{ formatDailyProfit(goal.dailyProfit) }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="label">使用斜率分析:</span>
-            <span class="value">{{ goal.usedSlopeAnalysis ? '是' : '否' }}</span>
+
+        <!-- 参数设置Tab -->
+        <div v-if="activeTab === 'params'" class="tab-panel">
+          <div class="info-section">
+            <h3 class="section-title">移动平均线参数</h3>
+            <form @submit.prevent="saveForm" class="param-form">
+              <div class="form-grid">
+                <div class="form-item">
+                  <label class="form-label">maS (短期):</label>
+                  <input 
+                    v-model="formData.maS" 
+                    type="number" 
+                    class="form-input"
+                    placeholder="请输入短期移动平均线参数"
+                  />
+                </div>
+                <div class="form-item">
+                  <label class="form-label">maM (中期):</label>
+                  <input 
+                    v-model="formData.maM" 
+                    type="number" 
+                    class="form-input"
+                    placeholder="请输入中期移动平均线参数"
+                  />
+                </div>
+                <div class="form-item">
+                  <label class="form-label">maL (长期):</label>
+                  <input 
+                    v-model="formData.maL" 
+                    type="number" 
+                    class="form-input"
+                    placeholder="请输入长期移动平均线参数"
+                  />
+                </div>
+                <div class="form-item">
+                  <label class="form-label">maXL (超长期):</label>
+                  <input 
+                    v-model="formData.maXL" 
+                    type="number" 
+                    class="form-input"
+                    placeholder="请输入超长期移动平均线参数"
+                  />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="save-btn">保存参数</button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
-      
-      <!-- 流动性统计 -->
-      <div v-if="goal.liquidityStats" class="info-section">
-        <h3 class="section-title">流动性统计</h3>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">平均成交量:</span>
-            <span class="value">{{ goal.liquidityStats.avgVolume?.toLocaleString() || '-' }}</span>
+
+        <!-- 买入策略Tab -->
+        <div v-if="activeTab === 'buy'" class="tab-panel">
+          <div class="info-section">
+            <h3 class="section-title">买入策略</h3>
+            <div class="empty-content">
+              <p>买入策略配置功能开发中...</p>
+            </div>
           </div>
-          <div class="info-item">
-            <span class="label">平均成交额:</span>
-            <span class="value">{{ goal.liquidityStats.avgAmount?.toLocaleString() || '-' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">换手率:</span>
-            <span class="value">{{ goal.liquidityStats.turnoverRate ? `${goal.liquidityStats.turnoverRate.toFixed(2)}%` : '-' }}</span>
+        </div>
+
+        <!-- 卖出策略Tab -->
+        <div v-if="activeTab === 'sell'" class="tab-panel">
+          <div class="info-section">
+            <h3 class="section-title">卖出策略</h3>
+            <div class="empty-content">
+              <p>卖出策略配置功能开发中...</p>
+            </div>
           </div>
         </div>
       </div>
@@ -292,5 +402,119 @@ function toggleVisibility() {
   background-color: #f9fafb;
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
+}
+
+/* Tab样式 */
+.tab-nav {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1rem;
+}
+
+.tab-btn {
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #374151;
+}
+
+.tab-btn.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}
+
+.tab-content {
+  flex: 1;
+}
+
+.tab-panel {
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 表单样式 */
+.param-form {
+  max-width: 600px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-btn {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.save-btn:hover {
+  background-color: #2563eb;
+}
+
+/* 空内容样式 */
+.empty-content {
+  text-align: center;
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.empty-content p {
+  margin: 0;
+  font-size: 0.875rem;
 }
 </style>
