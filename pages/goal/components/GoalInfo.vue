@@ -19,10 +19,14 @@ const activeTab = ref('basic')
 
 // 表单数据
 const formData = ref({
-  maS: '',
-  maM: '',
-  maL: '',
-  maXL: ''
+  dayMaS: '',
+  dayMaM: '',
+  dayMaL: '',
+  dayMaXL: '',
+  hourMaS: '',
+  hourMaM: '',
+  hourMaL: '',
+  hourMaXL: ''
 })
 
 // Tab切换
@@ -212,54 +216,99 @@ function toggleVisibility() {
         </div>
 
         <!-- 参数设置Tab -->
-        <div v-if="activeTab === 'params'" class="tab-panel">
-          <div class="info-section">
-            <h3 class="section-title">移动平均线参数</h3>
-            <form @submit.prevent="saveForm" class="param-form">
-              <div class="form-grid">
-                <div class="form-item">
-                  <label class="form-label">maS (短期):</label>
-                  <input 
-                    v-model="formData.maS" 
-                    type="number" 
-                    class="form-input"
-                    placeholder="请输入短期移动平均线参数"
-                  />
-                </div>
-                <div class="form-item">
-                  <label class="form-label">maM (中期):</label>
-                  <input 
-                    v-model="formData.maM" 
-                    type="number" 
-                    class="form-input"
-                    placeholder="请输入中期移动平均线参数"
-                  />
-                </div>
-                <div class="form-item">
-                  <label class="form-label">maL (长期):</label>
-                  <input 
-                    v-model="formData.maL" 
-                    type="number" 
-                    class="form-input"
-                    placeholder="请输入长期移动平均线参数"
-                  />
-                </div>
-                <div class="form-item">
-                  <label class="form-label">maXL (超长期):</label>
-                  <input 
-                    v-model="formData.maXL" 
-                    type="number" 
-                    class="form-input"
-                    placeholder="请输入超长期移动平均线参数"
-                  />
-                </div>
-              </div>
-              <div class="form-actions">
-                <button type="submit" class="save-btn">保存参数</button>
-              </div>
-            </form>
-          </div>
-        </div>
+         <div v-if="activeTab === 'params'" class="tab-panel">
+           <form @submit.prevent="saveForm" class="param-form">
+             <!-- 日线参数 -->
+             <div class="info-section">
+               <h3 class="section-title">日线移动平均线参数</h3>
+               <div class="form-grid">
+                 <div class="form-item">
+                   <label class="form-label">dayMaS (短期):</label>
+                   <input 
+                     v-model="formData.dayMaS" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入日线短期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">dayMaM (中期):</label>
+                   <input 
+                     v-model="formData.dayMaM" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入日线中期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">dayMaL (长期):</label>
+                   <input 
+                     v-model="formData.dayMaL" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入日线长期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">dayMaXL (超长期):</label>
+                   <input 
+                     v-model="formData.dayMaXL" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入日线超长期移动平均线参数"
+                   />
+                 </div>
+               </div>
+             </div>
+
+             <!-- 小时线参数 -->
+             <div class="info-section">
+               <h3 class="section-title">小时线移动平均线参数</h3>
+               <div class="form-grid">
+                 <div class="form-item">
+                   <label class="form-label">hourMaS (短期):</label>
+                   <input 
+                     v-model="formData.hourMaS" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入小时线短期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">hourMaM (中期):</label>
+                   <input 
+                     v-model="formData.hourMaM" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入小时线中期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">hourMaL (长期):</label>
+                   <input 
+                     v-model="formData.hourMaL" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入小时线长期移动平均线参数"
+                   />
+                 </div>
+                 <div class="form-item">
+                   <label class="form-label">hourMaXL (超长期):</label>
+                   <input 
+                     v-model="formData.hourMaXL" 
+                     type="number" 
+                     class="form-input"
+                     placeholder="请输入小时线超长期移动平均线参数"
+                   />
+                 </div>
+               </div>
+             </div>
+
+             <div class="form-actions">
+               <button type="submit" class="save-btn">保存参数</button>
+             </div>
+           </form>
+         </div>
 
         <!-- 买入策略Tab -->
         <div v-if="activeTab === 'buy'" class="tab-panel">
