@@ -24,6 +24,7 @@ const props = defineProps({
 // 图表相关引用和状态
 const chartContainer = ref(null)
 const chartInstance = ref(null)
+const isFullscreen = ref(false)
 
 // 颜色配置
 const upColor = '#ec0000'
@@ -191,15 +192,16 @@ async function renderChart() {
         backgroundColor: '#777'
       }
     },
-    toolbox: {
-      feature: {
-        dataZoom: {
-          yAxisIndex: false
-        },
-        restore: {},
-        saveAsImage: {}
-      }
-    },
+    // 移除工具栏
+    // toolbox: {
+    //   feature: {
+    //     dataZoom: {
+    //       yAxisIndex: false
+    //     },
+    //     restore: {},
+    //     saveAsImage: {}
+    //   }
+    // },
     brush: {
       xAxisIndex: 'all',
       brushLink: 'all',
@@ -359,6 +361,14 @@ async function renderChart() {
   // 设置图表选项
   chartInstance.value.setOption(mergedOption)
 }
+// 全屏切换功能
+const toggleFullscreen = () => {
+  isFullscreen.value = !isFullscreen.value
+  setTimeout(() => {
+    resize()
+  }, 100)
+}
+
 // 暴露给父组件的方法 - 调整图表大小
 const resize = () => {
   if (chartInstance.value) {
@@ -377,7 +387,8 @@ const dispose = () => {
 // 向父组件暴露方法
 defineExpose({
   resize,
-  dispose
+  dispose,
+  toggleFullscreen
 })
 
 // 组件挂载时初始化
@@ -457,7 +468,14 @@ function generateOHLC(count) {
 </script>
 
 <template>
-  <div class="chart-wrapper">
+  <div class="chart-wrapper" :class="{ 'fullscreen': isFullscreen }">
+    <div class="chart-header">
+      <button class="fullscreen-btn" @click="toggleFullscreen">
+        <svg class="fullscreen-icon" viewBox="0 0 24 24">
+          <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+        </svg>
+      </button>
+    </div>
     <div ref="chartContainer" class="chart-container"></div>
   </div>
 </template>
@@ -469,6 +487,44 @@ function generateOHLC(count) {
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.chart-wrapper.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: white;
+}
+
+.chart-header {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.fullscreen-btn {
+  padding: 8px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.fullscreen-btn:hover {
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fullscreen-icon {
+  width: 16px;
+  height: 16px;
+  fill: #666;
 }
 
 .chart-container {

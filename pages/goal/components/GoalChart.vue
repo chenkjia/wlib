@@ -21,6 +21,18 @@ const hourChart = ref(null)
 // 全屏状态
 const isFullscreen = ref(false)
 
+// 图表类型切换
+const activeChartType = ref('day') // 'day' 或 'hour'
+
+// 切换图表类型
+const switchChartType = (type) => {
+  activeChartType.value = type
+  // 延迟执行resize，确保DOM已更新
+  setTimeout(() => {
+    handleResize()
+  }, 100)
+}
+
 // 切换全屏
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value
@@ -56,6 +68,23 @@ onUnmounted(() => {
     <div class="chart-header">
       <h2 class="text-xl font-bold">K线图</h2>
       <div class="chart-controls">
+        <!-- 图表类型切换按钮 -->
+        <div class="chart-type-tabs">
+          <button 
+            @click="switchChartType('day')"
+            :class="['chart-type-btn', { active: activeChartType === 'day' }]"
+            title="日线图"
+          >
+            日线
+          </button>
+          <button 
+            @click="switchChartType('hour')"
+            :class="['chart-type-btn', { active: activeChartType === 'hour' }]"
+            title="小时线图"
+          >
+            小时线
+          </button>
+        </div>
         <button @click="toggleFullscreen" class="fullscreen-btn" title="全屏切换">
           <i :class="isFullscreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'" aria-hidden="true"></i>
         </button>
@@ -63,14 +92,23 @@ onUnmounted(() => {
     </div>
     
     <div class="charts-container">
-      <!-- 日线图 -->
+      <!-- 图表显示区域 -->
       <div class="chart-section">
-        <DayLineChart ref="dayChart" :goal="goal" :ma-params="maParams" />
-      </div>
-      
-      <!-- 小时线图 -->
-      <div class="chart-section">
-        <HourLineChart ref="hourChart" :goal="goal" :ma-params="maParams" />
+        <!-- 日线图 -->
+        <DayLineChart 
+          v-if="activeChartType === 'day'"
+          ref="dayChart" 
+          :goal="goal" 
+          :ma-params="maParams" 
+        />
+        
+        <!-- 小时线图 -->
+        <HourLineChart 
+          v-if="activeChartType === 'hour'"
+          ref="hourChart" 
+          :goal="goal" 
+          :ma-params="maParams" 
+        />
       </div>
     </div>
   </div>
@@ -96,7 +134,37 @@ onUnmounted(() => {
 
 .chart-controls {
   display: flex;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 1rem;
+}
+
+.chart-type-tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.25rem;
+}
+
+.chart-type-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #6b7280;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.chart-type-btn:hover {
+  color: #374151;
+  background-color: #e5e7eb;
+}
+
+.chart-type-btn.active {
+  color: #3b82f6;
+  background-color: white;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .fullscreen-btn {
