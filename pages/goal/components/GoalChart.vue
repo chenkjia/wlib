@@ -21,17 +21,7 @@ const hourChart = ref(null)
 // 全屏状态
 const isFullscreen = ref(false)
 
-// 图表类型切换
-const activeChartType = ref('day') // 'day' 或 'hour'
-
-// 切换图表类型
-const switchChartType = (type) => {
-  activeChartType.value = type
-  // 延迟执行resize，确保DOM已更新
-  setTimeout(() => {
-    handleResize()
-  }, 100)
-}
+// 移除图表类型切换逻辑，改为同时显示两个图表
 
 // 切换全屏
 const toggleFullscreen = () => {
@@ -44,11 +34,11 @@ const toggleFullscreen = () => {
 
 // 处理窗口大小变化
 const handleResize = () => {
-  // 只对当前激活的图表进行resize
-  if (activeChartType.value === 'day' && dayChart.value && dayChart.value.resize) {
+  // 同时对两个图表进行resize
+  if (dayChart.value && dayChart.value.resize) {
     dayChart.value.resize()
   }
-  if (activeChartType.value === 'hour' && hourChart.value && hourChart.value.resize) {
+  if (hourChart.value && hourChart.value.resize) {
     hourChart.value.resize()
   }
 }
@@ -67,19 +57,18 @@ onUnmounted(() => {
 <template>
   <div class="goal-chart" :class="{ 'fullscreen': isFullscreen }">
     <div class="charts-container">
-      <!-- 图表显示区域 -->
+      <!-- 日线图区域 -->
       <div class="chart-section">
-        <!-- 日线图 -->
         <DayLineChart 
-          v-if="activeChartType === 'day'"
           ref="dayChart" 
           :goal="goal" 
           :ma-params="maParams" 
         />
-        
-        <!-- 小时线图 -->
+      </div>
+      
+      <!-- 小时线图区域 -->
+      <div class="chart-section">
         <HourLineChart 
-          v-if="activeChartType === 'hour'"
           ref="hourChart" 
           :goal="goal" 
           :ma-params="maParams" 
@@ -181,6 +170,7 @@ onUnmounted(() => {
   flex: 1;
   position: relative;
   min-height: 0;
+  height: 50%;
   border-bottom: 1px solid #e5e7eb;
 }
 
