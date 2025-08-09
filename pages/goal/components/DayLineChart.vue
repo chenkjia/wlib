@@ -37,6 +37,13 @@ async function fetchDayLine(goal) {
   const res = await fetch(`/api/dayLine?code=${goal.stockCode}&startTime=${startTime.toISOString()}&endTime=${endTime.toISOString()}`)
   return await res.json()
 }
+
+// 暴露方法给父组件
+defineExpose({
+  resize: () => chartRef.value?.resize(),
+  dispose: () => chartRef.value?.dispose(),
+  toggleFullscreen: () => chartRef.value?.toggleFullscreen()
+})
 </script>
 
 <template>

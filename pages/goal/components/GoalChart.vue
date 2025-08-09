@@ -44,10 +44,11 @@ const toggleFullscreen = () => {
 
 // 处理窗口大小变化
 const handleResize = () => {
-  if (dayChart.value) {
+  // 只对当前激活的图表进行resize
+  if (activeChartType.value === 'day' && dayChart.value && dayChart.value.resize) {
     dayChart.value.resize()
   }
-  if (hourChart.value) {
+  if (activeChartType.value === 'hour' && hourChart.value && hourChart.value.resize) {
     hourChart.value.resize()
   }
 }
@@ -65,32 +66,6 @@ onUnmounted(() => {
 
 <template>
   <div class="goal-chart" :class="{ 'fullscreen': isFullscreen }">
-    <div class="chart-header">
-      <h2 class="text-xl font-bold">K线图</h2>
-      <div class="chart-controls">
-        <!-- 图表类型切换按钮 -->
-        <div class="chart-type-tabs">
-          <button 
-            @click="switchChartType('day')"
-            :class="['chart-type-btn', { active: activeChartType === 'day' }]"
-            title="日线图"
-          >
-            日线
-          </button>
-          <button 
-            @click="switchChartType('hour')"
-            :class="['chart-type-btn', { active: activeChartType === 'hour' }]"
-            title="小时线图"
-          >
-            小时线
-          </button>
-        </div>
-        <button @click="toggleFullscreen" class="fullscreen-btn" title="全屏切换">
-          <i :class="isFullscreen ? 'icon-fullscreen-exit' : 'icon-fullscreen'" aria-hidden="true"></i>
-        </button>
-      </div>
-    </div>
-    
     <div class="charts-container">
       <!-- 图表显示区域 -->
       <div class="chart-section">

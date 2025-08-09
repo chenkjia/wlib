@@ -25,6 +25,7 @@ const props = defineProps({
 const chartContainer = ref(null)
 const chartInstance = ref(null)
 const isFullscreen = ref(false)
+const resizeObserver = ref(null)
 
 // 颜色配置
 const upColor = '#ec0000'
@@ -77,7 +78,7 @@ function calculateMA(dayCount, data) {
   const result = []
   for (let i = 0, len = data.length; i < len; i++) {
     if (i < dayCount) {
-      result.push('-')
+      result.push(null) // 使用null而不是'-'，ECharts能更好地处理null值
       continue
     }
     let sum = 0
@@ -133,6 +134,13 @@ async function renderChart() {
   const processedData = processData(props.data)
   const dataCount = processedData.length
   
+  // 验证处理后的数据结构
+  if (!processedData.every(item => Array.isArray(item) && item.length >= 7 && 
+      item.slice(1, 6).every(val => typeof val === 'number' && !isNaN(val)))) {
+    console.warn('Invalid data structure detected, skipping render')
+    return
+  }
+  
   // 提取收盘价用于计算均线
   const values = processedData.map(item => [
     item[1], // 开盘
@@ -173,7 +181,7 @@ async function renderChart() {
         // 均线数据
         params.forEach((param, index) => {
           if (index > 0 && index < 4) { // MA线
-            res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`
+            res += `${param.seriesName}: ${param.data !== null ? param.data : '-'}<br/>`
           }
         })
         
@@ -192,23 +200,7 @@ async function renderChart() {
         backgroundColor: '#777'
       }
     },
-    // 移除工具栏
-    // toolbox: {
-    //   feature: {
-    //     dataZoom: {
-    //       yAxisIndex: false
-    //     },
-    //     restore: {},
-    //     saveAsImage: {}
-    //   }
-    // },
-    brush: {
-      xAxisIndex: 'all',
-      brushLink: 'all',
-      outOfBrush: {
-        colorAlpha: 0.1
-      }
-    },
+    // 移除工具栏和矩形选择功能
     grid: [
       {
         left: '10%',
@@ -350,6 +342,13 @@ async function renderChart() {
     ]
   }
   
+  // 验证数据完整性
+  const isDataValid = values.length > 0 && ma7.length > 0 && ma30.length > 0 && ma60.length > 0
+  if (!isDataValid) {
+    console.warn('Chart data is incomplete, skipping render')
+    return
+  }
+  
   // 合并用户自定义选项
   const mergedOption = {
     ...option,
@@ -358,8 +357,17 @@ async function renderChart() {
     series: props.options.series || option.series
   }
   
-  // 设置图表选项
-  chartInstance.value.setOption(mergedOption)
+  try {
+    // 设置图表选项
+    chartInstance.value.setOption(mergedOption)
+  } catch (error) {
+    console.error('Failed to set chart option:', error)
+    // 如果设置选项失败，清理图表实例
+    if (chartInstance.value) {
+      chartInstance.value.dispose()
+      chartInstance.value = null
+    }
+  }
 }
 // 全屏切换功能
 const toggleFullscreen = () => {
@@ -371,8 +379,14 @@ const toggleFullscreen = () => {
 
 // 暴露给父组件的方法 - 调整图表大小
 const resize = () => {
-  if (chartInstance.value) {
-    chartInstance.value.resize()
+  if (chartInstance.value && props.data && props.data.length > 0) {
+    try {
+      chartInstance.value.resize()
+    } catch (error) {
+      console.warn('Chart resize failed:', error)
+      // 如果resize失败，尝试重新渲染图表
+      renderChart()
+    }
   }
 }
 
@@ -396,6 +410,16 @@ onMounted(async () => {
   await nextTick()
   window.addEventListener('resize', resize)
   
+  // 创建 ResizeObserver 监控容器尺寸变化
+  if (chartContainer.value) {
+    resizeObserver.value = new ResizeObserver(() => {
+      if (chartInstance.value) {
+        resize()
+      }
+    })
+    resizeObserver.value.observe(chartContainer.value)
+  }
+  
   // 给DOM足够的时间挂载
   setTimeout(() => {
     renderChart()
@@ -410,6 +434,13 @@ watch(() => [props.data, props.options, props.theme], () => {
 // 组件卸载时清理资源
 onUnmounted(() => {
   window.removeEventListener('resize', resize)
+  
+  // 清理 ResizeObserver
+  if (resizeObserver.value) {
+    resizeObserver.value.disconnect()
+    resizeObserver.value = null
+  }
+  
   dispose()
 })
 

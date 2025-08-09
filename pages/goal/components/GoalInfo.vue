@@ -14,9 +14,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'update:ma-params'])
 
-// Tab状态管理
-const activeTab = ref('basic')
-
 // 表单数据
 const formData = ref({
   dayMaS: '',
@@ -28,11 +25,6 @@ const formData = ref({
   hourMaL: '',
   hourMaXL: ''
 })
-
-// Tab切换
-const switchTab = (tab) => {
-  activeTab.value = tab
-}
 
 // 保存表单
 const saveForm = () => {
@@ -119,22 +111,10 @@ function toggleVisibility() {
     </div>
     
     <div v-if="visible" class="info-content">
-      <!-- Tab导航 -->
-      <div class="tab-nav">
-        <button 
-          v-for="tab in [{ key: 'basic', label: '基本信息' }, { key: 'params', label: '参数设置' }, { key: 'buy', label: '买入策略' }, { key: 'sell', label: '卖出策略' }]"
-          :key="tab.key"
-          @click="switchTab(tab.key)"
-          :class="['tab-btn', { active: activeTab === tab.key }]"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <!-- Tab内容 -->
-      <div class="tab-content">
-        <!-- 基本信息Tab -->
-        <div v-if="activeTab === 'basic'" class="tab-panel">
+      <!-- 内容区域 -->
+      <div class="content-area">
+        <!-- 基本信息 -->
+        <div class="info-panel">
           <!-- 基本信息 -->
           <div class="info-section">
             <h3 class="section-title">基本信息</h3>
@@ -215,9 +195,9 @@ function toggleVisibility() {
           </div>
         </div>
 
-        <!-- 参数设置Tab -->
-         <div v-if="activeTab === 'params'" class="tab-panel">
-           <form @submit.prevent="saveForm" class="param-form">
+        <!-- 参数设置 -->
+        <div class="info-panel">
+          <form @submit.prevent="saveForm" class="param-form">
              <!-- 日线参数 -->
              <div class="info-section">
                <h3 class="section-title">日线移动平均线参数</h3>
@@ -310,8 +290,8 @@ function toggleVisibility() {
            </form>
          </div>
 
-        <!-- 买入策略Tab -->
-        <div v-if="activeTab === 'buy'" class="tab-panel">
+        <!-- 买入策略 -->
+        <div class="info-panel">
           <div class="info-section">
             <h3 class="section-title">买入策略</h3>
             <div class="empty-content">
@@ -320,8 +300,8 @@ function toggleVisibility() {
           </div>
         </div>
 
-        <!-- 卖出策略Tab -->
-        <div v-if="activeTab === 'sell'" class="tab-panel">
+        <!-- 卖出策略 -->
+        <div class="info-panel">
           <div class="info-section">
             <h3 class="section-title">卖出策略</h3>
             <div class="empty-content">
@@ -453,44 +433,18 @@ function toggleVisibility() {
   border-radius: 0.25rem;
 }
 
-/* Tab样式 */
-.tab-nav {
-  display: flex;
-  border-bottom: 1px solid #e5e7eb;
-  margin-bottom: 1rem;
-}
-
-.tab-btn {
-  padding: 0.75rem 1rem;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 0.875rem;
-  color: #6b7280;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.tab-btn:hover {
-  color: #374151;
-}
-
-.tab-btn.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
-}
-
-.tab-content {
+/* 内容区域样式 */
+.content-area {
   flex: 1;
+  overflow-y: auto;
 }
 
-.tab-panel {
-  animation: fadeIn 0.2s ease;
+.info-panel {
+  margin-bottom: 1.5rem;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+.info-panel:last-child {
+  margin-bottom: 0;
 }
 
 /* 表单样式 */
