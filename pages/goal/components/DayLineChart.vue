@@ -1,6 +1,7 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import BaseChart from '../../../components/BaseChart.vue'
+import { calculateDayMetric } from '../../../utils/chartUtils.js'
 
 // 接收父组件传递的目标数据
 const props = defineProps({
@@ -15,6 +16,14 @@ const chartRef = ref(null)
 
 // 图表数据
 const chartData = ref(null)
+
+// 计算MA数据
+const maData = computed(() => {
+  if (!chartData.value || !Array.isArray(chartData.value)) {
+    return {}
+  }
+  return calculateDayMetric(chartData.value, { s: 7, m: 30, l: 60, x: 150 })
+})
 
 // 监听goal变化，处理图表数据
 watch(() => props.goal, async (newGoal) => {
@@ -49,11 +58,7 @@ defineExpose({
 <template>
   <BaseChart
     ref="chartRef"
-    :title="chartTitle"
     :data="chartData"
-    chart-type="line"
-    :options="chartOptions"
-    :data-map="dataMap"
-    color="#10b981"
+    :ma-data="maData"
   />
 </template>

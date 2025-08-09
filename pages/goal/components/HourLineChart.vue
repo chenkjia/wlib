@@ -1,7 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import * as echarts from 'echarts'
 import BaseChart from '../../../components/BaseChart.vue'
+import { calculateHourMetric } from '../../../utils/chartUtils.js'
 
 // 接收父组件传递的目标数据
 const props = defineProps({
@@ -16,6 +17,14 @@ const chartRef = ref(null)
 
 // 图表数据
 const chartData = ref(null)
+
+// 计算MA数据
+const maData = computed(() => {
+  if (!chartData.value || !Array.isArray(chartData.value)) {
+    return {}
+  }
+  return calculateHourMetric(chartData.value, { s: 7, m: 14, l: 50, xl: 100 })
+})
 
 // 监听goal变化，处理图表数据
 watch(() => props.goal, (newGoal) => {
@@ -206,11 +215,7 @@ defineExpose({
 <template>
   <BaseChart
     ref="chartRef"
-    :title="chartTitle"
     :data="chartData"
-    chart-type="line"
-    :options="chartOptions"
-    :data-map="dataMap"
-    color="#3b82f6"
+    :ma-data="maData"
   />
 </template>

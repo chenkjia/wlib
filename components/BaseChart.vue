@@ -9,6 +9,11 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  // MA数据
+  maData: {
+    type: Object,
+    default: () => ({})
+  },
   // 图表配置选项
   options: {
     type: Object,
@@ -68,27 +73,7 @@ function processData(data) {
   })
 }
 
-/**
- * 计算MA数据
- * @param {Number} dayCount - 天数
- * @param {Array} data - 数据
- * @returns {Array} MA数据
- */
-function calculateMA(dayCount, data) {
-  const result = []
-  for (let i = 0, len = data.length; i < len; i++) {
-    if (i < dayCount) {
-      result.push(null) // 使用null而不是'-'，ECharts能更好地处理null值
-      continue
-    }
-    let sum = 0
-    for (let j = 0; j < dayCount; j++) {
-      sum += data[i - j][4] // 收盘价
-    }
-    result.push(+(sum / dayCount).toFixed(2))
-  }
-  return result
-}
+// MA计算逻辑已移至外部组件
 
 /**
  * 格式化日期 YYYY-MM-DD
@@ -98,13 +83,6 @@ function formatDateYYYYMMDD(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-/**
- * 格式化日期 MM-DD
- */
-function formatDateMMDD(value) {
-  const date = new Date(value)
-  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
 
 // 渲染K线图
 async function renderChart() {
@@ -149,56 +127,19 @@ async function renderChart() {
     item[2]  // 最高
   ])
   
-  // 计算均线数据
-  const ma7 = calculateMA(7, processedData)
-  const ma30 = calculateMA(30, processedData)
-  const ma60 = calculateMA(60, processedData)
   
   // 准备K线图的配置
   const option = {
     animation: false,
     tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      },
-      formatter: (params) => {
-        // 格式化日期为年月日
-        const date = formatDateYYYYMMDD(params[0].axisValue)
-        let res = `日期: ${date}<br/>`
-        
-        // K线数据
-        if (params[0]) {
-          const kData = params[0].data
-          res += `
-            开盘: ${kData[1]}<br/>
-            收盘: ${kData[4]}<br/>
-            最低: ${kData[3]}<br/>
-            最高: ${kData[2]}<br/>
-          `
-        }
-        
-        // 均线数据
-        params.forEach((param, index) => {
-          if (index > 0 && index < 4) { // MA线
-            res += `${param.seriesName}: ${param.data !== null ? param.data : '-'}<br/>`
-          }
-        })
-        
-        // 成交量
-        const volumeParam = params.find(p => p.seriesName === '成交量')
-        if (volumeParam) {
-          res += `成交量: ${volumeParam.data[1].toLocaleString()}<br/>`
-        }
-        
-        return res
-      }
+      trigger: 'axis'
     },
     axisPointer: {
       link: { xAxisIndex: 'all' },
       label: {
         backgroundColor: '#777'
-      }
+      },
+      triggerTooltip: true
     },
     // 移除工具栏和矩形选择功能
     grid: [
@@ -267,18 +208,10 @@ async function renderChart() {
     ],
     dataZoom: [
       {
-        type: 'inside',
-        xAxisIndex: [0, 1],
-        start: 50,
-        end: 100
+        type: 'inside'
       },
       {
-        show: true,
-        xAxisIndex: [0, 1],
-        type: 'slider',
-        top: '85%',
-        start: 50,
-        end: 100
+        type: 'slider'
       }
     ],
     visualMap: {
@@ -309,25 +242,36 @@ async function renderChart() {
         }
       },
       {
-        name: 'MA7',
+        name: 'maS',
         type: 'line',
-        data: ma7,
+        data: (props.maData && props.maData.maS) || [],
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
-        name: 'MA30',
+        name: 'maM',
         type: 'line',
-        data: ma30,
+        data: (props.maData && props.maData.maM) || [],
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
-        name: 'MA60',
+        name: 'maL',
         type: 'line',
-        data: ma60,
+        data: (props.maData && props.maData.maL) || [],
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
+      },
+      {
+        name: 'maX',
+        type: 'line',
+        data: (props.maData && props.maData.maX) || [],
+        smooth: true,
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
         name: '成交量',
@@ -343,25 +287,46 @@ async function renderChart() {
   }
   
   // 验证数据完整性
-  const isDataValid = values.length > 0 && ma7.length > 0 && ma30.length > 0 && ma60.length > 0
+  const isDataValid = values.length > 0
   if (!isDataValid) {
     console.warn('Chart data is incomplete, skipping render')
     return
   }
+  
+  // 过滤掉无效的series
+  const validSeries = option.series.filter(series => {
+    if (!series || !series.type || !series.name) {
+      console.warn('Invalid series found:', series)
+      return false
+    }
+    // K线图必须保留，其他series需要有数据
+    return series.name === 'K线' || (series.data && Array.isArray(series.data))
+  })
   
   // 合并用户自定义选项
   const mergedOption = {
     ...option,
     ...props.options,
     // 确保关键配置不被完全覆盖
-    series: props.options.series || option.series
+    series: props.options.series || validSeries,
+    tooltip: {
+      ...option.tooltip,
+      ...(props.options.tooltip || {})
+    }
   }
   
+  // 调试信息
+  console.log('Valid series count:', validSeries.length)
+  console.log('Chart data length:', processedData.length)
+  console.log('MA data:', props.maData)
+  
   try {
+    console.log('Setting chart option with series:', mergedOption.series.map(s => ({ name: s.name, type: s.type, dataLength: s.data?.length })))
     // 设置图表选项
-    chartInstance.value.setOption(mergedOption)
+    chartInstance.value.setOption(mergedOption, true)
   } catch (error) {
-    console.error('Failed to set chart option:', error)
+    console.error('图表渲染失败:', error)
+    console.error('Failed option:', mergedOption)
     // 如果设置选项失败，清理图表实例
     if (chartInstance.value) {
       chartInstance.value.dispose()
@@ -427,7 +392,7 @@ onMounted(async () => {
 })
 
 // 监听数据变化重新渲染
-watch(() => [props.data, props.options, props.theme], () => {
+watch(() => [props.data, props.maData, props.options, props.theme], () => {
   renderChart()
 }, { deep: true })
 
