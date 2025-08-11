@@ -112,12 +112,6 @@ async function renderChart() {
   const processedData = processData(props.data)
   const dataCount = processedData.length
   
-  // 验证处理后的数据结构
-  if (!processedData.every(item => Array.isArray(item) && item.length >= 7 && 
-      item.slice(1, 6).every(val => typeof val === 'number' && !isNaN(val)))) {
-    console.warn('Invalid data structure detected, skipping render')
-    return
-  }
   
   // 提取收盘价用于计算均线
   const values = processedData.map(item => [
@@ -293,32 +287,18 @@ async function renderChart() {
     return
   }
   
-  // 过滤掉无效的series
-  const validSeries = option.series.filter(series => {
-    if (!series || !series.type || !series.name) {
-      console.warn('Invalid series found:', series)
-      return false
-    }
-    // K线图必须保留，其他series需要有数据
-    return series.name === 'K线' || (series.data && Array.isArray(series.data))
-  })
   
   // 合并用户自定义选项
   const mergedOption = {
     ...option,
     ...props.options,
     // 确保关键配置不被完全覆盖
-    series: props.options.series || validSeries,
+    series: props.options.series,
     tooltip: {
       ...option.tooltip,
       ...(props.options.tooltip || {})
     }
   }
-  
-  // 调试信息
-  console.log('Valid series count:', validSeries.length)
-  console.log('Chart data length:', processedData.length)
-  console.log('MA data:', props.maData)
   
   try {
     console.log('Setting chart option with series:', mergedOption.series.map(s => ({ name: s.name, type: s.type, dataLength: s.data?.length })))

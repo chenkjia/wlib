@@ -27,14 +27,7 @@ const maData = computed(() => {
 
 // 监听goal变化，处理图表数据
 watch(() => props.goal, async (newGoal) => {
-  console.log(newGoal)
   chartData.value = await fetchDayLine(newGoal)
-  // if (newGoal && newGoal.dayLine && Array.isArray(newGoal.dayLine)) {
-  //   // 使用processChartData处理数据
-  //   chartData.value = await fetchDayLine(newGoal)
-  // } else {
-  //   chartData.value = null
-  // }
 }, { immediate: true })
 
 
