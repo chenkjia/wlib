@@ -1,7 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import DayLineChart from './DayLineChart.vue'
 import HourLineChart from './HourLineChart.vue'
+
+console.log('=== GoalChart 组件加载 ===')
 
 const props = defineProps({
   goal: {
@@ -10,9 +12,18 @@ const props = defineProps({
   },
   maParams: {
     type: Object,
-    default: null
+    default: () => ({
+      ma5: true,
+      ma10: true,
+      ma20: true,
+      ma30: false
+    })
   }
 })
+
+console.log('GoalChart props:', props)
+console.log('GoalChart goal:', props.goal)
+console.log('GoalChart maParams:', props.maParams)
 
 // 引用图表组件
 const dayChart = ref(null)

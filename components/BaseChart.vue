@@ -86,15 +86,66 @@ function formatDateYYYYMMDD(value) {
 
 // 渲染K线图
 async function renderChart() {
-  // 确保容器存在且有数据
-  if (!chartContainer.value || !props.data || !props.data.length) return
+  // 添加详细的调试信息 - 只在客户端执行
+  if (process.client) {
+    console.log('=== BaseChart renderChart 开始 ===')
+    console.log('renderChart 调用:', {
+      容器存在: !!chartContainer.value,
+      数据存在: !!props.data,
+      数据长度: props.data ? props.data.length : 0,
+      数据类型: typeof props.data,
+      数据结构: props.data ? (Array.isArray(props.data) ? '数组' : '对象') : '无数据'
+    })
+    console.log('完整数据内容:', props.data)
+    // 在页面上显示调试信息
+    if (typeof window !== 'undefined') {
+      window.baseChartDebug = {
+        called: true,
+        containerExists: !!chartContainer.value,
+        dataExists: !!props.data,
+        dataLength: props.data ? props.data.length : 0
+      }
+    }
+  }
+  
+  if (!chartContainer.value) {
+    console.error('图表容器不存在')
+    return
+  }
+  
+  if (!props.data) {
+    console.warn('图表数据为空')
+    return
+  }
+  
+  // 检查数据格式，支持不同类型的数据
+  let processedData = []
+  if (Array.isArray(props.data)) {
+    // 如果是数组，直接使用
+    processedData = props.data
+    console.log('使用数组数据，长度:', processedData.length)
+  } else if (props.data && typeof props.data === 'object' && props.data.chartData) {
+    // 如果是对象且包含chartData，使用chartData
+    processedData = props.data.chartData || []
+    console.log('使用对象中的chartData，长度:', processedData.length)
+  } else {
+    console.warn('数据格式不支持:', props.data)
+    return
+  }
+  
+  if (processedData.length === 0) {
+    console.warn('处理后的数据为空')
+    return
+  }
   
   // 检查容器尺寸
   const containerRect = chartContainer.value.getBoundingClientRect()
   const containerWidth = containerRect.width
   const containerHeight = containerRect.height
+  console.log('容器尺寸:', { width: containerWidth, height: containerHeight })
   
   if (containerWidth <= 0 || containerHeight <= 0) {
+    console.warn('容器尺寸无效，延迟重试')
     // 容器尺寸无效，延迟重试
     setTimeout(renderChart, 200)
     return
@@ -108,13 +159,15 @@ async function renderChart() {
   // 创建新的图表实例
   chartInstance.value = echarts.init(chartContainer.value, props.theme)
   
-  // 处理数据
-  const processedData = processData(props.data)
-  const dataCount = processedData.length
+  // 使用已处理的数据
+  const finalData = processData(processedData)
+  const dataCount = finalData.length
+  
+  console.log('最终处理的数据长度:', dataCount)
   
   
   // 提取收盘价用于计算均线
-  const values = processedData.map(item => [
+  const values = finalData.map(item => [
     item[1], // 开盘
     item[4], // 收盘
     item[3], // 最低
@@ -152,7 +205,7 @@ async function renderChart() {
     xAxis: [
       {
         type: 'category',
-        data: processedData.map(item => item[0]),
+        data: finalData.map(item => item[0]),
         boundaryGap: false,
         axisLine: { onZero: false },
         splitLine: { show: false },
@@ -172,7 +225,7 @@ async function renderChart() {
       {
         type: 'category',
         gridIndex: 1,
-        data: processedData.map(item => item[0]),
+        data: finalData.map(item => item[0]),
         boundaryGap: false,
         axisLine: { onZero: false },
         axisTick: { show: false },
@@ -272,7 +325,7 @@ async function renderChart() {
         type: 'bar',
         xAxisIndex: 1,
         yAxisIndex: 1,
-        data: processedData.map((item, index) => [index, item[5], item[6]]),
+        data: finalData.map((item, index) => [index, item[5], item[6]]),
         itemStyle: {
           color: params => params.data[2] > 0 ? upColor : downColor
         }
@@ -293,7 +346,7 @@ async function renderChart() {
     ...option,
     ...props.options,
     // 确保关键配置不被完全覆盖
-    series: props.options.series,
+    series: props.options.series || option.series,
     tooltip: {
       ...option.tooltip,
       ...(props.options.tooltip || {})
@@ -304,6 +357,7 @@ async function renderChart() {
     console.log('Setting chart option with series:', mergedOption.series.map(s => ({ name: s.name, type: s.type, dataLength: s.data?.length })))
     // 设置图表选项
     chartInstance.value.setOption(mergedOption, true)
+    console.log('图表渲染成功')
   } catch (error) {
     console.error('图表渲染失败:', error)
     console.error('Failed option:', mergedOption)
@@ -373,6 +427,7 @@ onMounted(async () => {
 
 // 监听数据变化重新渲染
 watch(() => [props.data, props.maData, props.options, props.theme], () => {
+  console.log('数据变化，重新渲染图表')
   renderChart()
 }, { deep: true })
 

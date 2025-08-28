@@ -111,6 +111,9 @@ const columns = [
 async function fetchGoals() {
   loading.value = true
   try {
+    if (process.client) {
+      console.log('=== fetchGoals 开始 ===')
+    }
     const params = new URLSearchParams({
       page: page.value.toString(),
       pageSize: pageSize.value.toString()
@@ -131,6 +134,34 @@ async function fetchGoals() {
     const data = await response.json()
     goals.value = data.data
     total.value = data.total
+    
+    if (process.client) {
+      console.log('获取到的goals:', goals.value)
+      console.log('当前selectedGoal:', selectedGoal.value)
+    }
+    
+    // 自动选择第一个goal来测试HourLineChart组件
+    if (data.data && data.data.length > 0 && !selectedGoal.value) {
+      if (process.client) {
+        console.log('Goal页面: 自动选择第一个goal进行测试:', data.data[0])
+      }
+      selectedGoal.value = data.data[0]
+      if (process.client) {
+        console.log('selectedGoal设置后的值:', selectedGoal.value)
+        // 在页面上显示调试信息
+        if (typeof window !== 'undefined') {
+          window.goalPageDebug = {
+            fetchGoalsCalled: true,
+            goalsCount: goals.value.length,
+            selectedGoal: selectedGoal.value,
+            selectedGoalStockCode: selectedGoal.value?.stockCode
+          }
+        }
+      }
+    }
+    if (process.client) {
+      console.log('=== fetchGoals 结束 ===')
+    }
   } catch (err) {
     console.error('获取目标列表失败:', err)
     error.value = err.message || '获取目标列表失败'

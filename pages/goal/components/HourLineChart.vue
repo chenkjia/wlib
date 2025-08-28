@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import * as echarts from 'echarts'
 import BaseChart from '../../../components/BaseChart.vue'
 import { calculateHourMetric } from '../../../utils/chartUtils.js'
@@ -9,6 +9,32 @@ const props = defineProps({
   goal: {
     type: Object,
     required: true
+  }
+})
+
+// 组件挂载时的调试信息
+onMounted(() => {
+  if (process.client) {
+    console.log('=== HourLineChart 组件挂载 ===')
+    console.log('HourLineChart goal:', props.goal)
+    // 在页面上显示调试信息
+    if (typeof window !== 'undefined') {
+      window.hourLineChartDebug = {
+        mounted: true,
+        hasGoal: !!props.goal,
+        goalStockCode: props.goal?.stockCode
+      }
+    }
+  }
+  if (props.goal && props.goal.stockCode) {
+    console.log('HourLineChart onMounted: 调用 fetchHourLineData，参数:', {
+      stockCode: props.goal.stockCode,
+      startTime: props.goal.startTime,
+      endTime: props.goal.endTime
+    })
+    fetchHourLineData(props.goal.stockCode, props.goal.startTime, props.goal.endTime)
+  } else {
+    console.warn('HourLineChart onMounted: goal 或 stockCode 不存在')
   }
 })
 
@@ -26,12 +52,66 @@ const maData = computed(() => {
   return calculateHourMetric(chartData.value, { s: 7, m: 14, l: 50, xl: 100 })
 })
 
-// 监听goal变化，处理图表数据
-watch(() => props.goal, (newGoal) => {
-  if (newGoal && newGoal.hourLine && Array.isArray(newGoal.hourLine)) {
-    // 使用processChartData处理数据
-    chartData.value = processChartData(newGoal.hourLine)
+// 获取小时线数据的函数
+const fetchHourLineData = async (stockCode, startTime, endTime) => {
+  // 参数验证
+  if (!stockCode || stockCode === 'undefined') {
+    console.error('HourLineChart fetchHourLineData: stockCode 为空或 undefined:', stockCode)
+    return null
+  }
+  
+  try {
+    console.log('HourLineChart: 开始获取小时线数据', { stockCode, startTime, endTime })
+    const params = new URLSearchParams({
+      code: stockCode
+    })
+    if (startTime) params.append('startTime', startTime)
+    if (endTime) params.append('endTime', endTime)
+    
+    console.log('HourLineChart: 请求 URL:', `/api/hourLine?${params}`)
+    const response = await fetch(`/api/hourLine?${params}`)
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    const data = await response.json()
+    console.log('HourLineChart: 成功获取小时线数据，长度:', data?.length || 0)
+    
+    // 处理获取到的数据
+    if (data && Array.isArray(data) && data.length > 0) {
+      console.log('HourLineChart: 处理小时线数据，长度:', data.length)
+      // 转换数据格式为图表需要的格式
+      const formattedData = data.map(item => [
+        new Date(item.time).getTime(),
+        item.close
+      ])
+      chartData.value = processChartData(formattedData)
+      console.log('HourLineChart: 图表数据设置完成')
+    } else {
+      console.log('HourLineChart: 没有获取到有效的小时线数据')
+      chartData.value = null
+    }
+    
+    return data
+  } catch (error) {
+    console.error('HourLineChart: 获取小时线数据失败:', error)
+    chartData.value = null
+    return null
+  }
+}
+
+// 监听goal变化，获取对应的小时线数据
+watch(() => props.goal, async (newGoal) => {
+  console.log('HourLineChart: goal数据变化', newGoal)
+  if (newGoal && newGoal.stockCode) {
+    console.log('HourLineChart: 开始获取股票小时线数据:', newGoal.stockCode)
+    // 获取小时线数据（数据处理已在 fetchHourLineData 函数中完成）
+    await fetchHourLineData(
+      newGoal.stockCode,
+      newGoal.startTime,
+      newGoal.endTime
+    )
   } else {
+    console.log('HourLineChart: goal数据无效或缺少stockCode')
     chartData.value = null
   }
 }, { immediate: true })
