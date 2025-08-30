@@ -10,13 +10,19 @@
     "postinstall": "nuxt prepare",
     "test:goal": "node --import ./loader.js test/goal.js",
     "test:backtest": "node --import ./loader.js test/backtest.js",
-    "test:report": "node --import ./loader.js test/generateReport.js"
+    "test:dayline": "node --import ./loader.js test/dayLine.test.js",
+    "test:report": "node --import ./loader.js test/generateReport.js",
+    "fetch:daylines": "node --import ./loader.js server/scripts/fetchDayLines.js",
+    "fetch:hourlines": "node --import ./loader.js server/scripts/fetchHourLines.js",
+    "scheduler:start": "node --import ./loader.js server/scripts/startScheduler.js",
+    "scheduler:status": "node --import ./loader.js server/scripts/startScheduler.js --status"
   },
   "dependencies": {
     "@nuxt/ui": "^3.1.0",
     "axios": "^1.9.0",
     "echarts": "^5.6.0",
     "mongoose": "^7.0.0",
+    "node-cron": "^4.2.1",
     "nuxt": "^3.17.0",
     "nuxt-tradingview": "^1.3.3",
     "vue": "^3.5.13",

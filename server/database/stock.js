@@ -119,6 +119,28 @@ class StockDB {
     }
 
     /**
+     * 获取重点关注的股票列表
+     * @returns {Promise<Array>} 重点关注股票列表
+     */
+    static async getFocusedStocks() {
+        try {
+            const stocks = await Stock.find({ isFocused: true }, {
+                _id: 0,
+                code: 1,
+                name: 1
+            })
+            .hint({ isFocused: 1 })
+            .sort({ code: 1 })
+            .lean();
+            
+            return stocks;
+        } catch (error) {
+            logger.error('获取重点关注股票列表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 保存股票列表
      * @param {Array} data - 股票列表数据
      * @returns {Promise} 保存结果

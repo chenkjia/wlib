@@ -14,6 +14,7 @@ class MongoDB {
     static disconnect = MongoConnection.disconnect;
 
     static getAll = StockDB.getAll;
+    static getFocusedStocks = StockDB.getFocusedStocks;
     static getList = StockDB.getList;
     static getStock = StockDB.getStock;
     static removeStock = StockDB.removeStock;

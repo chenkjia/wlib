@@ -160,9 +160,9 @@ async function updateStockHourLine(stockCode) {
  */
 async function fetchAllHourLines() {
     try {
-        // 获取加密货币列表
-        const stockList = await MongoDB.getAll();
-        logger.info(`开始获取所有加密货币的小时线数据，共 ${stockList.length} 个币种`);
+        // 获取重点关注的加密货币列表
+        const stockList = await MongoDB.getFocusedStocks();
+        logger.info(`开始获取重点关注加密货币的小时线数据，共 ${stockList.length} 个币种`);
 
         // 遍历每个币种
         let index = 1;
@@ -186,7 +186,7 @@ async function fetchAllHourLines() {
             }
         }
 
-        logger.info('所有加密货币小时线数据获取完成');
+        logger.info('重点关注加密货币小时线数据获取完成');
     } catch (error) {
         logger.error('获取所有小时线数据失败:', error);
         throw error;
