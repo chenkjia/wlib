@@ -45,24 +45,60 @@
           
           <!-- 股票列表 -->
           <div v-else-if="displayedStocks.length > 0" class="flex-grow overflow-y-auto">
-            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-              <li 
-                v-for="stock in displayedStocks" 
-                :key="stock.code"
+            <!-- 表格头部 -->
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-2">
+              <div class="grid grid-cols-4 gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <div @click="toggleSort('code')" class="cursor-pointer hover:text-blue-600 flex items-center">
+                  代码
+                  <span v-if="sortField === 'code'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+                <div @click="toggleSort('name')" class="cursor-pointer hover:text-blue-600 flex items-center">
+                  名称
+                  <span v-if="sortField === 'name'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+                <div @click="toggleSort('isFocused')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                  重点关注
+                  <span v-if="sortField === 'isFocused'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+                <div @click="toggleSort('isHourFocused')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                  小时线关注
+                  <span v-if="sortField === 'isHourFocused'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 股票列表数据 -->
+            <div class="space-y-1">
+              <div 
+                 v-for="stock in displayedStocks" 
+                 :key="stock.code"
                 @click="selectStock(stock.code)"
                 :class="{
                   'bg-blue-50 dark:bg-blue-900': selectedStockCode === stock.code,
                   'hover:bg-gray-50 dark:hover:bg-gray-700': selectedStockCode !== stock.code
                 }"
-                class="px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md"
+                class="grid grid-cols-4 gap-2 px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md text-sm"
               >
-                <div class="flex justify-between items-center">
-                  <span class="font-medium">{{ stock.code }}</span>
-                  <span>{{ stock.name }}</span>
+                <div class="font-medium">{{ stock.code }}</div>
+                <div class="truncate">{{ stock.name }}</div>
+                <div class="text-center">
+                  <span v-if="stock.isFocused" class="inline-block w-2 h-2 bg-green-500 rounded-full" title="重点关注"></span>
+                  <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非重点关注"></span>
                 </div>
-              </li>
-            </ul>
-            
+                <div class="text-center">
+                  <span v-if="stock.isHourFocused" class="inline-block w-2 h-2 bg-blue-500 rounded-full" title="小时线关注"></span>
+                  <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非小时线关注"></span>
+                </div>
+              </div>
+            </div>
           </div>
           
           <!-- 分页控件 -->
@@ -154,14 +190,34 @@ const pageSize = ref(15)
 const totalStocks = ref(0)
 const totalPages = ref(1)
 
+// 排序相关状态
+const sortField = ref('code')
+const sortOrder = ref('asc')
+
 // 当前显示的股票列表
 const displayedStocks = computed(() => {
   return stocks.value
 })
 
+
+
 // 选择股票
 function selectStock(code) {
   selectedStockCode.value = code
+}
+
+// 切换排序
+function toggleSort(field) {
+  if (sortField.value === field) {
+    // 如果点击的是当前排序字段，切换排序方向
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    // 如果点击的是新字段，设置为该字段并默认升序
+    sortField.value = field
+    sortOrder.value = 'asc'
+  }
+  // 重新获取数据
+  fetchStocks()
 }
 
 // 处理股票详情组件的错误
@@ -185,11 +241,12 @@ async function fetchStocks() {
     stocksLoading.value = true
     stocksError.value = ''
     
-    // 构建URL，包含搜索参数
+    // 构建URL，包含搜索参数和排序参数
     let url = `/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`
     if (debouncedSearchQuery.value) {
       url += `&search=${encodeURIComponent(debouncedSearchQuery.value)}`
     }
+    url += `&sortField=${sortField.value}&sortOrder=${sortOrder.value}`
     
     const response = await fetch(url)
     if (!response.ok) {

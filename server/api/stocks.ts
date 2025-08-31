@@ -2,7 +2,7 @@ import MongoDB from '../database/mongo.js';
 
 // 定义股票列表返回类型
 interface StockListResult {
-  stocks: Array<{code: string, name: string}>;
+  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean}>;
   total: number;
   page: number;
   pageSize: number;
@@ -27,13 +27,18 @@ export default defineEventHandler(async (event) => {
     const page = parseInt(query.page as string) || 1;
     const pageSize = parseInt(query.pageSize as string) || 20;
     const search = query.search as string || '';
+    // 只允许对有索引的字段进行排序
+    const allowedSortFields = ['code', 'isFocused', 'isHourFocused'];
+    const requestedSortField = query.sortField as string || 'code';
+    const sortField = allowedSortFields.includes(requestedSortField) ? requestedSortField : 'code';
+    const sortOrder = query.sortOrder as string || 'asc';
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder),
       timeoutPromise
     ]) as StockListResult;
     

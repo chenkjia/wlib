@@ -12,7 +12,7 @@ class StockDB {
      * @param {string} search - 搜索关键词
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '') {
+    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc') {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -32,10 +32,11 @@ class StockDB {
                 Stock.find(query, {
                     _id: 0, // 不返回_id字段
                     code: 1,
-                    name: 1
+                    name: 1,
+                    isFocused: 1,
+                    isHourFocused: 1
                 })
-                .hint({ code: 1 }) // 明确使用code索引
-                .sort({ code: 1 }) // 按股票代码排序
+                .sort({ [sortField]: sortOrder === 'asc' ? 1 : -1 }) // 动态排序
                 .skip(skip)
                 .limit(pageSize)
                 .lean() // 返回纯JavaScript对象，而不是Mongoose文档，提高性能
@@ -105,7 +106,9 @@ class StockDB {
             const stocks = await Stock.find(query, {
                 _id: 0, // 不返回_id字段
                 code: 1,
-                name: 1
+                name: 1,
+                isFocused: 1,
+                isHourFocused: 1
             })
             .hint({ code: 1 }) // 使用code索引
             .sort({ code: 1 }) // 按股票代码排序

@@ -5,9 +5,10 @@ const stockSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true, index: true },
     'dayLine.time': { type: String, required: true, index: true },
     'hourLine.time': { type: String, required: true, index: true },
-    name: { type: String, required: true },
+    name: { type: String, required: true, index: true },
     market: { type: String, required: true },
     isFocused: { type: Boolean, default: false, index: true }, // 是否重点关注
+    isHourFocused: { type: Boolean, default: false, index: true }, // 是否小时线重点关注
     dayLine: [{
         time: Date,
         open: Number,
