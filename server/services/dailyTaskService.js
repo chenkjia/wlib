@@ -1,6 +1,7 @@
 import { addTask, startScheduler } from './scheduler.js';
 import { fetchAllDayLines } from '../fetchers/dayLineFetcher.js';
 import { fetchAllHourLines } from '../fetchers/hourLineFetcher.js';
+import { updateFocusedStocks } from './focusService.js';
 import MongoConnection from '../database/connection.js';
 import logger from '~/utils/logger.js';
 
@@ -28,6 +29,11 @@ async function initDailyTasks() {
                 await MongoConnection.connect();
                 await fetchAllDayLines();
                 logger.info('每日日线数据拉取任务完成');
+                
+                // 日线数据拉取完成后，更新重点关注股票状态
+                logger.info('开始更新重点关注股票状态...');
+                await updateFocusedStocks();
+                logger.info('重点关注股票状态更新完成');
             }
         );
         

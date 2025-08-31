@@ -119,13 +119,25 @@ export function calculateSign2({maS, maM, maL}) {
     return (max - min)/min
   })
 }
+// 定义calculateSign3,均线从小到大要正向分布
+export function calculateSign3({maS, maM, maL, maX}) {
+  return maS.map((ma, index) => {
+    if (ma>=maM[index] && maM[index]>=maL[index] && maL[index]>=maX[index]) {
+      return 1
+    }
+    if (ma<=maM[index] && maM[index]<=maL[index] && maL[index]<=maX[index]) {
+      return -1
+    }
+    return 0
+  })
+}
 
 /**
  * 计算日线技术指标
  * @param {Array<Object>} dayLine - 日线数据
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=150}) {
+export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200}) {
   if (!Array.isArray(dayLine) || dayLine.length === 0) {
       return [];
   }
@@ -138,6 +150,7 @@ export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=150}) {
   const position = calculatePosition({maS, maM, maL})
   const sign1 = calculateSign1({position})
   const sign2 = calculateSign2({maS, maM, maL})
+  const sign3 = calculateSign3({maS, maM, maL, maX})
   return {
     maS,
     maM,
@@ -146,6 +159,7 @@ export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=150}) {
     position,
     sign1,
     sign2,
+    sign3
   }
 }
 

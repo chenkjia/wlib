@@ -15,6 +15,7 @@ class MongoDB {
 
     static getAll = StockDB.getAll;
     static getFocusedStocks = StockDB.getFocusedStocks;
+    static updateAllFocusedStatus = StockDB.updateAllFocusedStatus;
     static getList = StockDB.getList;
     static getStock = StockDB.getStock;
     static removeStock = StockDB.removeStock;

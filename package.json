@@ -14,6 +14,7 @@
     "test:report": "node --import ./loader.js test/generateReport.js",
     "fetch:daylines": "node --import ./loader.js server/scripts/fetchDayLines.js",
     "fetch:hourlines": "node --import ./loader.js server/scripts/fetchHourLines.js",
+    "update:focused": "node --import ./loader.js server/scripts/updateFocusedStocks.js",
     "scheduler:start": "node --import ./loader.js server/scripts/startScheduler.js",
     "scheduler:status": "node --import ./loader.js server/scripts/startScheduler.js --status"
   },

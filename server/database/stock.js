@@ -141,6 +141,39 @@ class StockDB {
     }
 
     /**
+     * 更新所有股票的重点关注状态
+     * @param {Array} focusedCodes - 重点关注的股票代码列表
+     * @returns {Promise<Object>} 更新结果
+     */
+    static async updateAllFocusedStatus(focusedCodes = []) {
+        try {
+            // 先将所有股票设为非重点关注
+            const resetResult = await Stock.updateMany(
+                {},
+                { $set: { isFocused: false } }
+            );
+            
+            let focusedResult = { modifiedCount: 0 };
+            // 如果有指定的重点关注股票代码，则将它们设为重点关注
+            if (focusedCodes.length > 0) {
+                focusedResult = await Stock.updateMany(
+                    { code: { $in: focusedCodes } },
+                    { $set: { isFocused: true } }
+                );
+            }
+            
+            return {
+                resetCount: resetResult.modifiedCount,
+                focusedCount: focusedResult.modifiedCount,
+                totalFocusedCodes: focusedCodes.length
+            };
+        } catch (error) {
+            logger.error('更新股票重点关注状态失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 保存股票列表
      * @param {Array} data - 股票列表数据
      * @returns {Promise} 保存结果
