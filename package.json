@@ -15,6 +15,7 @@
     "fetch:daylines": "node --import ./loader.js server/scripts/fetchDayLines.js",
     "fetch:hourlines": "node --import ./loader.js server/scripts/fetchHourLines.js",
     "update:focused": "node --import ./loader.js server/scripts/updateFocusedStocks.js",
+    "update:hour-focused": "node --import ./loader.js server/scripts/updateHourFocusedStocks.js",
     "scheduler:start": "node --import ./loader.js server/scripts/startScheduler.js",
     "scheduler:status": "node --import ./loader.js server/scripts/startScheduler.js --status"
   },

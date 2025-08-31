@@ -174,6 +174,39 @@ class StockDB {
     }
 
     /**
+     * 更新所有股票的小时线重点关注状态
+     * @param {Array} hourFocusedCodes - 小时线重点关注的股票代码列表
+     * @returns {Promise<Object>} 更新结果
+     */
+    static async updateAllHourFocusedStatus(hourFocusedCodes = []) {
+        try {
+            // 先将所有股票设为非小时线重点关注
+            const resetResult = await Stock.updateMany(
+                {},
+                { $set: { isHourFocused: false } }
+            );
+            
+            let focusedResult = { modifiedCount: 0 };
+            // 如果有指定的小时线重点关注股票代码，则将它们设为重点关注
+            if (hourFocusedCodes.length > 0) {
+                focusedResult = await Stock.updateMany(
+                    { code: { $in: hourFocusedCodes } },
+                    { $set: { isHourFocused: true } }
+                );
+            }
+            
+            return {
+                resetCount: resetResult.modifiedCount,
+                focusedCount: focusedResult.modifiedCount,
+                totalFocusedCodes: hourFocusedCodes.length
+            };
+        } catch (error) {
+            logger.error('更新股票小时线重点关注状态失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 保存股票列表
      * @param {Array} data - 股票列表数据
      * @returns {Promise} 保存结果

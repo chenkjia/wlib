@@ -133,24 +133,29 @@ export function calculateSign3({maS, maM, maL, maX}) {
 }
 
 /**
- * 计算日线技术指标
- * @param {Array<Object>} dayLine - 日线数据
+ * 计算技术指标
+ * @param {Array<Object>} data - 数据
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200}) {
-  if (!Array.isArray(dayLine) || dayLine.length === 0) {
+export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
+  if (!Array.isArray(data) || data.length === 0) {
       return [];
   }
 
-  const dayClose = dayLine.map(item => item.close);
-  const maS = calculateMA(dayClose, s);
-  const maM = calculateMA(dayClose, m);
-  const maL = calculateMA(dayClose, l);
-  const maX = calculateMA(dayClose, x);
+  const close = data.map(item => item.close);
+  const volume = data.map(item => item.volume);
+  const maS = calculateMA(close, s);
+  const maM = calculateMA(close, m);
+  const maL = calculateMA(close, l);
+  const maX = calculateMA(close, x);
   const position = calculatePosition({maS, maM, maL})
   const sign1 = calculateSign1({position})
   const sign2 = calculateSign2({maS, maM, maL})
   const sign3 = calculateSign3({maS, maM, maL, maX})
+  const volumeMaS = calculateMA(volume, s);
+  const volumeMaM = calculateMA(volume, m);
+  const volumeMaL = calculateMA(volume, l);
+  const volumeMaX = calculateMA(volume, x);
   return {
     maS,
     maM,
@@ -159,8 +164,21 @@ export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200}) {
     position,
     sign1,
     sign2,
-    sign3
+    sign3,
+    volumeMaS,
+    volumeMaM,
+    volumeMaL,
+    volumeMaX,
   }
+}
+
+/**
+ * 计算日线技术指标
+ * @param {Array<Object>} dayLine - 日线数据
+ * @returns {Array<Object>} 包含技术指标的日线数据
+ */
+export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200}) {
+  return calculateMetric(dayLine, {s, m, l, x})
 }
 
 /**
@@ -174,30 +192,7 @@ export function calculateHourMetric(hourLine, {
   l=50,
   x=100
 }) {
-  if (!Array.isArray(hourLine) || hourLine.length === 0) {
-      return [];
-  }
-  const hourClose = hourLine.map(item => item.close);
-  const hourVolume = hourLine.map(item => item.volume);
-  const maS = calculateMA(hourClose, s);
-  const maM = calculateMA(hourClose, m);
-  const maL = calculateMA(hourClose, l);
-  const maX = calculateMA(hourClose, x);
-  const volumeMaS = calculateMA(hourVolume, s);
-  const volumeMaM = calculateMA(hourVolume, m);
-  const volumeMaL = calculateMA(hourVolume, l);
-  const volumeMaX = calculateMA(hourVolume, x);
-
-  return {
-    maS,
-    maM,
-    maL,
-    maX,
-    volumeMaS,
-    volumeMaM,
-    volumeMaL,
-    volumeMaX,
-  }
+  return calculateMetric(hourLine, {s, m, l, x})
 }
 
 /**
