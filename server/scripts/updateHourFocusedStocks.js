@@ -42,8 +42,7 @@ async function manualUpdateHourFocusedStocks() {
         // 3. 处理结果
         console.log('\n=== 更新结果 ===');
         console.log(`总共处理股票: ${result.totalProcessed} 只`);
-        console.log(`小时线重点关注股票: ${result.hourFocusedCount} 只`);
-        console.log(`数据库更新: 重置${result.updateResult.resetCount}只，设置${result.updateResult.focusedCount}只为小时线重点关注`);
+        console.log(`更新股票数量: ${result.updateCount} 只`);
         console.log('\n小时线重点关注股票状态更新完成！');
         
     } catch (error) {

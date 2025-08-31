@@ -34,7 +34,9 @@ class StockDB {
                     code: 1,
                     name: 1,
                     isFocused: 1,
-                    isHourFocused: 1
+                    isHourFocused: 1,
+                    focusedDays: 1,
+                    hourFocusedDays: 1
                 })
                 .sort({ [sortField]: sortOrder === 'asc' ? 1 : -1 }) // 动态排序
                 .skip(skip)
@@ -177,6 +179,42 @@ class StockDB {
     }
 
     /**
+     * 更新所有股票的日线关注天数
+     * @param {Object} focusedDaysMap - 股票代码到关注天数的映射 {code: days}
+     * @returns {Promise<Object>} 更新结果
+     */
+    static async updateAllFocusedDays(focusedDaysMap = {}) {
+        try {
+            // 先将所有股票的关注天数重置为0
+            const resetResult = await Stock.updateMany(
+                {},
+                { $set: { focusedDays: 0 } }
+            );
+            
+            let updateCount = 0;
+            // 批量更新有关注天数的股票
+            for (const [code, days] of Object.entries(focusedDaysMap)) {
+                if (days !== 0) {
+                    await Stock.updateOne(
+                        { code: code },
+                        { $set: { focusedDays: days, isFocused: days > 0 } }
+                    );
+                    updateCount++;
+                }
+            }
+            
+            return {
+                resetCount: resetResult.modifiedCount,
+                updateCount: updateCount,
+                totalCodes: Object.keys(focusedDaysMap).length
+            };
+        } catch (error) {
+            logger.error('更新股票日线关注天数失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 更新所有股票的小时线重点关注状态
      * @param {Array} hourFocusedCodes - 小时线重点关注的股票代码列表
      * @returns {Promise<Object>} 更新结果
@@ -205,6 +243,34 @@ class StockDB {
             };
         } catch (error) {
             logger.error('更新股票小时线重点关注状态失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 更新单个股票信息
+     * @param {string} code - 股票代码
+     * @param {Object} updateData - 要更新的数据
+     * @returns {Promise<Object>} 更新结果
+     */
+    static async updateStock(code, updateData) {
+        try {
+            const result = await Stock.updateOne(
+                { code: code },
+                { $set: updateData }
+            );
+            
+            if (result.matchedCount === 0) {
+                throw new Error(`股票代码 ${code} 不存在`);
+            }
+            
+            return {
+                matchedCount: result.matchedCount,
+                modifiedCount: result.modifiedCount,
+                acknowledged: result.acknowledged
+            };
+        } catch (error) {
+            logger.error('更新股票信息失败:', error);
             throw error;
         }
     }

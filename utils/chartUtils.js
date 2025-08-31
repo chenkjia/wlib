@@ -119,9 +119,9 @@ export function calculateSign2({maS, maM, maL}) {
     return (max - min)/min
   })
 }
-// 定义calculateSign3,均线从小到大要正向分布
-export function calculateSign3({maS, maM, maL, maX}) {
-  return maS.map((ma, index) => {
+// 计算均线趋势排列：判断四条均线是否呈现正向或负向排列，并统计连续天数
+export function calculateTrendAlignment({maS, maM, maL, maX}) {
+  const signals = maS.map((ma, index) => {
     if (ma>=maM[index] && maM[index]>=maL[index] && maL[index]>=maX[index]) {
       return 1
     }
@@ -130,6 +130,24 @@ export function calculateSign3({maS, maM, maL, maX}) {
     }
     return 0
   })
+  
+  // 计算连续天数
+  const result = []
+  for (let i = 0; i < signals.length; i++) {
+    if (signals[i] === 0) {
+      result[i] = 0
+    } else if (i === 0) {
+      result[i] = signals[i]
+    } else {
+      // 只有当前信号与前一个信号相同时才累加
+      if (signals[i] === signals[i - 1] && result[i - 1] !== 0) {
+        result[i] = result[i - 1] + signals[i]
+      } else {
+        result[i] = signals[i]
+      }
+    }
+  }
+  return result
 }
 
 /**
@@ -151,7 +169,7 @@ export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
   const position = calculatePosition({maS, maM, maL})
   const sign1 = calculateSign1({position})
   const sign2 = calculateSign2({maS, maM, maL})
-  const sign3 = calculateSign3({maS, maM, maL, maX})
+  const trendAlignment = calculateTrendAlignment({maS, maM, maL, maX})
   const volumeMaS = calculateMA(volume, s);
   const volumeMaM = calculateMA(volume, m);
   const volumeMaL = calculateMA(volume, l);
@@ -164,7 +182,7 @@ export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
     position,
     sign1,
     sign2,
-    sign3,
+    trendAlignment,
     volumeMaS,
     volumeMaM,
     volumeMaL,

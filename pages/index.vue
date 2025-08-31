@@ -47,7 +47,7 @@
           <div v-else-if="displayedStocks.length > 0" class="flex-grow overflow-y-auto">
             <!-- 表格头部 -->
             <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-2">
-              <div class="grid grid-cols-4 gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div class="grid grid-cols-6 gap-1 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
                 <div @click="toggleSort('code')" class="cursor-pointer hover:text-blue-600 flex items-center">
                   代码
                   <span v-if="sortField === 'code'" class="ml-1">
@@ -66,9 +66,21 @@
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
+                <div @click="toggleSort('focusedDays')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                  关注天数
+                  <span v-if="sortField === 'focusedDays'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
                 <div @click="toggleSort('isHourFocused')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
                   小时线关注
                   <span v-if="sortField === 'isHourFocused'" class="ml-1">
+                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
+                  </span>
+                </div>
+                <div @click="toggleSort('hourFocusedDays')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                  小时关注天数
+                  <span v-if="sortField === 'hourFocusedDays'" class="ml-1">
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
@@ -85,7 +97,7 @@
                   'bg-blue-50 dark:bg-blue-900': selectedStockCode === stock.code,
                   'hover:bg-gray-50 dark:hover:bg-gray-700': selectedStockCode !== stock.code
                 }"
-                class="grid grid-cols-4 gap-2 px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md text-sm"
+                class="grid grid-cols-6 gap-1 px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md text-xs"
               >
                 <div class="font-medium">{{ stock.code }}</div>
                 <div class="truncate">{{ stock.name }}</div>
@@ -93,9 +105,27 @@
                   <span v-if="stock.isFocused" class="inline-block w-2 h-2 bg-green-500 rounded-full" title="重点关注"></span>
                   <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非重点关注"></span>
                 </div>
+                <div class="text-center text-xs">
+                  <span :class="{
+                    'text-green-600': stock.focusedDays > 0,
+                    'text-red-600': stock.focusedDays < 0,
+                    'text-gray-400': stock.focusedDays === 0
+                  }" :title="`日线关注天数: ${stock.focusedDays || 0}`">
+                    {{ stock.focusedDays || 0 }}
+                  </span>
+                </div>
                 <div class="text-center">
                   <span v-if="stock.isHourFocused" class="inline-block w-2 h-2 bg-blue-500 rounded-full" title="小时线关注"></span>
                   <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非小时线关注"></span>
+                </div>
+                <div class="text-center text-xs">
+                  <span :class="{
+                    'text-green-600': stock.hourFocusedDays > 0,
+                    'text-red-600': stock.hourFocusedDays < 0,
+                    'text-gray-400': stock.hourFocusedDays === 0
+                  }" :title="`关注小时数: ${stock.hourFocusedDays || 0}`">
+                    {{ stock.hourFocusedDays || 0 }}
+                  </span>
                 </div>
               </div>
             </div>

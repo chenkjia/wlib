@@ -2,7 +2,7 @@ import MongoDB from '../database/mongo.js';
 
 // 定义股票列表返回类型
 interface StockListResult {
-  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean}>;
+  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number}>;
   total: number;
   page: number;
   pageSize: number;
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
     const pageSize = parseInt(query.pageSize as string) || 20;
     const search = query.search as string || '';
     // 只允许对有索引的字段进行排序
-    const allowedSortFields = ['code', 'isFocused', 'isHourFocused'];
+    const allowedSortFields = ['code', 'isFocused', 'isHourFocused', 'focusedDays', 'hourFocusedDays'];
     const requestedSortField = query.sortField as string || 'code';
     const sortField = allowedSortFields.includes(requestedSortField) ? requestedSortField : 'code';
     const sortOrder = query.sortOrder as string || 'asc';

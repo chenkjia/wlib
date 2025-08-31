@@ -9,6 +9,8 @@ const stockSchema = new mongoose.Schema({
     market: { type: String, required: true },
     isFocused: { type: Boolean, default: false, index: true }, // 是否重点关注
     isHourFocused: { type: Boolean, default: false, index: true }, // 是否小时线重点关注
+    focusedDays: { type: Number, default: 0, index: true }, // 日线连续关注天数
+    hourFocusedDays: { type: Number, default: 0, index: true }, // 小时线连续关注天数
     dayLine: [{
         time: Date,
         open: Number,
