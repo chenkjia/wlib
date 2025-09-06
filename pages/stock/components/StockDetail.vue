@@ -69,7 +69,7 @@ import * as echarts from 'echarts'
 
 // 从共享工具模块导入函数
 import { calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
-import { calculateMetric } from '~/utils/chartUtils.js'
+import { calculateMetric, calculateTransactions } from '~/utils/chartUtils.js'
 
 // 导入图表工具函数
 import { 
@@ -311,6 +311,54 @@ async function initChart(rawData, goals) {
     
     // 处理趋势点标记
     data = processTrendPoints(rawData, goals, data)
+    
+    // 计算交易点（买入卖出点）
+    let transactions = []
+    try {
+      console.log('开始计算交易点，数据长度:', rawData.length)
+      // 注意：calculateTransactions需要hourLine数据，这里我们暂时只用dayLine
+      // 在实际应用中，你可能需要获取hourLine数据
+      transactions = calculateTransactions({dayLine: rawData, hourLine: rawData})
+      console.log('计算出的交易点:', transactions)
+      console.log('交易点数量:', transactions.length)
+    } catch (transactionError) {
+      console.error('计算交易点失败:', transactionError)
+      console.error('错误堆栈:', transactionError.stack)
+    }
+    
+    // 添加交易点到图表标记中
+    if (transactions.length > 0) {
+      transactions.forEach((transaction, index) => {
+        // 找到买入点在数据中的索引
+        const buyIndex = rawData.findIndex(item => item.time === transaction.buyTime)
+        if (buyIndex !== -1) {
+          data.trendStartPoints.push({
+            name: `买入${index + 1}`,
+            coord: [buyIndex, transaction.buyPrice],
+            value: `买入\n${transaction.buyPrice}`,
+            itemStyle: { color: '#00da3c' },
+            symbol: 'triangle',
+            symbolSize: 15
+          })
+        }
+        
+        // 找到卖出点在数据中的索引
+        if (transaction.sellTime) {
+          const sellIndex = rawData.findIndex(item => item.time === transaction.sellTime)
+          if (sellIndex !== -1) {
+            data.trendEndPoints.push({
+              name: `卖出${index + 1}`,
+              coord: [sellIndex, transaction.sellPrice],
+              value: `卖出\n${transaction.sellPrice}\n收益: ${transaction.profit?.toFixed(2)}%`,
+              itemStyle: { color: transaction.profit > 0 ? '#00da3c' : '#ec0000' },
+              symbol: 'triangle',
+              symbolRotate: 180,
+              symbolSize: 15
+            })
+          }
+        }
+      })
+    }
     
     // 使用calculateMetric函数计算均线数据
     const metrics = calculateMetric(rawData, {s: 7, m: 50, l: 100, x: 200})

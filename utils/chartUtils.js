@@ -195,7 +195,7 @@ export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
  * @param {Array<Object>} dayLine - 日线数据
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200}) {
+export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200} = {}) {
   return calculateMetric(dayLine, {s, m, l, x})
 }
 
@@ -209,184 +209,308 @@ export function calculateHourMetric(hourLine, {
   m=14,
   l=50,
   x=100
-}) {
+} = {}) {
   return calculateMetric(hourLine, {s, m, l, x})
 }
 
-/**
- * 计算交易信号
- * @param {Object} params - 输入参数对象
- * @param {Array<Object>} params.dayLine - 日线数据
- * @returns {Array<Object>} 交易信号数组
- */
-export function calculateSignals({dayLine}, param = {}) {
-  const {sign1, sign2} = calculateDayMetric(dayLine, param)
-  const signals = sign1.reduce((result, item, i) => {
-    // 添加价格乘以成交量大于10万的条件
-    if(i>0 && sign1[i] >=0 && sign1[i-1] < -50 && sign2[i-1] < 0.2 && (dayLine[i].close * dayLine[i].volume > 100000)) {
-      return [
-        ...result,
-        {
-        signalTime: dayLine[i].time,
-        signalPrice: dayLine[i].close
-      }]
-    }
-    return result
-  }, [])
-  return signals
-}
+// /**
+//  * 计算交易信号
+//  * @param {Object} params - 输入参数对象
+//  * @param {Array<Object>} params.dayLine - 日线数据
+//  * @returns {Array<Object>} 交易信号数组
+//  */
+// export function calculateSignals({dayLine}, param = {}) {
+//   const {sign1, sign2} = calculateDayMetric(dayLine, param)
+//   const signals = sign1.reduce((result, item, i) => {
+//     // 添加价格乘以成交量大于10万的条件
+//     if(i>0 && sign1[i] >=0 && sign1[i-1] < -50 && sign2[i-1] < 0.2 && (dayLine[i].close * dayLine[i].volume > 100000)) {
+//       return [
+//         ...result,
+//         {
+//         signalTime: dayLine[i].time,
+//         signalPrice: dayLine[i].close
+//       }]
+//     }
+//     return result
+//   }, [])
+//   return signals
+// }
 
-/**
- * 计算买入信号
- * @param {Object} params - 输入参数对象
- * @param {string} params.signalTime - 信号时间
- * @param {Array<Object>} params.hourLine - 小时线数据
- * @returns {Object} 买入信号
- */
-export function calculateBuySignal({signalTime, hourLine}) {
-  // 将 signalTime 转换为时间戳以便比较
-  const signalTimestamp = new Date(signalTime).getTime()
+// /**
+//  * 计算买入信号
+//  * @param {Object} params - 输入参数对象
+//  * @param {string} params.signalTime - 信号时间
+//  * @param {Array<Object>} params.hourLine - 小时线数据
+//  * @returns {Object} 买入信号
+//  */
+// export function calculateBuySignal({signalTime, hourLine}) {
+//   // 将 signalTime 转换为时间戳以便比较
+//   const signalTimestamp = new Date(signalTime).getTime()
   
-  // 找到 signalTime 之后的第一个小时线数据点
-  const buySignal = hourLine.find(item => {
-    const itemTimestamp = new Date(item.time).getTime()
-    return itemTimestamp > signalTimestamp
-  })
+//   // 找到 signalTime 之后的第一个小时线数据点
+//   const buySignal = hourLine.find(item => {
+//     const itemTimestamp = new Date(item.time).getTime()
+//     return itemTimestamp > signalTimestamp
+//   })
   
-  return buySignal
-}
+//   return buySignal
+// }
 
-/**
- * 计算卖出信号
- * @param {Object} params - 输入参数对象
- * @param {string} params.buyTime - 买入时间
- * @param {Array<Object>} params.hourLine - 小时线数据
- * @returns {Object} 卖出信号
- */
-export function calculateSellSignal({buyTime, hourLine}, param = {}) {
-  // 计算买入时间戳和两天后的时间戳
-  const buyTimestamp = new Date(buyTime).getTime()
-  const twoDaysLater = buyTimestamp + (480 * 60 * 60 * 1000)
-  // 寻找符合条件的卖出信号
-  const {
-    volumeMaS,
-    volumeMaM,
-    volumeMaL,
-    volumeMaX,
-  } = calculateHourMetric(hourLine, param)
-  const sellSignal = hourLine.find((item, i) => {
-    // 检查成交量条件
-    const {volume} = item
-    // 成交量需要大于所有移动平均线的4倍
-    const isVolume = volume > volumeMaS[i] * 4 && volume > volumeMaM[i] * 4 && 
-                    volume > volumeMaL[i] * 4 && volume > volumeMaX[i] * 4
-    // 检查时间条件
-    const itemTimestamp = new Date(item.time).getTime()
-    return (itemTimestamp > buyTimestamp && isVolume) || itemTimestamp > twoDaysLater
-  })
-  // 判断是否成功卖出（不是因为到达两天期限而卖出）
-  const sellTimestamp = new Date(sellSignal.time).getTime()
-  return {
-    time: sellSignal.time,
-    close: sellSignal.close,
-    isSellSuccess: sellTimestamp < twoDaysLater
-  }
-}
+// /**
+//  * 计算卖出信号
+//  * @param {Object} params - 输入参数对象
+//  * @param {string} params.buyTime - 买入时间
+//  * @param {Array<Object>} params.hourLine - 小时线数据
+//  * @returns {Object} 卖出信号
+//  */
+// export function calculateSellSignal({buyTime, hourLine}, param = {}) {
+//   // 计算买入时间戳和两天后的时间戳
+//   const buyTimestamp = new Date(buyTime).getTime()
+//   const twoDaysLater = buyTimestamp + (480 * 60 * 60 * 1000)
+//   // 寻找符合条件的卖出信号
+//   const {
+//     volumeMaS,
+//     volumeMaM,
+//     volumeMaL,
+//     volumeMaX,
+//   } = calculateHourMetric(hourLine, param)
+//   const sellSignal = hourLine.find((item, i) => {
+//     // 检查成交量条件
+//     const {volume} = item
+//     // 成交量需要大于所有移动平均线的4倍
+//     const isVolume = volume > volumeMaS[i] * 4 && volume > volumeMaM[i] * 4 && 
+//                     volume > volumeMaL[i] * 4 && volume > volumeMaX[i] * 4
+//     // 检查时间条件
+//     const itemTimestamp = new Date(item.time).getTime()
+//     return (itemTimestamp > buyTimestamp && isVolume) || itemTimestamp > twoDaysLater
+//   })
+//   // 判断是否成功卖出（不是因为到达两天期限而卖出）
+//   const sellTimestamp = new Date(sellSignal.time).getTime()
+//   return {
+//     time: sellSignal.time,
+//     close: sellSignal.close,
+//     isSellSuccess: sellTimestamp < twoDaysLater
+//   }
+// }
 
-/**
- * 计算买入交易
- * @param {Object} props - 输入参数对象
- * @returns {Object} 买入交易信息
- */
-export function calculateBuyTransaction(props) {
-  const buySignal = calculateBuySignal(props)
-  return {
-    buyTime: buySignal.time,
-    buyPrice: buySignal.open
-  }
-}
+// /**
+//  * 计算买入交易
+//  * @param {Object} props - 输入参数对象
+//  * @returns {Object} 买入交易信息
+//  */
+// export function calculateBuyTransaction(props) {
+//   const buySignal = calculateBuySignal(props)
+//   return {
+//     buyTime: buySignal.time,
+//     buyPrice: buySignal.open
+//   }
+// }
 
-/**
- * 计算卖出交易
- * @param {Object} props - 输入参数对象
- * @returns {Object} 卖出交易信息
- */
-export function calculateSellTransaction(props) {
-  const sellSignal = calculateSellSignal(props)
-  return {
-    sellTime: sellSignal.time,
-    sellPrice: sellSignal.close,
-    isSellSuccess: sellSignal.isSellSuccess
-  }
-}
+// /**
+//  * 计算卖出交易
+//  * @param {Object} props - 输入参数对象
+//  * @returns {Object} 卖出交易信息
+//  */
+// export function calculateSellTransaction(props) {
+//   const sellSignal = calculateSellSignal(props)
+//   return {
+//     sellTime: sellSignal.time,
+//     sellPrice: sellSignal.close,
+//     isSellSuccess: sellSignal.isSellSuccess
+//   }
+// }
 
-/**
- * 计算单个交易
- * @param {Object} props - 输入参数对象
- * @param {string} props.signalTime - 信号时间
- * @param {Array<Object>} props.hourLine - 小时线数据
- * @returns {Object} 交易信息
- */
-export function calculateTransaction(props) {
-  // 计算出信号所有hourLine的index
-  const {signalTime, hourLine} = props
-  const signalTimestamp = new Date(signalTime).getTime()
-  const hourLineTimestamp = hourLine.map(item => new Date(item.time).getTime())
-  const signalIndex = hourLineTimestamp.findIndex(item => {
-    return item == signalTimestamp
-  })
-  if (signalIndex === -1) {
-    return {}
-  }
-  // 计算出signal前200到后1440之间的hourLine
-  const startIndex = Math.max(0, signalIndex - 200)
-  const endIndex = Math.min(hourLine.length - 1, signalIndex + 1440)
-  const filteredHourLine = hourLine.slice(startIndex, endIndex)
+// /**
+//  * 计算单个交易
+//  * @param {Object} props - 输入参数对象
+//  * @param {string} props.signalTime - 信号时间
+//  * @param {Array<Object>} props.hourLine - 小时线数据
+//  * @returns {Object} 交易信息
+//  */
+// export function calculateTransaction(props) {
+//   // 计算出信号所有hourLine的index
+//   const {signalTime, hourLine} = props
+//   const signalTimestamp = new Date(signalTime).getTime()
+//   const hourLineTimestamp = hourLine.map(item => new Date(item.time).getTime())
+//   const signalIndex = hourLineTimestamp.findIndex(item => {
+//     return item == signalTimestamp
+//   })
+//   if (signalIndex === -1) {
+//     return {}
+//   }
+//   // 计算出signal前200到后1440之间的hourLine
+//   const startIndex = Math.max(0, signalIndex - 200)
+//   const endIndex = Math.min(hourLine.length - 1, signalIndex + 1440)
+//   const filteredHourLine = hourLine.slice(startIndex, endIndex)
   
-  // 计算买入相关逻辑
-  const buyTransaction = calculateBuyTransaction({
-    signalTime,
-    hourLine: filteredHourLine
-  })
+//   // 计算买入相关逻辑
+//   const buyTransaction = calculateBuyTransaction({
+//     signalTime,
+//     hourLine: filteredHourLine
+//   })
   
-  // 只有当buyPrice存在时才计算sell相关逻辑
-  let sellTransaction = {}
-  let profit = null
+//   // 只有当buyPrice存在时才计算sell相关逻辑
+//   let sellTransaction = {}
+//   let profit = null
   
-  if (buyTransaction.buyPrice) {
-    sellTransaction = calculateSellTransaction({
-      ...buyTransaction,
-      hourLine: filteredHourLine
-    })
+//   if (buyTransaction.buyPrice) {
+//     sellTransaction = calculateSellTransaction({
+//       ...buyTransaction,
+//       hourLine: filteredHourLine
+//     })
     
-    // 计算利润百分比
-    if (sellTransaction.sellPrice) {
-      profit = ((sellTransaction.sellPrice - buyTransaction.buyPrice) / buyTransaction.buyPrice) * 100
-    }
-  }
+//     // 计算利润百分比
+//     if (sellTransaction.sellPrice) {
+//       profit = ((sellTransaction.sellPrice - buyTransaction.buyPrice) / buyTransaction.buyPrice) * 100
+//     }
+//   }
   
-  return {
-    ...buyTransaction,
-    ...sellTransaction,
-    profit
-  }
-}
+//   return {
+//     ...buyTransaction,
+//     ...sellTransaction,
+//     profit
+//   }
+// }
 
-/**
- * 计算多个交易
- * @param {Object} params - 输入参数对象
- * @param {Array<Object>} params.dayLine - 日线数据
- * @param {Array<Object>} params.hourLine - 小时线数据
- * @returns {Array<Object>} 交易信息数组
- */
-export function calculateTransactions({dayLine, hourLine}, param = {}) {
-  const signals = calculateSignals({dayLine}, param)
-  const transactions = signals.map((item) => {
-    const transaction = calculateTransaction({...item, hourLine }, param) 
-    return {
-      ...item,
-      ...transaction
+// /**
+//  * 计算多个交易
+//  * @param {Object} params - 输入参数对象
+//  * @param {Array<Object>} params.dayLine - 日线数据
+//  * @param {Array<Object>} params.hourLine - 小时线数据
+//  * @returns {Array<Object>} 交易信息数组
+//  */
+// export function calculateTransactions({dayLine, hourLine}, param = {}) {
+//   const signals = calculateSignals({dayLine}, param)
+//   const transactions = signals.map((item) => {
+//     const transaction = calculateTransaction({...item, hourLine }, param) 
+//     return {
+//       ...item,
+//       ...transaction
+//     }
+//   })
+//   return transactions
+// }
+
+
+// calculateTransactions
+// 需要计算买入信号和卖出信号,传入dayLine,hourLine
+// 先计算信号
+// 最后根据信号计算交易
+export const calculateTransactions = ({dayLine, hourLine}) => {
+  const signals = calculateSignals({dayLine, hourLine})
+  // 根据信号生成交易记录
+  const transactions = []
+  let lastBuySignal = null
+
+  signals.forEach(signal => {
+    if (signal.type === 'buy') {
+      lastBuySignal = signal
+    } else if (signal.type === 'sell' && lastBuySignal) {
+      // 计算这笔交易的收益
+      const profit = ((signal.price - lastBuySignal.price) / lastBuySignal.price) * 100
+      
+      transactions.push({
+        buyTime: lastBuySignal.time,
+        buyPrice: lastBuySignal.price,
+        sellTime: signal.time,
+        sellPrice: signal.price,
+        profit
+      })
+      
+      lastBuySignal = null
     }
   })
   return transactions
 }
+
+// calculateSignals 
+// 计算信号
+// 传入含技术参数的dayLine, hourLine, 卖入算法组, 卖出算法组
+// 计算dayLine和hourLine的技术参数
+const calculateSignals = (props) => {
+  const { dayLine, hourLine } = props
+  const dayLineWithMetric = calculateDayMetric(dayLine)
+  const hourLineWithMetric = calculateHourMetric(hourLine)
+  // 买入信号是需要把buyFunction执行完才能得到的信号，比如说buyFunction第一个执行完发现第一个信号，那么在这个信号后面的数据继续找第二个信号，直到buyFunction执行完，才是买入信号，这里面有依赖关系，第二个信号要依赖第一个信号
+  // 应该是以日绿为准，使用买入算法及卖出算法来观察日线
+  const buyLength = buyFunction.length
+  const sellLength = sellFunction.length
+  let buyStep = 0,
+    sellStep = 0,
+    hold = false
+  const signals = dayLine.reduce((prev, cur, index) => {
+    if (buyStep < buyLength && !hold) {
+      const buyResult = buyFunction[buyStep](index, dayLineWithMetric)
+      if (buyResult) {
+        buyStep++
+      }
+      if (buyStep === buyLength) {
+        hold = true
+        buyStep = 0
+        prev.push({
+          time: cur.time,
+          type: 'buy',
+          price: cur.close
+        })
+      }
+    }
+    if (sellStep < sellLength && hold) {
+      const sellResult = sellFunction[sellStep](index, dayLineWithMetric)
+      if (sellResult) {
+        sellStep++
+      }
+      if (sellStep === sellLength) {
+        sellStep = 0
+        hold = false
+        prev.push({
+          time: cur.time,
+          type: 'sell',
+          price: cur.close
+        })
+      }
+    }
+    return prev
+  }, [])
+  
+  return signals
+}
+// 算法组定义
+// 买入算法组
+const buyFunction = [
+  // 连续50天 maL>maM>maS
+  (i, dayLineWithMetric) => {
+    if (i < 50) {
+      return false
+    }
+    const {maS, maM, maL} = dayLineWithMetric
+    return maS[i] > maM[i] && maM[i] > maL[i]
+  },
+  // maS>maM>maL
+  (i, dayLineWithMetric) => {
+    if (i < 50) {
+      return false
+    }
+    const {maS, maM, maL} = dayLineWithMetric
+    return maS[i] > maM[i] && maM[i] > maL[i]
+  },
+]
+// 卖出算法组
+const sellFunction = [
+  (i, dayLineWithMetric) => { 
+    // 短期的量超过长期的量的3倍
+    if (i < 50) {
+      return false
+    }
+    const {volumeMaS, volumeMaL} = dayLineWithMetric
+    // 判断短期成交量是否超过长期成交量的3倍
+    return volumeMaS[i] > volumeMaL[i] * 3
+  },
+  //maS<maM
+  (i, dayLineWithMetric) => {
+    if (i < 50) {
+      return false
+    }
+    const {maS, maM} = dayLineWithMetric
+    return maS[i] < maM[i]
+  },
+]
