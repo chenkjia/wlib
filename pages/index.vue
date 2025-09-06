@@ -1,38 +1,38 @@
 <template>
-  <div class="w-full h-screen px-0 py-0">
-    <div class="flex flex-col md:flex-row gap-6 h-full">
-      <!-- 左侧股票列表 -->
-      <div class="w-full md:w-1/3 lg:w-1/4 h-full flex flex-col">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex flex-col h-full">
-          <h2 class="text-xl font-bold mb-4">股票列表</h2>
+  <div class="w-full h-screen">
+       <div class="flex flex-col md:flex-row h-full">
+         <!-- 左侧股票列表 -->
+          <div class="w-full md:w-1/3 lg:w-1/4 h-full flex flex-col p-3">
+            <div class="flex flex-col h-full">
+          <h2 class="finance-title-lg">股票列表</h2>
           
           <!-- 搜索框 -->
-          <div class="mb-4 relative">
+          <div class="relative mb-3">
             <input
               v-model="searchQuery"
               type="text"
               placeholder="搜索股票代码或名称"
-              class="w-full px-3 py-2 pl-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+              class="finance-input w-full pl-10"
             />
             <!-- 搜索图标 -->
-            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <div class="absolute left-3 top-1/2 transform -translate-y-1/2" style="color: var(--text-muted);">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
             <!-- 搜索中指示器 -->
             <div v-if="searchQuery && searchQuery !== debouncedSearchQuery.value" class="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+              <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2" style="border-color: var(--accent-500);"></div>
             </div>
           </div>
           
           <!-- 过滤器 -->
-          <div class="mb-4 space-y-2">
+          <div class="mb-3">
             <div class="flex gap-2">
               <select
                 v-model="focusFilter"
                 @change="currentPage = 1; fetchStocks()"
-                class="flex-1 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                class="finance-input flex-1 text-sm"
               >
                 <option value="all">全部关注</option>
                 <option value="focused">重点关注</option>
@@ -41,7 +41,7 @@
               <select
                 v-model="hourFocusFilter"
                 @change="currentPage = 1; fetchStocks()"
-                class="flex-1 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                class="finance-input flex-1 text-sm"
               >
                 <option value="all">全部小时线</option>
                 <option value="focused">小时线关注</option>
@@ -70,41 +70,29 @@
           <!-- 股票列表 -->
           <div v-else-if="displayedStocks.length > 0" class="flex-grow overflow-y-auto">
             <!-- 表格头部 -->
-            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 mb-2">
-              <div class="grid grid-cols-6 gap-1 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300">
-                <div @click="toggleSort('code')" class="cursor-pointer hover:text-blue-600 flex items-center">
+            <div class="sticky top-0 border-b mb-3" style="background-color: var(--bg-card); border-color: var(--border-light);">
+              <div class="grid grid-cols-4 gap-2 p-3 text-sm font-semibold" style="color: var(--text-secondary);">
+                <div @click="toggleSort('code')" class="cursor-pointer flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                   代码
-                  <span v-if="sortField === 'code'" class="ml-1">
+                  <span v-if="sortField === 'code'" class="ml-1" style="color: var(--accent-500);">
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
-                <div @click="toggleSort('name')" class="cursor-pointer hover:text-blue-600 flex items-center">
+                <div @click="toggleSort('name')" class="cursor-pointer flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                   名称
-                  <span v-if="sortField === 'name'" class="ml-1">
+                  <span v-if="sortField === 'name'" class="ml-1" style="color: var(--accent-500);">
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
-                <div @click="toggleSort('isFocused')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
-                  重点关注
-                  <span v-if="sortField === 'isFocused'" class="ml-1">
-                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
-                  </span>
-                </div>
-                <div @click="toggleSort('focusedDays')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                <div @click="toggleSort('focusedDays')" class="cursor-pointer flex items-center text-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                   关注天数
-                  <span v-if="sortField === 'focusedDays'" class="ml-1">
+                  <span v-if="sortField === 'focusedDays'" class="ml-1" style="color: var(--accent-500);">
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
-                <div @click="toggleSort('isHourFocused')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
-                  小时线关注
-                  <span v-if="sortField === 'isHourFocused'" class="ml-1">
-                    {{ sortOrder === 'asc' ? '▲' : '▼' }}
-                  </span>
-                </div>
-                <div @click="toggleSort('hourFocusedDays')" class="cursor-pointer hover:text-blue-600 flex items-center text-center">
+                <div @click="toggleSort('hourFocusedDays')" class="cursor-pointer flex items-center text-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                   小时关注天数
-                  <span v-if="sortField === 'hourFocusedDays'" class="ml-1">
+                  <span v-if="sortField === 'hourFocusedDays'" class="ml-1" style="color: var(--accent-500);">
                     {{ sortOrder === 'asc' ? '▲' : '▼' }}
                   </span>
                 </div>
@@ -117,37 +105,32 @@
                  v-for="stock in displayedStocks" 
                  :key="stock.code"
                 @click="selectStock(stock.code)"
-                :class="{
-                  'bg-blue-50 dark:bg-blue-900': selectedStockCode === stock.code,
-                  'hover:bg-gray-50 dark:hover:bg-gray-700': selectedStockCode !== stock.code
+                class="grid grid-cols-4 gap-2 p-3 text-sm cursor-pointer transition-all duration-200 border-b rounded-lg"
+                :style="{
+                  backgroundColor: selectedStockCode === stock.code ? 'var(--accent-400)' : 'transparent',
+                  borderColor: 'var(--border-light)',
+                  color: selectedStockCode === stock.code ? 'white' : 'var(--text-primary)'
                 }"
-                class="grid grid-cols-6 gap-1 px-3 py-2 cursor-pointer transition-colors duration-150 rounded-md text-xs"
+                @mouseover="$event.target.style.backgroundColor = selectedStockCode !== stock.code ? 'var(--bg-secondary)' : 'var(--accent-400)'"
+                @mouseout="$event.target.style.backgroundColor = selectedStockCode === stock.code ? 'var(--accent-400)' : 'transparent'"
               >
                 <div class="font-medium">{{ stock.code }}</div>
                 <div class="truncate">{{ stock.name }}</div>
-                <div class="text-center">
-                  <span v-if="stock.isFocused" class="inline-block w-2 h-2 bg-green-500 rounded-full" title="重点关注"></span>
-                  <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非重点关注"></span>
-                </div>
-                <div class="text-center text-xs">
+                <div class="text-center font-medium">
                   <span :class="{
-                    'text-green-600': stock.focusedDays > 0,
-                    'text-red-600': stock.focusedDays < 0,
-                    'text-gray-400': stock.focusedDays === 0
+                    'finance-profit-positive': stock.focusedDays > 0,
+                    'finance-profit-negative': stock.focusedDays < 0,
+                    'finance-profit-neutral': stock.focusedDays === 0
                   }" :title="`日线关注天数: ${stock.focusedDays || 0}`">
                     {{ stock.focusedDays || 0 }}
                   </span>
                 </div>
-                <div class="text-center">
-                  <span v-if="stock.isHourFocused" class="inline-block w-2 h-2 bg-blue-500 rounded-full" title="小时线关注"></span>
-                  <span v-else class="inline-block w-2 h-2 bg-gray-300 rounded-full" title="非小时线关注"></span>
-                </div>
-                <div class="text-center text-xs">
+                <div class="text-center font-medium">
                   <span :class="{
-                    'text-green-600': stock.hourFocusedDays > 0,
-                    'text-red-600': stock.hourFocusedDays < 0,
-                    'text-gray-400': stock.hourFocusedDays === 0
-                  }" :title="`关注小时数: ${stock.hourFocusedDays || 0}`">
+                    'finance-profit-positive': stock.hourFocusedDays > 0,
+                    'finance-profit-negative': stock.hourFocusedDays < 0,
+                    'finance-profit-neutral': stock.hourFocusedDays === 0
+                  }" :title="`小时线关注天数: ${stock.hourFocusedDays || 0}`">
                     {{ stock.hourFocusedDays || 0 }}
                   </span>
                 </div>
@@ -156,30 +139,24 @@
           </div>
           
           <!-- 分页控件 -->
-          <div v-if="totalPages > 1" class="mt-auto pt-3 border-t flex items-center justify-between">
-              <div class="text-sm text-gray-500">
-                共 {{ totalStocks }} 条，{{ currentPage }}/{{ totalPages }} 页
+          <div v-if="totalPages > 1" class="mt-auto pt-4 border-t flex items-center justify-between" style="border-color: var(--border-light);">
+              <div class="text-sm" style="color: var(--text-muted);">
+                第 {{ currentPage }} 页，共 {{ totalPages }} 页 ({{ totalStocks }} 条记录)
               </div>
-              <div class="flex space-x-2">
+              <div class="flex gap-3">
                 <button 
                   @click="changePage(currentPage - 1)" 
                   :disabled="currentPage <= 1"
-                  :class="{
-                    'opacity-50 cursor-not-allowed': currentPage <= 1,
-                    'hover:bg-blue-600': currentPage > 1
-                  }"
-                  class="px-3 py-1 bg-blue-500 text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  :class="currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
+                  class="px-4 py-2 text-sm rounded-lg transition-all"
                 >
                   上一页
                 </button>
                 <button 
                   @click="changePage(currentPage + 1)" 
                   :disabled="currentPage >= totalPages"
-                  :class="{
-                    'opacity-50 cursor-not-allowed': currentPage >= totalPages,
-                    'hover:bg-blue-600': currentPage < totalPages
-                  }"
-                  class="px-3 py-1 bg-blue-500 text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                  :class="currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
+                  class="px-4 py-2 text-sm rounded-lg transition-all"
                 >
                   下一页
                 </button>
@@ -194,12 +171,12 @@
       </div>
       
       <!-- 右侧股票详情 -->
-      <div class="w-full md:w-2/3 lg:w-3/4 h-full">
-        <StockDetail 
-          :stock-code="selectedStockCode || 'ETH'" 
-          @error="handleStockDetailError"
-        />
-      </div>
+           <div class="w-full md:w-2/3 lg:w-3/4 h-full">
+          <StockDetail 
+            :stock-code="selectedStockCode || 'ETH'" 
+            @error="handleStockDetailError"
+          />
+        </div>
     </div>
   </div>
 </template>

@@ -31,10 +31,10 @@
       <!-- 右侧目标趋势 -->
       <div 
         v-show="!isRightPanelCollapsed"
-        class="w-full md:w-1/3 p-4 bg-white rounded-lg shadow transition-all duration-300"
+        class="w-full md:w-1/3 p-3 transition-all duration-300"
       >
-        <div class="mb-4">
-          <h2 class="text-lg font-semibold">{{ stockCode }} 目标趋势 <span class="text-sm text-gray-500">(总数: {{ goals.length }})</span></h2>
+        <div>
+          <h2 class="finance-title-md">{{ stockCode }} 目标趋势 <span class="text-sm" style="color: var(--text-muted);">(总数: {{ goals.length }})</span></h2>
         </div>
         <LoadingState v-if="loading" />
         <ErrorState v-else-if="error" :message="error" />

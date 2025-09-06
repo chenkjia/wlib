@@ -117,53 +117,55 @@ watch([page, sorting], () => {
 
 <template>
   <div class="h-screen flex flex-col overflow-hidden">
-    <div class="flex items-center justify-between px-6 py-3 border-b bg-white">
-      <h1 class="text-2xl font-bold">交易信号列表</h1>
+    <div class="flex items-center justify-between p-3">
+      <h1 class="finance-title-lg">交易信号列表</h1>
       <div class="flex gap-4 items-center">
-        <UInput
+        <input
           v-model="stockCode"
           placeholder="输入股票代码筛选"
-          class="w-64"
+          class="finance-input w-64"
         />
-        <UButton
-          color="primary"
+        <button
           @click="handleSearch"
+          class="finance-btn-primary"
         >
           搜索
-        </UButton>
+        </button>
       </div>
     </div>
 
     <div class="flex-1 flex overflow-hidden">
-      <div class="w-1/4 border-r overflow-auto">
+      <div class="w-1/4 overflow-auto p-3">
         <div v-if="!error" class="h-full">
-          <USkeleton v-if="loading" class="h-full" />
+          <div v-if="loading" class="flex items-center justify-center h-full" style="color: var(--text-muted);">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2" style="border-color: var(--accent-500);"></div>
+          </div>
           <template v-else>
-            <table class="w-full text-sm">
+            <table class="finance-table">
               <thead>
                 <tr>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center">
+                  <th>
+                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                       股票
-                      <span v-if="sorting[0]?.id === 'stockCode'">
+                      <span v-if="sorting[0]?.id === 'stockCode'" style="color: var(--accent-500);">
                         <span v-if="!sorting[0].desc">▲</span>
                         <span v-else>▼</span>
                       </span>
                     </span>
                   </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('signalTime')" class="cursor-pointer select-none flex items-center">
+                  <th>
+                    <span @click="toggleSort('signalTime')" class="cursor-pointer select-none flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                       信号时间
-                      <span v-if="sorting[0]?.id === 'signalTime'">
+                      <span v-if="sorting[0]?.id === 'signalTime'" style="color: var(--accent-500);">
                         <span v-if="!sorting[0].desc">▲</span>
                         <span v-else>▼</span>
                       </span>
                     </span>
                   </th>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('signalPrice')" class="cursor-pointer select-none flex items-center">
+                  <th>
+                    <span @click="toggleSort('signalPrice')" class="cursor-pointer select-none flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                       信号价格
-                      <span v-if="sorting[0]?.id === 'signalPrice'">
+                      <span v-if="sorting[0]?.id === 'signalPrice'" style="color: var(--accent-500);">
                         <span v-if="!sorting[0].desc">▲</span>
                         <span v-else>▼</span>
                       </span>

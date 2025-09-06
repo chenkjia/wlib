@@ -197,8 +197,9 @@ export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, 
         });
         
         // 成交量
-        if (params[4]) {
-          res += `成交量: ${params[4].data[1]}<br/>`;
+        const volumeParam = params.find(p => p.seriesName === '成交量');
+        if (volumeParam && volumeParam.data) {
+          res += `成交量: ${volumeParam.data[1]}<br/>`;
         }
         
         return res;

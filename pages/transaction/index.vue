@@ -161,37 +161,36 @@ watch([page, sorting, sellSuccessFilter], () => {
           <USkeleton v-if="loading" class="h-full" />
           <template v-else>
             <!-- 过滤器区域 -->
-            <div class="px-4 py-2 bg-gray-50 border-b flex items-center justify-between">
-              <UInput
+            <div class="flex items-center justify-between p-3">
+              <input
                 v-model="stockCode"
                 placeholder="输入股票代码筛选"
-                class="w-48 mr-2"
+                class="finance-input w-48"
               />
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-3">
                 <select
                   v-model="sellSuccessFilter"
-                  class="w-32 px-2 py-1 border rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="finance-input w-32 text-sm"
                 >
                   <option value="all">全部状态</option>
                   <option value="success">卖出成功</option>
                   <option value="timeout">卖出超时</option>
                 </select>
-                <UButton
-                  color="primary"
-                  size="sm"
+                <button
                   @click="handleSearch"
+                  class="finance-btn-primary px-4 py-2 text-sm"
                 >
                   搜索
-                </UButton>
+                </button>
               </div>
             </div>
-            <table class="w-full text-sm">
+            <table class="finance-table">
               <thead>
                 <tr>
-                  <th class="px-4 py-2">
-                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center">
+                  <th>
+                    <span @click="toggleSort('stockCode')" class="cursor-pointer select-none flex items-center transition-colors" style="color: var(--text-secondary);" @mouseover="$event.target.style.color = 'var(--accent-500)'" @mouseout="$event.target.style.color = 'var(--text-secondary)'">
                       股票
-                      <span v-if="sorting[0]?.id === 'stockCode'">
+                      <span v-if="sorting[0]?.id === 'stockCode'" style="color: var(--accent-500);">
                         <span v-if="!sorting[0].desc">▲</span>
                         <span v-else>▼</span>
                       </span>
