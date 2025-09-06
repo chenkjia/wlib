@@ -159,14 +159,15 @@ export function processTrendPoints(rawData, goals, data) {
 /**
  * 创建图表选项
  * @param {Object} data - 图表数据
- * @param {Array} ma7 - MA7数据
- * @param {Array} ma50 - MA50数据
- * @param {Array} ma100 - MA100数据
+ * @param {Array} maS - 短期移动平均线数据
+ * @param {Array} maM - 中期移动平均线数据
+ * @param {Array} maL - 长期移动平均线数据
+ * @param {Array} maX - 超长期移动平均线数据
  * @param {Function} formatDateYYYYMMDD - 日期格式化函数
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, ma7, ma50, ma100, formatDateYYYYMMDD, formatDateMMDD) {
+export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, formatDateMMDD) {
   return {
     animation: false,
     tooltip: {
@@ -190,7 +191,7 @@ export function createChartOption(data, ma7, ma50, ma100, formatDateYYYYMMDD, fo
         
         // 均线数据
         params.forEach((param, index) => {
-          if (index > 0 && index < 4) { // MA线
+          if (index > 0 && index < 5) { // MA线
             res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`;
           }
         });
@@ -343,23 +344,30 @@ export function createChartOption(data, ma7, ma50, ma100, formatDateYYYYMMDD, fo
         }
       },
       {
-        name: 'MA7',
+        name: 'maS',
         type: 'line',
-        data: ma7,
+        data: maS,
         smooth: true,
         lineStyle: { opacity: 0.5 }
       },
       {
-        name: 'MA50',
+        name: 'maM',
         type: 'line',
-        data: ma50,
+        data: maM,
         smooth: true,
         lineStyle: { opacity: 0.5 }
       },
       {
-        name: 'MA100',
+        name: 'maL',
         type: 'line',
-        data: ma100,
+        data: maL,
+        smooth: true,
+        lineStyle: { opacity: 0.5 }
+      },
+      {
+        name: 'maX',
+        type: 'line',
+        data: maX,
         smooth: true,
         lineStyle: { opacity: 0.5 }
       },

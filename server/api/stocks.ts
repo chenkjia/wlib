@@ -32,13 +32,17 @@ export default defineEventHandler(async (event) => {
     const requestedSortField = query.sortField as string || 'code';
     const sortField = allowedSortFields.includes(requestedSortField) ? requestedSortField : 'code';
     const sortOrder = query.sortOrder as string || 'asc';
+    
+    // 获取过滤参数
+    const focusFilter = query.focusFilter as string || 'all';
+    const hourFocusFilter = query.hourFocusFilter as string || 'all';
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter),
       timeoutPromise
     ]) as StockListResult;
     

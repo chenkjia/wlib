@@ -26,6 +26,30 @@
             </div>
           </div>
           
+          <!-- 过滤器 -->
+          <div class="mb-4 space-y-2">
+            <div class="flex gap-2">
+              <select
+                v-model="focusFilter"
+                @change="currentPage = 1; fetchStocks()"
+                class="flex-1 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value="all">全部关注</option>
+                <option value="focused">重点关注</option>
+                <option value="unfocused">非重点关注</option>
+              </select>
+              <select
+                v-model="hourFocusFilter"
+                @change="currentPage = 1; fetchStocks()"
+                class="flex-1 px-2 py-1 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+              >
+                <option value="all">全部小时线</option>
+                <option value="focused">小时线关注</option>
+                <option value="unfocused">非小时线关注</option>
+              </select>
+            </div>
+          </div>
+          
           <!-- 加载状态 -->
           <div v-if="stocksLoading" class="py-4 text-center">
             <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
@@ -224,6 +248,10 @@ const totalPages = ref(1)
 const sortField = ref('code')
 const sortOrder = ref('asc')
 
+// 过滤器状态
+const focusFilter = ref('all') // 重点关注过滤器：all, focused, unfocused
+const hourFocusFilter = ref('all') // 小时线关注过滤器：all, focused, unfocused
+
 // 当前显示的股票列表
 const displayedStocks = computed(() => {
   return stocks.value
@@ -271,12 +299,20 @@ async function fetchStocks() {
     stocksLoading.value = true
     stocksError.value = ''
     
-    // 构建URL，包含搜索参数和排序参数
+    // 构建URL，包含搜索参数、排序参数和过滤参数
     let url = `/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`
     if (debouncedSearchQuery.value) {
       url += `&search=${encodeURIComponent(debouncedSearchQuery.value)}`
     }
     url += `&sortField=${sortField.value}&sortOrder=${sortOrder.value}`
+    
+    // 添加过滤参数
+    if (focusFilter.value !== 'all') {
+      url += `&focusFilter=${focusFilter.value}`
+    }
+    if (hourFocusFilter.value !== 'all') {
+      url += `&hourFocusFilter=${hourFocusFilter.value}`
+    }
     
     const response = await fetch(url)
     if (!response.ok) {

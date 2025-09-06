@@ -2,7 +2,7 @@
   <div class="stock-detail">
     <div class="flex flex-col md:flex-row h-full">
       <!-- 中间K线图 -->
-      <div class="chart-wrapper w-full md:w-2/3 relative">
+      <div :class="['chart-wrapper relative transition-all duration-300', isRightPanelCollapsed ? 'w-full' : 'w-full md:w-2/3']">
         <!-- 图表顶部控制面板 -->
         <ChartControlPanel 
           v-model:trendInterval="trendInterval"
@@ -15,10 +15,24 @@
           @toggleFullScreen="toggleFullScreen"
         />
         <div class="chart-container" ref="chartContainer"></div>
+        
+        <!-- 右侧面板收缩按钮 -->
+        <button 
+          @click="toggleRightPanel"
+          class="absolute top-1/2 right-2 transform -translate-y-1/2 z-30 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg transition-all duration-200"
+          :title="isRightPanelCollapsed ? '展开右侧面板' : '收起右侧面板'"
+        >
+          <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isRightPanelCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
       </div>
       
       <!-- 右侧目标趋势 -->
-      <div class="w-full md:w-1/3 p-4 bg-white rounded-lg shadow">
+      <div 
+        v-show="!isRightPanelCollapsed"
+        class="w-full md:w-1/3 p-4 bg-white rounded-lg shadow transition-all duration-300"
+      >
         <div class="mb-4">
           <h2 class="text-lg font-semibold">{{ stockCode }} 目标趋势 <span class="text-sm text-gray-500">(总数: {{ goals.length }})</span></h2>
         </div>
@@ -55,6 +69,7 @@ import * as echarts from 'echarts'
 
 // 从共享工具模块导入函数
 import { calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
+import { calculateMetric } from '~/utils/chartUtils.js'
 
 // 导入图表工具函数
 import { 
@@ -94,6 +109,7 @@ const dailyProfitFilter = ref(2)
 const durationFilter = ref(7) 
 const liquidityFilter = ref(5) // 流动性过滤器，默认5万
 const currentHighlightIndex = ref(null)
+const isRightPanelCollapsed = ref(true) // 右侧面板收缩状态，默认收缩
 let myChart = null
 
 // 性能监控指标
@@ -139,6 +155,22 @@ function toggleFullScreen() {
       }
     }
   }, 100)
+}
+
+// 切换右侧面板显示状态
+function toggleRightPanel() {
+  isRightPanelCollapsed.value = !isRightPanelCollapsed.value
+  
+  // 调整图表大小
+  setTimeout(() => {
+    if (myChart) {
+      try {
+        myChart.resize()
+      } catch (err) {
+        console.error('调整图表大小失败:', err)
+      }
+    }
+  }, 300) // 等待CSS动画完成
 }
 
 // 日期格式化函数
@@ -280,17 +312,34 @@ async function initChart(rawData, goals) {
     // 处理趋势点标记
     data = processTrendPoints(rawData, goals, data)
     
-    // 计算均线数据
-    const ma7 = calculateMA(7, data.values)
-    const ma50 = calculateMA(50, data.values)
-    const ma100 = calculateMA(100, data.values)
+    // 使用calculateMetric函数计算均线数据
+    const metrics = calculateMetric(rawData, {s: 7, m: 50, l: 100, x: 200})
+    
+    // 转换为图表需要的格式（前面补'-'字符串）
+    const formatMAForChart = (maData, period) => {
+      const result = []
+      for (let i = 0; i < maData.length; i++) {
+        if (i < period - 1) {
+          result.push('-')
+        } else {
+          result.push(+(maData[i].toFixed(4)))
+        }
+      }
+      return result
+    }
+    
+    const maS = formatMAForChart(metrics.maS, 7)
+    const maM = formatMAForChart(metrics.maM, 50)
+    const maL = formatMAForChart(metrics.maL, 100)
+    const maX = formatMAForChart(metrics.maX, 200)
     
     // 设置图表选项
     const option = createChartOption(
       data, 
-      ma7, 
-      ma50, 
-      ma100, 
+      maS, 
+      maM, 
+      maL, 
+      maX, 
       formatDateYYYYMMDD, 
       formatDateMMDD
     )

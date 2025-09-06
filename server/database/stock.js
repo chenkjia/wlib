@@ -10,9 +10,13 @@ class StockDB {
      * @param {number} page - 页码，从1开始
      * @param {number} pageSize - 每页数量
      * @param {string} search - 搜索关键词
+     * @param {string} sortField - 排序字段
+     * @param {string} sortOrder - 排序方向
+     * @param {string} focusFilter - 重点关注过滤器
+     * @param {string} hourFocusFilter - 小时线关注过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc') {
+    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all') {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -23,10 +27,26 @@ class StockDB {
                 query = { code: search };
             }
             
+            // 添加重点关注过滤条件
+            if (focusFilter === 'focused') {
+                query.isFocused = true;
+            } else if (focusFilter === 'unfocused') {
+                query.isFocused = { $ne: true };
+            }
+            
+            // 添加小时线关注过滤条件
+            if (hourFocusFilter === 'focused') {
+                query.isHourFocused = true;
+            } else if (hourFocusFilter === 'unfocused') {
+                query.isHourFocused = { $ne: true };
+            }
+            
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
             const [total, stocks] = await Promise.all([
-                // 查询总数 - 使用查询条件
-                Stock.countDocuments(query).hint({ code: 1 }),
+                // 查询总数 - 根据查询条件决定是否使用索引提示
+                Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code) 
+                    ? Stock.countDocuments(query).hint({ code: 1 })
+                    : Stock.countDocuments(query),
                 
                 // 查询当前页的数据 - 明确指定只获取需要的字段
                 Stock.find(query, {
