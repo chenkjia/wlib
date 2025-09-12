@@ -161,29 +161,56 @@ function convertAlgorithmToFunctions(algorithmConfig) {
       
       // 解析每个条件并执行
       return group.every(condStr => {
-        // 解析条件字符串
-        const numericMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([0-9.]+)/)
-        const fieldMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)/)
-        const multiplyMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)\s*\*\s*([0-9.]+)/)
+        // 将条件字符串转换为小写进行匹配，但保留原始字段名用于访问数据
+        const originalCondStr = condStr
+        const lowerCondStr = condStr.toLowerCase()
         
-        if (numericMatch) {
+        // 解析条件字符串
+        const numericMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([0-9.]+)/)
+        const fieldMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([A-Za-z]+)/)
+        const multiplyMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([A-Za-z]+)\s*\*\s*([0-9.]+)/)
+        const crossMatch = originalCondStr.match(/([A-Za-z]+)\s*cross_(up|down)\s*([A-Za-z]+)/)
+        
+        if (crossMatch) {
+          const [_, field1, direction, field2] = crossMatch
+          // 将字段名转换为小写以匹配dayLineWithMetric中的键
+          const lowerField1 = field1.toLowerCase()
+          const lowerField2 = field2.toLowerCase()
+          // 上穿条件：当前值大于比较值，且前一个值小于等于比较值
+          if (direction === 'up') {
+            return i > 0 && 
+              dayLineWithMetric[lowerField1][i] > dayLineWithMetric[lowerField2][i] && 
+              dayLineWithMetric[lowerField1][i-1] <= dayLineWithMetric[lowerField2][i-1]
+          } 
+          // 下穿条件：当前值小于比较值，且前一个值大于等于比较值
+          else if (direction === 'down') {
+            return i > 0 && 
+              dayLineWithMetric[lowerField1][i] < dayLineWithMetric[lowerField2][i] && 
+              dayLineWithMetric[lowerField1][i-1] >= dayLineWithMetric[lowerField2][i-1]
+          }
+        } else if (numericMatch) {
           const [_, field, operator, valueStr] = numericMatch
+          const lowerField = field.toLowerCase()
           const value = parseFloat(valueStr)
-          return evaluateCondition(dayLineWithMetric[field][i], operator, value)
+          return evaluateCondition(dayLineWithMetric[lowerField][i], operator, value)
         } else if (multiplyMatch) {
           const [_, field1, operator, field2, multiplierStr] = multiplyMatch
+          const lowerField1 = field1.toLowerCase()
+          const lowerField2 = field2.toLowerCase()
           const multiplier = parseFloat(multiplierStr)
           return evaluateCondition(
-            dayLineWithMetric[field1][i], 
+            dayLineWithMetric[lowerField1][i], 
             operator, 
-            dayLineWithMetric[field2][i] * multiplier
+            dayLineWithMetric[lowerField2][i] * multiplier
           )
         } else if (fieldMatch) {
           const [_, field1, operator, field2] = fieldMatch
+          const lowerField1 = field1.toLowerCase()
+          const lowerField2 = field2.toLowerCase()
           return evaluateCondition(
-            dayLineWithMetric[field1][i], 
+            dayLineWithMetric[lowerField1][i], 
             operator, 
-            dayLineWithMetric[field2][i]
+            dayLineWithMetric[lowerField2][i]
           )
         }
         
@@ -207,20 +234,27 @@ function evaluateCondition(left, operator, right) {
 
 // 页内计算处理函数
 function handlePageCalculation() {
-  console.log('执行页内计算')
-  // 将配置的算法转换为函数
-  window.buyFunction = convertAlgorithmToFunctions(buyAlgorithm.value)
-  window.sellFunction = convertAlgorithmToFunctions(sellAlgorithm.value)
-  // 使用当前参数刷新图表
-  debouncedRefresh()
+  console.log({
+    maS: maS.value,
+    maM: maM.value,
+    maL: maL.value,
+    maX: maX.value,
+    buyAlgorithm: buyAlgorithm.value,
+    sellAlgorithm: sellAlgorithm.value
+  })
 }
 
 // 全局计算处理函数
 function handleGlobalCalculation() {
   console.log('执行全局计算')
-  // 这里可以添加全局计算的逻辑，例如向服务器发送请求等
-  // 暂时也使用刷新图表作为示例
-  debouncedRefresh()
+  console.log({
+    maS: maS.value,
+    maM: maM.value,
+    maL: maL.value,
+    maX: maX.value,
+    buyAlgorithm: buyAlgorithm.value,
+    sellAlgorithm: sellAlgorithm.value
+  })
 }
 
 // 切换全屏显示
@@ -420,18 +454,18 @@ async function initChart(rawData, goals) {
       return result
     }
     
-    const maS = formatMAForChart(metrics.maS, maS.value)
-    const maM = formatMAForChart(metrics.maM, maM.value)
-    const maL = formatMAForChart(metrics.maL, maL.value)
-    const maX = formatMAForChart(metrics.maX, maX.value)
+    const formattedMaS = formatMAForChart(metrics.maS, maS.value)
+    const formattedMaM = formatMAForChart(metrics.maM, maM.value)
+    const formattedMaL = formatMAForChart(metrics.maL, maL.value)
+    const formattedMaX = formatMAForChart(metrics.maX, maX.value)
     
     // 设置图表选项
     const option = createChartOption(
       data, 
-      maS, 
-      maM, 
-      maL, 
-      maX, 
+      formattedMaS, 
+      formattedMaM, 
+      formattedMaL, 
+      formattedMaX, 
       formatDateYYYYMMDD, 
       formatDateMMDD
     )

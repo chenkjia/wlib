@@ -165,18 +165,14 @@ const emit = defineEmits([
 const buyAlgorithm = ref([
   // 默认买入算法示例
   [
-    "maS > maM",
-    "maM > maL"
+    "MAS_GT_MAM",
   ]
 ])
 
 const sellAlgorithm = ref([
   // 默认卖出算法示例
   [
-    "volumeMaS > volumeMaL * 3"
-  ],
-  [
-    "maS < maM"
+    "MAS_GT_MAM"
   ]
 ])
 
@@ -194,11 +190,25 @@ const activeTab = ref('params') // 当前激活的标签页，默认为参数设
 
 // 计算按钮处理函数
 function handlePageCalculation() {
-  emit('pageCalculation')
+  emit('pageCalculation', {
+    maS: maS.value,
+    maM: maM.value,
+    maL: maL.value,
+    maX: maX.value,
+    buyAlgorithm: buyAlgorithm.value,
+    sellAlgorithm: sellAlgorithm.value
+  })
 }
 
 function handleGlobalCalculation() {
-  emit('globalCalculation')
+  emit('globalCalculation', {
+    maS: maS.value,
+    maM: maM.value,
+    maL: maL.value,
+    maX: maX.value,
+    buyAlgorithm: buyAlgorithm.value,
+    sellAlgorithm: sellAlgorithm.value
+  })
 }
 
 // 使用计算属性实现双向绑定

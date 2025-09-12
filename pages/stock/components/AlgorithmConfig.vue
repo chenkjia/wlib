@@ -23,53 +23,19 @@
           <div class="space-y-2">
             <div v-for="(condition, condIndex) in group" :key="condIndex" class="flex items-center space-x-2">
               <select 
-                v-model="group[condIndex].field" 
+                v-model="group[condIndex].conditionType" 
                 class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="maS">短期均线 (maS)</option>
-                <option value="maM">中期均线 (maM)</option>
-                <option value="maL">长期均线 (maL)</option>
-                <option value="maX">超长期均线 (maX)</option>
-                <option value="volumeMaS">短期成交量均线 (volumeMaS)</option>
-                <option value="volumeMaM">中期成交量均线 (volumeMaM)</option>
-                <option value="volumeMaL">长期成交量均线 (volumeMaL)</option>
-                <option value="volumeMaX">超长期成交量均线 (volumeMaX)</option>
+                <option value="MAS_GT_MAM">短期均线高于中期均线</option>
+                <option value="MAS_LT_MAM">短期均线低于中期均线</option>
+                <option value="MAS_CROSS_UP_MAM">短期均线上穿中期均线</option>
+                <option value="MAS_CROSS_DOWN_MAM">短期均线下穿中期均线</option>
+                <option value="MAS_GT_MAL">短期均线高于长期均线</option>
+                <option value="MAS_LT_MAL">短期均线低于长期均线</option>
+                <option value="MAM_GT_MAL">中期均线高于长期均线</option>
+                <option value="MAM_LT_MAL">中期均线低于长期均线</option>
+                <option value="VOLUME_HIGH">成交量放大</option>
               </select>
-              
-              <select 
-                v-model="group[condIndex].operator" 
-                class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value=">">大于 (&gt;)</option>
-                <option value="<">小于 (&lt;)</option>
-                <option value=">=">大于等于 (&gt;=)</option>
-                <option value="<=">小于等于 (&lt;=)</option>
-                <option value="==">等于 (==)</option>
-              </select>
-              
-              <div class="flex-1">
-                <input 
-                  v-if="isNumericValue(group[condIndex].field, group[condIndex].value2)" 
-                  type="number" 
-                  v-model.number="group[condIndex].value" 
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  step="0.01"
-                />
-                <select 
-                  v-else 
-                  v-model="group[condIndex].value2" 
-                  class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                >
-                  <option value="maS">短期均线 (maS)</option>
-                  <option value="maM">中期均线 (maM)</option>
-                  <option value="maL">长期均线 (maL)</option>
-                  <option value="maX">超长期均线 (maX)</option>
-                  <option value="volumeMaS">短期成交量均线 (volumeMaS)</option>
-                  <option value="volumeMaM">中期成交量均线 (volumeMaM)</option>
-                  <option value="volumeMaL">长期成交量均线 (volumeMaL)</option>
-                  <option value="volumeMaX">超长期成交量均线 (volumeMaX)</option>
-                </select>
-              </div>
               
               <button 
                 @click="removeCondition(groupIndex, condIndex)" 
@@ -131,181 +97,64 @@ const title = computed(() => props.type === 'buy' ? '买入' : '卖出')
 // 算法组数据结构
 const algorithmGroups = ref([])
 
-// 初始化数据
-function initializeData() {
-  if (props.initialValue && props.initialValue.length > 0) {
-    // 如果有初始值，解析初始值
-    algorithmGroups.value = props.initialValue.map(group => {
-      return group.map(condStr => parseConditionString(condStr))
-    })
-  } else {
-    // 否则创建一个空的条件组
-    algorithmGroups.value = [[
-      { field: 'maS', operator: '>', value: 0, value2: 'maM', useField2: true }
-    ]]
-  }
-}
-
-// 解析条件字符串为对象
-function parseConditionString(condStr) {
-  // 示例: "maS > maM" 或 "volumeMaS > volumeMaL * 3"
-  const numericMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([0-9.]+)/)
-  const fieldMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)/)
-  const multiplyMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)\s*\*\s*([0-9.]+)/)
-  
-  if (numericMatch) {
-    return {
-      field: numericMatch[1],
-      operator: numericMatch[2],
-      value: parseFloat(numericMatch[3]),
-      useField2: false
-    }
-  } else if (multiplyMatch) {
-    return {
-      field: multiplyMatch[1],
-      operator: multiplyMatch[2],
-      value2: multiplyMatch[3],
-      multiplier: parseFloat(multiplyMatch[4]),
-      useField2: true,
-      useMultiplier: true
-    }
-  } else if (fieldMatch) {
-    return {
-      field: fieldMatch[1],
-      operator: fieldMatch[2],
-      value2: fieldMatch[3],
-      useField2: true
-    }
-  }
-  
-  // 默认返回
-  return { field: 'maS', operator: '>', value: 0, useField2: false }
-}
-
-// 添加新的条件组
-function addGroup() {
-  algorithmGroups.value.push([
-    { field: 'maS', operator: '>', value: 0, value2: 'maM', useField2: true }
-  ])
-}
-
-// 删除条件组
-function removeGroup(groupIndex) {
-  algorithmGroups.value.splice(groupIndex, 1)
-  if (algorithmGroups.value.length === 0) {
-    addGroup() // 确保至少有一个条件组
-  }
-}
-
-// 添加条件
-function addCondition(groupIndex) {
-  algorithmGroups.value[groupIndex].push(
-    { field: 'maS', operator: '>', value: 0, value2: 'maM', useField2: true }
-  )
-}
-
-// 删除条件
-function removeCondition(groupIndex, condIndex) {
-  algorithmGroups.value[groupIndex].splice(condIndex, 1)
-  if (algorithmGroups.value[groupIndex].length === 0) {
-    removeGroup(groupIndex) // 如果条件组为空，删除该组
-  }
-}
-
-// 判断是否使用数值输入
-function isNumericValue(field, value2) {
-  return !value2 || value2 === ''
-}
-
-// 生成代码预览
-const generatedCode = computed(() => {
-  const functionName = props.type === 'buy' ? 'buyFunction' : 'sellFunction'
-  
-  let code = `const ${functionName} = [
-`
-  
-  algorithmGroups.value.forEach((group, groupIndex) => {
-    code += `  // 条件组 ${groupIndex + 1}
-`
-    code += `  (i, dayLineWithMetric) => {
-`
-    code += `    if (i < 50) {
-      return false
-    }
-`
-    
-    // 解构需要的变量
-    const fields = new Set()
-    group.forEach(cond => {
-      fields.add(cond.field)
-      if (cond.useField2 && cond.value2) {
-        fields.add(cond.value2)
-      }
-    })
-    
-    if (fields.size > 0) {
-      code += `    const {${Array.from(fields).join(', ')}} = dayLineWithMetric
-`
-    }
-    
-    // 生成条件判断
-    if (group.length > 0) {
-      code += `    return `
-      
-      group.forEach((cond, condIndex) => {
-        if (condIndex > 0) {
-          code += ` && `
-        }
-        
-        if (cond.useField2 && cond.value2) {
-          if (cond.useMultiplier) {
-            code += `${cond.field}[i] ${cond.operator} ${cond.value2}[i] * ${cond.multiplier}`
-          } else {
-            code += `${cond.field}[i] ${cond.operator} ${cond.value2}[i]`
-          }
-        } else {
-          code += `${cond.field}[i] ${cond.operator} ${cond.value}`
-        }
-      })
-      
-      code += `
-`
-    } else {
-      code += `    return true
-`
-    }
-    
-    code += `  },
-`
-  })
-  
-  code += `]`
-  return code
-})
-
-// 生成算法配置数组
+// 计算属性：将算法组转换为标准格式
 const algorithmConfig = computed(() => {
-  return algorithmGroups.value.map(group => {
-    return group.map(cond => {
-      let condStr = ''
-      if (cond.useField2 && cond.value2) {
-        if (cond.useMultiplier) {
-          condStr = `${cond.field} ${cond.operator} ${cond.value2} * ${cond.multiplier}`
-        } else {
-          condStr = `${cond.field} ${cond.operator} ${cond.value2}`
-        }
-      } else {
-        condStr = `${cond.field} ${cond.operator} ${cond.value}`
-      }
-      return condStr
-    })
-  })
+  return algorithmGroups.value
 })
 
 // 监听配置变化，向父组件发送更新
 watch(algorithmConfig, (newValue) => {
   emit('update:value', newValue)
 }, { deep: true })
+
+// 添加条件组
+function addGroup() {
+  algorithmGroups.value.push([
+    { conditionType: 'MAS_GT_MAM' } // 默认添加一个条件
+  ])
+}
+
+// 添加条件
+function addCondition(groupIndex) {
+  algorithmGroups.value[groupIndex].push({ conditionType: 'MAS_GT_MAM' })
+}
+
+// 删除条件组
+function removeGroup(groupIndex) {
+  algorithmGroups.value.splice(groupIndex, 1)
+}
+
+// 删除条件
+function removeCondition(groupIndex, condIndex) {
+  algorithmGroups.value[groupIndex].splice(condIndex, 1)
+  
+  // 如果条件组为空，则删除该条件组
+  if (algorithmGroups.value[groupIndex].length === 0) {
+    removeGroup(groupIndex)
+  }
+}
+
+// 初始化数据
+function initializeData() {
+  // 如果有初始值，则使用初始值
+  if (props.initialValue && props.initialValue.length > 0) {
+    // 将初始值转换为内部数据结构
+    algorithmGroups.value = props.initialValue.map(group => {
+      return group.map(condition => {
+        // 如果条件是字符串，则转换为对象
+        if (typeof condition === 'string') {
+          return { conditionType: condition }
+        }
+        return condition
+      })
+    })
+  } else {
+    // 否则创建一个默认的条件组
+    algorithmGroups.value = [
+      [{ conditionType: 'MAS_GT_MAM' }]
+    ]
+  }
+}
 
 // 初始化
 initializeData()
