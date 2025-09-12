@@ -3,17 +3,7 @@
     <div class="flex flex-col md:flex-row h-full">
       <!-- 中间K线图 -->
       <div :class="['chart-wrapper relative transition-all duration-300', isRightPanelCollapsed ? 'w-full' : 'w-full md:w-2/3']">
-        <!-- 图表顶部控制面板 -->
-        <ChartControlPanel 
-          v-model:trendInterval="trendInterval"
-          v-model:profitFilter="profitFilter"
-          v-model:dailyProfitFilter="dailyProfitFilter"
-          v-model:durationFilter="durationFilter"
-          v-model:liquidityFilter="liquidityFilter"
-          :isFullScreen="isFullScreen"
-          @refresh="debouncedRefresh"
-          @toggleFullScreen="toggleFullScreen"
-        />
+        <!-- 图表顶部控制面板已移除 -->
         <div class="chart-container" ref="chartContainer"></div>
         
         <!-- 右侧面板收缩按钮 -->
@@ -80,7 +70,6 @@ import {
 } from './ChartUtils.js'
 
 // 导入拆分的组件
-import ChartControlPanel from './ChartControlPanel.vue'
 import GoalsList from './GoalsList.vue'
 import GoalDetailModal from './GoalDetailModal.vue'
 import LoadingState from './LoadingState.vue'
@@ -240,62 +229,16 @@ async function refreshChart() {
   }
 }
 
-// 高亮显示目标点
+// 高亮显示目标点（已移除趋势点标记功能）
 function highlightGoalPoints(goal, index) {
-  try {
-    if (!myChart) return
-    
-    currentHighlightIndex.value = index
-    
-    myChart.dispatchAction({
-      type: 'highlight',
-      seriesIndex: 0,
-      dataIndex: []
-    })
-    
-    myChart.setOption({
-      series: [{
-        name: 'K线',
-        markPoint: {
-          data: myChart.getOption().series[0].markPoint.data.map(point => {
-            if (point.goalIndex === currentHighlightIndex.value) {
-              return { ...point, symbolSize: 50 }
-            }
-            return point
-          })
-        }
-      }]
-    })
-  } catch (err) {
-    console.error('高亮目标点失败:', err)
-  }
+  // 不再高亮显示趋势点
+  currentHighlightIndex.value = index
 }
 
-// 重置高亮效果
+// 重置高亮效果（已移除趋势点标记功能）
 function resetHighlight() {
-  try {
-    if (!myChart) return
-    
-    currentHighlightIndex.value = null
-    
-    myChart.dispatchAction({
-      type: 'downplay',
-      seriesIndex: 0
-    })
-    
-    myChart.setOption({
-      series: [{
-        name: 'K线',
-        markPoint: {
-          data: myChart.getOption().series[0].markPoint.data.map(point => {
-            return { ...point, symbolSize: 30 }
-          })
-        }
-      }]
-    })
-  } catch (err) {
-    console.error('重置高亮效果失败:', err)
-  }
+  // 不再重置高亮效果
+  currentHighlightIndex.value = null
 }
 
 // 初始化图表
@@ -309,8 +252,7 @@ async function initChart(rawData, goals) {
     // 分割数据
     let data = splitData(rawData)
     
-    // 处理趋势点标记
-    data = processTrendPoints(rawData, goals, data)
+    // 不再处理趋势点标记
     
     // 计算交易点（买入卖出点）
     let transactions = []
