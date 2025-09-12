@@ -433,6 +433,8 @@ const calculateSignals = (props) => {
   const hourLineWithMetric = calculateHourMetric(hourLine)
   // 买入信号是需要把buyFunction执行完才能得到的信号，比如说buyFunction第一个执行完发现第一个信号，那么在这个信号后面的数据继续找第二个信号，直到buyFunction执行完，才是买入信号，这里面有依赖关系，第二个信号要依赖第一个信号
   // 应该是以日绿为准，使用买入算法及卖出算法来观察日线
+  const buyFunction = getBuyFunction()
+  const sellFunction = getSellFunction()
   const buyLength = buyFunction.length
   const sellLength = sellFunction.length
   let buyStep = 0,
@@ -475,8 +477,8 @@ const calculateSignals = (props) => {
   return signals
 }
 // 算法组定义
-// 买入算法组
-const buyFunction = [
+// 默认买入算法组
+const defaultBuyFunction = [
   // 连续50天 maL>maM>maS
   (i, dayLineWithMetric) => {
     if (i < 50) {
@@ -494,8 +496,8 @@ const buyFunction = [
     return maS[i] > maM[i] && maM[i] > maL[i]
   },
 ]
-// 卖出算法组
-const sellFunction = [
+// 默认卖出算法组
+const defaultSellFunction = [
   (i, dayLineWithMetric) => { 
     // 短期的量超过长期的量的3倍
     if (i < 50) {
@@ -514,3 +516,12 @@ const sellFunction = [
     return maS[i] < maM[i]
   },
 ]
+
+// 获取当前使用的算法组，优先使用window上定义的，如果没有则使用默认的
+const getBuyFunction = () => {
+  return window.buyFunction || defaultBuyFunction
+}
+
+const getSellFunction = () => {
+  return window.sellFunction || defaultSellFunction
+}

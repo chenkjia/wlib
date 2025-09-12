@@ -18,27 +18,31 @@
         </button>
       </div>
       
-      <!-- 右侧目标趋势 -->
+      <!-- 右侧面板 -->
       <div 
         v-show="!isRightPanelCollapsed"
-        class="w-full md:w-1/3 p-3 transition-all duration-300"
+        class="w-full md:w-1/3 flex flex-col transition-all duration-300 bg-white shadow-md rounded-md overflow-hidden h-full"
       >
-        <div>
-          <h2 class="finance-title-md">{{ stockCode }} 目标趋势 <span class="text-sm" style="color: var(--text-muted);">(总数: {{ goals.length }})</span></h2>
+        <!-- 上半部分 - 使用独立组件 -->
+        <div class="h-1/2">
+          <RightPanelTop
+            v-model:maS="maS"
+            v-model:maM="maM"
+            v-model:maL="maL"
+            v-model:maX="maX"
+            v-model:buyAlgorithm="buyAlgorithm"
+            v-model:sellAlgorithm="sellAlgorithm"
+            @pageCalculation="handlePageCalculation"
+            @globalCalculation="handleGlobalCalculation"
+          />
         </div>
-        <LoadingState v-if="loading" />
-        <ErrorState v-else-if="error" :message="error" />
-        <EmptyState v-else-if="goals.length === 0" message="暂无目标趋势数据" />
         
-        <GoalsList 
-          v-else 
-          :goals="goals" 
-          v-model:selectedGoal="selectedGoal"
-          @highlightGoal="highlightGoalPoints"
-          @resetHighlight="resetHighlight"
-          :formatDate="formatDate"
-          :getProfitClass="getProfitClass"
-        />
+        <!-- 下半部分 -->
+        <div class="h-1/2 p-4">
+          <div class="bg-white rounded-md p-2 h-full">
+            <!-- 下半部分保持为空 -->
+          </div>
+        </div>
       </div>
     </div>
  
@@ -75,6 +79,7 @@ import GoalDetailModal from './GoalDetailModal.vue'
 import LoadingState from './LoadingState.vue'
 import ErrorState from './ErrorState.vue'
 import EmptyState from './EmptyState.vue'
+import RightPanelTop from './RightPanelTop.vue'
 
 const props = defineProps({
   stockCode: {
@@ -97,8 +102,33 @@ const profitFilter = ref(50)
 const dailyProfitFilter = ref(2) 
 const durationFilter = ref(7) 
 const liquidityFilter = ref(5) // 流动性过滤器，默认5万
+// MA配置参数
+const maS = ref(5) // 短期MA
+const maM = ref(10) // 中期MA
+const maL = ref(20) // 长期MA
+const maX = ref(60) // 超长期MA
+
+// 买入和卖出算法配置
+const buyAlgorithm = ref([
+  // 默认买入算法示例
+  [
+    "maS > maM",
+    "maM > maL"
+  ]
+])
+
+const sellAlgorithm = ref([
+  // 默认卖出算法示例
+  [
+    "volumeMaS > volumeMaL * 3"
+  ],
+  [
+    "maS < maM"
+  ]
+])
 const currentHighlightIndex = ref(null)
-const isRightPanelCollapsed = ref(true) // 右侧面板收缩状态，默认收缩
+const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
+const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 let myChart = null
 
 // 性能监控指标
@@ -120,6 +150,78 @@ function debounce(fn, delay) {
 
 // 使用防抖处理的刷新函数
 const debouncedRefresh = debounce(refreshChart, 300)
+
+// 将算法配置转换为函数
+function convertAlgorithmToFunctions(algorithmConfig) {
+  return algorithmConfig.map(group => {
+    return (i, dayLineWithMetric) => {
+      if (i < 50) {
+        return false
+      }
+      
+      // 解析每个条件并执行
+      return group.every(condStr => {
+        // 解析条件字符串
+        const numericMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([0-9.]+)/)
+        const fieldMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)/)
+        const multiplyMatch = condStr.match(/([a-zA-Z]+)\s*([<>=]+)\s*([a-zA-Z]+)\s*\*\s*([0-9.]+)/)
+        
+        if (numericMatch) {
+          const [_, field, operator, valueStr] = numericMatch
+          const value = parseFloat(valueStr)
+          return evaluateCondition(dayLineWithMetric[field][i], operator, value)
+        } else if (multiplyMatch) {
+          const [_, field1, operator, field2, multiplierStr] = multiplyMatch
+          const multiplier = parseFloat(multiplierStr)
+          return evaluateCondition(
+            dayLineWithMetric[field1][i], 
+            operator, 
+            dayLineWithMetric[field2][i] * multiplier
+          )
+        } else if (fieldMatch) {
+          const [_, field1, operator, field2] = fieldMatch
+          return evaluateCondition(
+            dayLineWithMetric[field1][i], 
+            operator, 
+            dayLineWithMetric[field2][i]
+          )
+        }
+        
+        return true // 如果无法解析，默认为真
+      })
+    }
+  })
+}
+
+// 评估条件
+function evaluateCondition(left, operator, right) {
+  switch (operator) {
+    case '>': return left > right
+    case '<': return left < right
+    case '>=': return left >= right
+    case '<=': return left <= right
+    case '==': return left == right
+    default: return false
+  }
+}
+
+// 页内计算处理函数
+function handlePageCalculation() {
+  console.log('执行页内计算')
+  // 将配置的算法转换为函数
+  window.buyFunction = convertAlgorithmToFunctions(buyAlgorithm.value)
+  window.sellFunction = convertAlgorithmToFunctions(sellAlgorithm.value)
+  // 使用当前参数刷新图表
+  debouncedRefresh()
+}
+
+// 全局计算处理函数
+function handleGlobalCalculation() {
+  console.log('执行全局计算')
+  // 这里可以添加全局计算的逻辑，例如向服务器发送请求等
+  // 暂时也使用刷新图表作为示例
+  debouncedRefresh()
+}
 
 // 切换全屏显示
 function toggleFullScreen() {
@@ -302,8 +404,8 @@ async function initChart(rawData, goals) {
       })
     }
     
-    // 使用calculateMetric函数计算均线数据
-    const metrics = calculateMetric(rawData, {s: 7, m: 50, l: 100, x: 200})
+    // 使用calculateMetric函数计算均线数据，使用用户配置的MA参数
+    const metrics = calculateMetric(rawData, {s: maS.value, m: maM.value, l: maL.value, x: maX.value})
     
     // 转换为图表需要的格式（前面补'-'字符串）
     const formatMAForChart = (maData, period) => {
@@ -318,10 +420,10 @@ async function initChart(rawData, goals) {
       return result
     }
     
-    const maS = formatMAForChart(metrics.maS, 7)
-    const maM = formatMAForChart(metrics.maM, 50)
-    const maL = formatMAForChart(metrics.maL, 100)
-    const maX = formatMAForChart(metrics.maX, 200)
+    const maS = formatMAForChart(metrics.maS, maS.value)
+    const maM = formatMAForChart(metrics.maM, maM.value)
+    const maL = formatMAForChart(metrics.maL, maL.value)
+    const maX = formatMAForChart(metrics.maX, maX.value)
     
     // 设置图表选项
     const option = createChartOption(
