@@ -83,14 +83,25 @@ const title = computed(() => props.type === 'buy' ? '买入' : '卖出')
 
 // 可用条件列表
 const availableConditions = [
+  // 短期与中期均线对比
   { value: 'MAS_GT_MAM', label: '短期均线高于中期均线' },
   { value: 'MAS_LT_MAM', label: '短期均线低于中期均线' },
   { value: 'MAS_CROSS_UP_MAM', label: '短期均线上穿中期均线' },
   { value: 'MAS_CROSS_DOWN_MAM', label: '短期均线下穿中期均线' },
-  { value: 'MAS_GT_MAL', label: '短期均线高于长期均线' },
-  { value: 'MAS_LT_MAL', label: '短期均线低于长期均线' },
+  
+  // 中期与长期均线对比
   { value: 'MAM_GT_MAL', label: '中期均线高于长期均线' },
   { value: 'MAM_LT_MAL', label: '中期均线低于长期均线' },
+  { value: 'MAM_CROSS_UP_MAL', label: '中期均线上穿长期均线' },
+  { value: 'MAM_CROSS_DOWN_MAL', label: '中期均线下穿长期均线' },
+  
+  // 长期与超长期均线对比
+  { value: 'MAL_GT_MAX', label: '长期均线高于超长期均线' },
+  { value: 'MAL_LT_MAX', label: '长期均线低于超长期均线' },
+  { value: 'MAL_CROSS_UP_MAX', label: '长期均线上穿超长期均线' },
+  { value: 'MAL_CROSS_DOWN_MAX', label: '长期均线下穿超长期均线' },
+  
+  // 成交量相关
   { value: 'VOLUME_HIGH', label: '成交量放大' }
 ]
 
