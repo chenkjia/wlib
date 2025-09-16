@@ -461,15 +461,12 @@ const calculateSignals = (props) => {
   if (buyLength === 0 || sellLength === 0 || buyConditions.some((item) => item.length === 0) || sellConditions.some((item) => item.length === 0)) {
     return []
   }
-  console.log('sdf')
-  
   let buyStep = 0,
     sellStep = 0,
     hold = false
   const signals = dayLineWithMetric.data.reduce((prev, cur, index) => {
     if (buyStep < buyLength && !hold) {
       const buyResult = buyConditions[buyStep].every((conditionType) => {
-        console.log(conditionType)
         return algorithmMap[conditionType](index, dayLineWithMetric)
       })
       if (buyResult) {
