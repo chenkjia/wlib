@@ -5,12 +5,12 @@
       
       <!-- 算法组列表 -->
       <div class="space-y-2">
-        <div v-for="(group, groupIndex) in algorithmGroups" :key="groupIndex">
+        <div v-for="(condition, conditionIndex) in algorithmGroups" :key="conditionIndex">
           <!-- 下拉多选框和删除按钮在同一行 -->
           <div class="flex items-center space-x-2">
             <div class="flex-grow overflow-hidden">
               <USelect
-                v-model="group.selectedConditions"
+                v-model="algorithmGroups[conditionIndex]"
                 :items="availableConditions"
                 multiple
                 searchable
@@ -23,18 +23,18 @@
                 }"
               >
                 <template #label>
-                  <span v-if="!group.selectedConditions.length" class="text-gray-500">请选择条件</span>
-                  <span v-else class="truncate inline-block max-w-[calc(100%-20px)]">已选择 {{ group.selectedConditions.length }} 个条件</span>
+                  <span v-if="!algorithmGroups[conditionIndex].length" class="text-gray-500">请选择条件</span>
+                  <span v-else class="truncate inline-block max-w-[calc(100%-20px)]">已选择 {{ algorithmGroups.value[conditionIndex].length }} 个条件</span>
                 </template>
               </USelect>
               
               <!-- 如果没有选择任何条件，显示提示 -->
-              <div v-if="group.selectedConditions.length === 0" class="text-sm text-red-500 mt-2">
+              <div v-if="algorithmGroups[conditionIndex].length === 0" class="text-sm text-red-500 mt-2">
                 请至少选择一个条件
               </div>
             </div>
             <button 
-              @click="removeGroup(groupIndex)" 
+              @click="removeGroup(conditionIndex)" 
               class="text-red-500 hover:text-red-700 focus:outline-none flex-shrink-0 w-6 h-6 flex items-center justify-center"
               title="删除条件组"
             >
@@ -105,62 +105,23 @@ const availableConditions = [
   { value: 'VOLUME_HIGH', label: '成交量放大' }
 ]
 
-// 算法组数据结构
-const algorithmGroups = ref([])
-
-// 计算属性：将算法组转换为标准格式
-const algorithmConfig = computed(() => {
-  // 将多选框格式转换为原来的数组格式
-  return algorithmGroups.value.map(group => {
-    return group.selectedConditions.map(conditionType => {
-      return { conditionType }
-    })
-  })
-})
+// 算法组数据结构 - 初始化逻辑简化
+const algorithmGroups = ref([[]])
 
 // 监听配置变化，向父组件发送更新
-watch(algorithmConfig, (newValue) => {
+watch(algorithmGroups, (newValue) => {
   emit('update:value', newValue)
 }, { deep: true })
 
 // 添加条件组
 function addGroup() {
-  algorithmGroups.value.push({
-    selectedConditions: ['MAS_GT_MAM'] // 默认选择一个条件
-  })
+  algorithmGroups.value.push([])
 }
 
 // 删除条件组
 function removeGroup(groupIndex) {
   algorithmGroups.value.splice(groupIndex, 1)
 }
-
-// 初始化数据
-function initializeData() {
-  // 如果有初始值，则使用初始值
-  if (props.initialValue && props.initialValue.length > 0) {
-    // 将初始值转换为内部数据结构
-    algorithmGroups.value = props.initialValue.map(group => {
-      const selectedConditions = group.map(condition => {
-        // 如果条件是字符串，直接使用
-        if (typeof condition === 'string') {
-          return condition
-        }
-        // 如果是对象，提取 conditionType
-        return condition.conditionType
-      })
-      return { selectedConditions }
-    })
-  } else {
-    // 否则创建一个默认的条件组
-    algorithmGroups.value = [
-      { selectedConditions: ['MAS_GT_MAM'] }
-    ]
-  }
-}
-
-// 初始化
-initializeData()
 </script>
 
 <style scoped>

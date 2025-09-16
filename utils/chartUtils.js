@@ -3,6 +3,8 @@
  * 用于前端和服务器端共享的图表数据计算函数
  */
 
+import { algorithmMap } from './algorithmUtils.js'
+
 /**
  * 获取较小数量级的值
  * @param {number} num - 输入数字
@@ -175,6 +177,8 @@ export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
   const volumeMaL = calculateMA(volume, l);
   const volumeMaX = calculateMA(volume, x);
   return {
+    line: data,
+    data,
     maS,
     maM,
     maL,
@@ -391,13 +395,29 @@ export function calculateHourMetric(hourLine, {
 //   return transactions
 // }
 
+export const calculateStock = (props) => {
+  const { dayLine, hourLine, ma, buyConditions, sellConditions } = props
+  const dayLineWithMetric = calculateDayMetric(dayLine, ma)
+  const hourLineWithMetric = calculateHourMetric(hourLine, ma)
+  const transactions =  calculateTransactions({
+    dayLineWithMetric,
+    hourLineWithMetric,
+    buyConditions,
+    sellConditions
+  })
+  return {
+    dayLineWithMetric,
+    hourLineWithMetric,
+    transactions
+  }
+}
 
 // calculateTransactions
 // 需要计算买入信号和卖出信号,传入dayLine,hourLine
 // 先计算信号
 // 最后根据信号计算交易
-export const calculateTransactions = ({dayLine, hourLine}) => {
-  const signals = calculateSignals({dayLine, hourLine})
+export const calculateTransactions = (props) => {
+  const signals = calculateSignals(props)
   // 根据信号生成交易记录
   const transactions = []
   let lastBuySignal = null
@@ -428,21 +448,30 @@ export const calculateTransactions = ({dayLine, hourLine}) => {
 // 传入含技术参数的dayLine, hourLine, 卖入算法组, 卖出算法组
 // 计算dayLine和hourLine的技术参数
 const calculateSignals = (props) => {
-  const { dayLine, hourLine } = props
-  const dayLineWithMetric = calculateDayMetric(dayLine)
-  const hourLineWithMetric = calculateHourMetric(hourLine)
-  // 买入信号是需要把buyFunction执行完才能得到的信号，比如说buyFunction第一个执行完发现第一个信号，那么在这个信号后面的数据继续找第二个信号，直到buyFunction执行完，才是买入信号，这里面有依赖关系，第二个信号要依赖第一个信号
-  // 应该是以日绿为准，使用买入算法及卖出算法来观察日线
-  const buyFunction = getBuyFunction()
-  const sellFunction = getSellFunction()
-  const buyLength = buyFunction.length
-  const sellLength = sellFunction.length
+  const { 
+    dayLineWithMetric,
+    hourLineWithMetric,
+    buyConditions,
+    sellConditions
+  } = props
+  const buyLength = buyConditions.length
+  const sellLength = sellConditions.length
+  
+  // 如果买入或卖出条件长度为0，或者其中包含空数组，则直接返回空数组
+  if (buyLength === 0 || sellLength === 0 || buyConditions.some((item) => item.length === 0) || sellConditions.some((item) => item.length === 0)) {
+    return []
+  }
+  console.log('sdf')
+  
   let buyStep = 0,
     sellStep = 0,
     hold = false
-  const signals = dayLine.reduce((prev, cur, index) => {
+  const signals = dayLineWithMetric.data.reduce((prev, cur, index) => {
     if (buyStep < buyLength && !hold) {
-      const buyResult = buyFunction[buyStep](index, dayLineWithMetric)
+      const buyResult = buyConditions[buyStep].every((conditionType) => {
+        console.log(conditionType)
+        return algorithmMap[conditionType](index, dayLineWithMetric)
+      })
       if (buyResult) {
         buyStep++
       }
@@ -457,7 +486,9 @@ const calculateSignals = (props) => {
       }
     }
     if (sellStep < sellLength && hold) {
-      const sellResult = sellFunction[sellStep](index, dayLineWithMetric)
+      const sellResult = sellConditions[sellStep].every((conditionType) => {
+        return algorithmMap[conditionType](index, dayLineWithMetric)
+      })
       if (sellResult) {
         sellStep++
       }
@@ -476,6 +507,7 @@ const calculateSignals = (props) => {
   
   return signals
 }
+
 // 算法组定义
 // 默认买入算法组
 const defaultBuyFunction = [
@@ -518,10 +550,39 @@ const defaultSellFunction = [
 ]
 
 // 获取当前使用的算法组，优先使用window上定义的，如果没有则使用默认的
+// 现在支持二维数组格式的条件，例如[[{conditionType: 'MAS_GT_MAM'}], [{conditionType: 'MAM_GT_MAL'}]]
 const getBuyFunction = () => {
-  return window.buyFunction || defaultBuyFunction
+  // 如果window上有buyConditions，使用它
+  if (window.buyConditions) {
+    return window.buyConditions
+  }
+  
+  // 否则，使用默认的函数转换为条件格式
+  // 为了兼容旧版本，将函数数组转换为条件数组
+  return [
+    // 每个函数转换为一个条件组
+    // 由于旧版本是顺序执行所有函数，这里将所有函数放在一个条件组中
+    defaultBuyFunction.map((_, index) => ({
+      conditionType: `DEFAULT_BUY_${index}`,
+      // 保留原始函数以便在checkConditions中使用
+      originalFunction: defaultBuyFunction[index]
+    }))
+  ]
 }
 
 const getSellFunction = () => {
-  return window.sellFunction || defaultSellFunction
+  // 如果window上有sellConditions，使用它
+  if (window.sellConditions) {
+    return window.sellConditions
+  }
+  
+  // 否则，使用默认的函数转换为条件格式
+  return [
+    // 每个函数转换为一个条件组
+    defaultSellFunction.map((_, index) => ({
+      conditionType: `DEFAULT_SELL_${index}`,
+      // 保留原始函数以便在checkConditions中使用
+      originalFunction: defaultSellFunction[index]
+    }))
+  ]
 }

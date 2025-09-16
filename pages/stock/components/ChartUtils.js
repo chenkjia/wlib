@@ -7,28 +7,6 @@ export const upColor = '#00da3c'
 export const downColor = '#ec0000'
 
 /**
- * 计算MA数据
- * @param {Number} dayCount - 天数
- * @param {Array} data - 数据
- * @returns {Array} MA数据
- */
-export function calculateMA(dayCount, data) {
-  const result = []
-  for (let i = 0, len = data.length; i < len; i++) {
-    if (i < dayCount) {
-      result.push('-')
-      continue
-    }
-    let sum = 0
-    for (let j = 0; j < dayCount; j++) {
-      sum += data[i - j][1]
-    }
-    result.push(+(sum / dayCount).toFixed(2))
-  }
-  return result
-}
-
-/**
  * 分割K线图数据
  * @param {Array} rawData - 原始数据
  * @returns {Object} 分割后的数据

@@ -26,10 +26,7 @@
         <!-- 上半部分 - 使用独立组件 -->
         <div class="h-1/2">
           <RightPanelTop
-            v-model:maS="maS"
-            v-model:maM="maM"
-            v-model:maL="maL"
-            v-model:maX="maX"
+            v-model:ma="ma"
             v-model:buyAlgorithm="buyAlgorithm"
             v-model:sellAlgorithm="sellAlgorithm"
             @pageCalculation="handlePageCalculation"
@@ -63,13 +60,11 @@ import * as echarts from 'echarts'
 
 // 从共享工具模块导入函数
 import { calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
-import { calculateMetric, calculateTransactions } from '~/utils/chartUtils.js'
+import { calculateStock } from '~/utils/chartUtils.js'
 
 // 导入图表工具函数
 import { 
-  calculateMA, 
-  splitData, 
-  processTrendPoints, 
+  splitData,
   createChartOption 
 } from './ChartUtils.js'
 
@@ -102,29 +97,23 @@ const profitFilter = ref(50)
 const dailyProfitFilter = ref(2) 
 const durationFilter = ref(7) 
 const liquidityFilter = ref(5) // 流动性过滤器，默认5万
-// MA配置参数
-const maS = ref(5) // 短期MA
-const maM = ref(10) // 中期MA
-const maL = ref(20) // 长期MA
-const maX = ref(60) // 超长期MA
+// MA配置参数（对象格式）
+const ma = ref({
+  s: 5, // 短期MA
+  m: 10, // 中期MA
+  l: 20, // 长期MA
+  x: 60  // 超长期MA
+})
 
 // 买入和卖出算法配置
 const buyAlgorithm = ref([
   // 默认买入算法示例
-  [
-    "maS > maM",
-    "maM > maL"
-  ]
+  []
 ])
 
 const sellAlgorithm = ref([
   // 默认卖出算法示例
-  [
-    "volumeMaS > volumeMaL * 3"
-  ],
-  [
-    "maS < maM"
-  ]
+  []
 ])
 const currentHighlightIndex = ref(null)
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
@@ -148,97 +137,10 @@ function debounce(fn, delay) {
   }
 }
 
-// 使用防抖处理的刷新函数
-const debouncedRefresh = debounce(refreshChart, 300)
-
-// 将算法配置转换为函数
-function convertAlgorithmToFunctions(algorithmConfig) {
-  return algorithmConfig.map(group => {
-    return (i, dayLineWithMetric) => {
-      if (i < 50) {
-        return false
-      }
-      
-      // 解析每个条件并执行
-      return group.every(condStr => {
-        // 将条件字符串转换为小写进行匹配，但保留原始字段名用于访问数据
-        const originalCondStr = condStr
-        const lowerCondStr = condStr.toLowerCase()
-        
-        // 解析条件字符串
-        const numericMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([0-9.]+)/)
-        const fieldMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([A-Za-z]+)/)
-        const multiplyMatch = originalCondStr.match(/([A-Za-z]+)\s*([<>=]+)\s*([A-Za-z]+)\s*\*\s*([0-9.]+)/)
-        const crossMatch = originalCondStr.match(/([A-Za-z]+)\s*cross_(up|down)\s*([A-Za-z]+)/)
-        
-        if (crossMatch) {
-          const [_, field1, direction, field2] = crossMatch
-          // 将字段名转换为小写以匹配dayLineWithMetric中的键
-          const lowerField1 = field1.toLowerCase()
-          const lowerField2 = field2.toLowerCase()
-          // 上穿条件：当前值大于比较值，且前一个值小于等于比较值
-          if (direction === 'up') {
-            return i > 0 && 
-              dayLineWithMetric[lowerField1][i] > dayLineWithMetric[lowerField2][i] && 
-              dayLineWithMetric[lowerField1][i-1] <= dayLineWithMetric[lowerField2][i-1]
-          } 
-          // 下穿条件：当前值小于比较值，且前一个值大于等于比较值
-          else if (direction === 'down') {
-            return i > 0 && 
-              dayLineWithMetric[lowerField1][i] < dayLineWithMetric[lowerField2][i] && 
-              dayLineWithMetric[lowerField1][i-1] >= dayLineWithMetric[lowerField2][i-1]
-          }
-        } else if (numericMatch) {
-          const [_, field, operator, valueStr] = numericMatch
-          const lowerField = field.toLowerCase()
-          const value = parseFloat(valueStr)
-          return evaluateCondition(dayLineWithMetric[lowerField][i], operator, value)
-        } else if (multiplyMatch) {
-          const [_, field1, operator, field2, multiplierStr] = multiplyMatch
-          const lowerField1 = field1.toLowerCase()
-          const lowerField2 = field2.toLowerCase()
-          const multiplier = parseFloat(multiplierStr)
-          return evaluateCondition(
-            dayLineWithMetric[lowerField1][i], 
-            operator, 
-            dayLineWithMetric[lowerField2][i] * multiplier
-          )
-        } else if (fieldMatch) {
-          const [_, field1, operator, field2] = fieldMatch
-          const lowerField1 = field1.toLowerCase()
-          const lowerField2 = field2.toLowerCase()
-          return evaluateCondition(
-            dayLineWithMetric[lowerField1][i], 
-            operator, 
-            dayLineWithMetric[lowerField2][i]
-          )
-        }
-        
-        return true // 如果无法解析，默认为真
-      })
-    }
-  })
-}
-
-// 评估条件
-function evaluateCondition(left, operator, right) {
-  switch (operator) {
-    case '>': return left > right
-    case '<': return left < right
-    case '>=': return left >= right
-    case '<=': return left <= right
-    case '==': return left == right
-    default: return false
-  }
-}
-
 // 页内计算处理函数
 function handlePageCalculation() {
   console.log({
-    maS: maS.value,
-    maM: maM.value,
-    maL: maL.value,
-    maX: maX.value,
+    ma: ma.value,
     buyAlgorithm: buyAlgorithm.value,
     sellAlgorithm: sellAlgorithm.value
   })
@@ -248,10 +150,7 @@ function handlePageCalculation() {
 function handleGlobalCalculation() {
   console.log('执行全局计算')
   console.log({
-    maS: maS.value,
-    maM: maM.value,
-    maL: maL.value,
-    maX: maX.value,
+    ma: ma.value,
     buyAlgorithm: buyAlgorithm.value,
     sellAlgorithm: sellAlgorithm.value
   })
@@ -391,12 +290,19 @@ async function initChart(rawData, goals) {
     // 不再处理趋势点标记
     
     // 计算交易点（买入卖出点）
-    let transactions = []
+    const { dayLineWithMetric,
+      hourLineWithMetric,
+      transactions
+    } = calculateStock({
+      dayLine: rawData,
+      hourLine: rawData,
+      buyConditions: buyAlgorithm.value,
+      sellConditions: sellAlgorithm.value
+    })
     try {
       console.log('开始计算交易点，数据长度:', rawData.length)
       // 注意：calculateTransactions需要hourLine数据，这里我们暂时只用dayLine
       // 在实际应用中，你可能需要获取hourLine数据
-      transactions = calculateTransactions({dayLine: rawData, hourLine: rawData})
       console.log('计算出的交易点:', transactions)
       console.log('交易点数量:', transactions.length)
     } catch (transactionError) {
@@ -437,35 +343,13 @@ async function initChart(rawData, goals) {
         }
       })
     }
-    
-    // 使用calculateMetric函数计算均线数据，使用用户配置的MA参数
-    const metrics = calculateMetric(rawData, {s: maS.value, m: maM.value, l: maL.value, x: maX.value})
-    
-    // 转换为图表需要的格式（前面补'-'字符串）
-    const formatMAForChart = (maData, period) => {
-      const result = []
-      for (let i = 0; i < maData.length; i++) {
-        if (i < period - 1) {
-          result.push('-')
-        } else {
-          result.push(+(maData[i].toFixed(4)))
-        }
-      }
-      return result
-    }
-    
-    const formattedMaS = formatMAForChart(metrics.maS, maS.value)
-    const formattedMaM = formatMAForChart(metrics.maM, maM.value)
-    const formattedMaL = formatMAForChart(metrics.maL, maL.value)
-    const formattedMaX = formatMAForChart(metrics.maX, maX.value)
-    
     // 设置图表选项
     const option = createChartOption(
       data, 
-      formattedMaS, 
-      formattedMaM, 
-      formattedMaL, 
-      formattedMaX, 
+      dayLineWithMetric.maS, 
+      dayLineWithMetric.maM, 
+      dayLineWithMetric.maL, 
+      dayLineWithMetric.maX, 
       formatDateYYYYMMDD, 
       formatDateMMDD
     )

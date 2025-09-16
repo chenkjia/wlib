@@ -129,30 +129,20 @@ import { ref, defineProps, defineEmits, computed } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 
 const props = defineProps({
-  // 接收父组件传递的MA配置参数
-  maS: {
-    type: Number,
-    required: true
-  },
-  maM: {
-    type: Number,
-    required: true
-  },
-  maL: {
-    type: Number,
-    required: true
-  },
-  maX: {
-    type: Number,
-    required: true
+  // MA配置参数（对象格式）
+  ma: {
+    type: Object,
+    default: () => ({
+      s: 5,
+      m: 10,
+      l: 20,
+      x: 60
+    })
   }
 })
 
 const emit = defineEmits([
-  'update:maS',
-  'update:maM',
-  'update:maL',
-  'update:maX',
+  'update:ma',
   'update:buyAlgorithm',
   'update:sellAlgorithm',
   'pageCalculation',
@@ -191,10 +181,7 @@ const activeTab = ref('params') // 当前激活的标签页，默认为参数设
 // 计算按钮处理函数
 function handlePageCalculation() {
   emit('pageCalculation', {
-    maS: maS.value,
-    maM: maM.value,
-    maL: maL.value,
-    maX: maX.value,
+    ma: syncedMa.value,
     buyAlgorithm: buyAlgorithm.value,
     sellAlgorithm: sellAlgorithm.value
   })
@@ -202,10 +189,7 @@ function handlePageCalculation() {
 
 function handleGlobalCalculation() {
   emit('globalCalculation', {
-    maS: maS.value,
-    maM: maM.value,
-    maL: maL.value,
-    maX: maX.value,
+    ma: syncedMa.value,
     buyAlgorithm: buyAlgorithm.value,
     sellAlgorithm: sellAlgorithm.value
   })
@@ -213,22 +197,54 @@ function handleGlobalCalculation() {
 
 // 使用计算属性实现双向绑定
 const maS = computed({
-  get: () => props.maS,
-  set: (value) => emit('update:maS', Number(value))
+  get: () => props.ma?.s ?? 5,
+  set: (value) => {
+    const numValue = Number(value)
+    emit('update:ma', {
+      ...props.ma,
+      s: numValue
+    })
+  }
 })
 
 const maM = computed({
-  get: () => props.maM,
-  set: (value) => emit('update:maM', Number(value))
+  get: () => props.ma?.m ?? 10,
+  set: (value) => {
+    const numValue = Number(value)
+    emit('update:ma', {
+      ...props.ma,
+      m: numValue
+    })
+  }
 })
 
 const maL = computed({
-  get: () => props.maL,
-  set: (value) => emit('update:maL', Number(value))
+  get: () => props.ma?.l ?? 20,
+  set: (value) => {
+    const numValue = Number(value)
+    emit('update:ma', {
+      ...props.ma,
+      l: numValue
+    })
+  }
 })
 
 const maX = computed({
-  get: () => props.maX,
-  set: (value) => emit('update:maX', Number(value))
+  get: () => props.ma?.x ?? 60,
+  set: (value) => {
+    const numValue = Number(value)
+    emit('update:ma', {
+      ...props.ma,
+      x: numValue
+    })
+  }
 })
+
+// 同步ma对象和计算属性
+const syncedMa = computed(() => ({
+  s: maS.value,
+  m: maM.value,
+  l: maL.value,
+  x: maX.value
+}))
 </script>
