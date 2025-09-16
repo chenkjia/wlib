@@ -42,15 +42,6 @@
         </div>
       </div>
     </div>
- 
-    <!-- 目标趋势详情弹窗 -->
-    <GoalDetailModal 
-      v-if="selectedGoal" 
-      :goal="selectedGoal" 
-      @close="selectedGoal = null"
-      :formatDate="formatDate"
-      :getProfitClass="getProfitClass"
-    />
   </div>
 </template>
 
@@ -58,8 +49,6 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
-// 从共享工具模块导入函数
-import { calculateGoals as calculateGoalsUtil } from '~/utils/stockUtils'
 import { calculateStock } from '~/utils/chartUtils.js'
 
 // 导入图表工具函数
@@ -68,12 +57,6 @@ import {
   createChartOption 
 } from './ChartUtils.js'
 
-// 导入拆分的组件
-import GoalsList from './GoalsList.vue'
-import GoalDetailModal from './GoalDetailModal.vue'
-import LoadingState from './LoadingState.vue'
-import ErrorState from './ErrorState.vue'
-import EmptyState from './EmptyState.vue'
 import RightPanelTop from './RightPanelTop.vue'
 
 const props = defineProps({
@@ -88,15 +71,8 @@ const emit = defineEmits(['error'])
 // 响应式状态
 const chartContainer = ref(null)
 const isFullScreen = ref(false)
-const goals = ref([])
 const loading = ref(true)
 const error = ref('')
-const selectedGoal = ref(null)
-const trendInterval = ref(40) 
-const profitFilter = ref(50) 
-const dailyProfitFilter = ref(2) 
-const durationFilter = ref(7) 
-const liquidityFilter = ref(5) // 流动性过滤器，默认5万
 // MA配置参数（对象格式）
 const ma = ref({
   s: 5, // 短期MA
@@ -115,7 +91,6 @@ const sellAlgorithm = ref([
   // 默认卖出算法示例
   []
 ])
-const currentHighlightIndex = ref(null)
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 let myChart = null
@@ -226,10 +201,6 @@ function getProfitClass(profit) {
   return 'text-orange-500'
 }
 
-// 使用工具函数并应用过滤器
-function calculateGoals(dayLine) {
-  return calculateGoalsUtil(dayLine, profitFilter.value, dailyProfitFilter.value, 0.5, trendInterval.value, durationFilter.value, liquidityFilter.value * 10000); // 将流动性单位从万转为实际值
-}
 
 // 颜色配置
 const upColor = '#00da3c'
@@ -246,14 +217,12 @@ async function refreshChart() {
     // 获取日线数据并计算目标趋势
     const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
     let rawData = await response.json()
-    // 计算目标趋势
-    goals.value = calculateGoals(rawData)
     
     perfMetrics.dataProcessTime = performance.now() - startTime
     const renderStart = performance.now()
     
     // 初始化图表
-    await initChart(rawData, goals.value)
+    await initChart(rawData)
     
     perfMetrics.renderTime = performance.now() - renderStart
     console.log('Performance metrics:', perfMetrics)
@@ -264,20 +233,8 @@ async function refreshChart() {
   }
 }
 
-// 高亮显示目标点（已移除趋势点标记功能）
-function highlightGoalPoints(goal, index) {
-  // 不再高亮显示趋势点
-  currentHighlightIndex.value = index
-}
-
-// 重置高亮效果（已移除趋势点标记功能）
-function resetHighlight() {
-  // 不再重置高亮效果
-  currentHighlightIndex.value = null
-}
-
 // 初始化图表
-async function initChart(rawData, goals) {
+async function initChart(rawData) {
   try {
     if (!myChart) {
       console.error('图表未初始化')
@@ -286,8 +243,6 @@ async function initChart(rawData, goals) {
     
     // 分割数据
     let data = splitData(rawData)
-    
-    // 不再处理趋势点标记
     
     // 计算交易点（买入卖出点）
     const { dayLineWithMetric,
@@ -299,17 +254,8 @@ async function initChart(rawData, goals) {
       buyConditions: buyAlgorithm.value,
       sellConditions: sellAlgorithm.value
     })
-    try {
-      console.log('开始计算交易点，数据长度:', rawData.length)
-      // 注意：calculateTransactions需要hourLine数据，这里我们暂时只用dayLine
-      // 在实际应用中，你可能需要获取hourLine数据
-      console.log('计算出的交易点:', transactions)
-      console.log('交易点数量:', transactions.length)
-    } catch (transactionError) {
-      console.error('计算交易点失败:', transactionError)
-      console.error('错误堆栈:', transactionError.stack)
-    }
-    
+    console.log('计算出的交易点:', transactions)
+    console.log('交易点数量:', transactions.length)
     // 添加交易点到图表标记中
     if (transactions.length > 0) {
       transactions.forEach((transaction, index) => {
@@ -433,11 +379,7 @@ async function loadStockData() {
   }
 }
 
-// 监听趋势间隔变化，仅进行范围限制
-watch(trendInterval, (newValue) => {
-  if (newValue < 1) trendInterval.value = 1
-  if (newValue > 60) trendInterval.value = 60
-})
+// 趋势间隔监听已移除
 
 // 监听股票代码变化
 watch(() => props.stockCode, async (newCode, oldCode) => {
