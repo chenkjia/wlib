@@ -76,21 +76,21 @@ const error = ref('')
 const dayLine = ref([]) // 存储日线数据
 // MA配置参数（对象格式）
 const ma = ref({
-  s: 5, // 短期MA
-  m: 10, // 中期MA
-  l: 20, // 长期MA
-  x: 60  // 超长期MA
+  s: 7, // 短期MA
+  m: 50, // 中期MA
+  l: 100, // 长期MA
+  x: 200  // 超长期MA
 })
 
 // 买入和卖出算法配置
 const buyAlgorithm = ref([
   // 默认买入算法示例
-  []
+  ['MAM_CROSS_UP_MAL']
 ])
 
 const sellAlgorithm = ref([
   // 默认卖出算法示例
-  []
+  ['MAM_CROSS_DOWN_MAL']
 ])
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
@@ -253,25 +253,46 @@ async function initChart() {
           data.trendStartPoints.push({
             name: `买入${index + 1}`,
             coord: [buyIndex, transaction.buyPrice],
-            value: `买入\n${transaction.buyPrice}`,
+            value: `买入: ${transaction.buyPrice}`,
             itemStyle: { color: '#00da3c' },
-            symbol: 'triangle',
-            symbolSize: 15
+            symbol: 'pin',
+            symbolSize: 30,
+            label: {
+              show: true,
+              position: 'top',
+              distance: 10,
+              formatter: '买',
+              fontSize: 12,
+              color: '#fff',
+              backgroundColor: '#00da3c',
+              padding: 3,
+              borderRadius: 3
+            }
           })
         }
-        
         // 找到卖出点在数据中的索引
         if (transaction.sellTime) {
           const sellIndex = dayLine.value.findIndex(item => item.time === transaction.sellTime)
           if (sellIndex !== -1) {
+            const profitColor = transaction.profit > 0 ? '#00da3c' : '#ec0000'
             data.trendEndPoints.push({
               name: `卖出${index + 1}`,
               coord: [sellIndex, transaction.sellPrice],
-              value: `卖出\n${transaction.sellPrice}\n收益: ${transaction.profit?.toFixed(2)}%`,
-              itemStyle: { color: transaction.profit > 0 ? '#00da3c' : '#ec0000' },
-              symbol: 'triangle',
-              symbolRotate: 180,
-              symbolSize: 15
+              value: `卖出: ${transaction.sellPrice} 收益: ${transaction.profit?.toFixed(2)}%`,
+              itemStyle: { color: profitColor },
+              symbol: 'pin',
+              symbolSize: 30,
+              label: {
+                show: true,
+                position: 'bottom',
+                distance: 10,
+                formatter: '卖',
+                fontSize: 12,
+                color: '#fff',
+                backgroundColor: profitColor,
+                padding: 3,
+                borderRadius: 3
+              }
             })
           }
         }

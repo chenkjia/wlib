@@ -216,12 +216,13 @@ export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, 
         markPoint: {
           symbol: 'pin',
           symbolSize: 40,
-          data: [], // 移除趋势点标记
+          data: [
+            ...data.trendStartPoints,
+            ...data.trendEndPoints
+          ],
           label: {
             formatter: function(params) {
-              const index = params.data.coord[0];
-              const close = data.values[index][1];
-              return params.data.value + '\n' + close.toFixed(2);
+              return params.data.value;
             },
             position: 'top',
             distance: 10,
