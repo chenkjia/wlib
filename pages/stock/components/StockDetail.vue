@@ -206,12 +206,10 @@ async function refreshChart() {
     
     // 如果图表已存在，先销毁它
     if (myChart) {
-      console.log('sdf')
       myChart.dispose()
       myChart = null
     }
     
-    console.log('eee')
     // 重新初始化图表
     myChart = echarts.init(chartContainer.value, 'dark')
     
@@ -250,7 +248,7 @@ async function initChart() {
     if (transactions.length > 0) {
       transactions.forEach((transaction, index) => {
         // 找到买入点在数据中的索引
-        const buyIndex = dayLine.findIndex(item => item.time === transaction.buyTime)
+        const buyIndex = dayLine.value.findIndex(item => item.time === transaction.buyTime)
         if (buyIndex !== -1) {
           data.trendStartPoints.push({
             name: `买入${index + 1}`,
@@ -264,7 +262,7 @@ async function initChart() {
         
         // 找到卖出点在数据中的索引
         if (transaction.sellTime) {
-          const sellIndex = dayLine.findIndex(item => item.time === transaction.sellTime)
+          const sellIndex = dayLine.value.findIndex(item => item.time === transaction.sellTime)
           if (sellIndex !== -1) {
             data.trendEndPoints.push({
               name: `卖出${index + 1}`,
