@@ -21,25 +21,16 @@
       <!-- 右侧面板 -->
       <div 
         v-show="!isRightPanelCollapsed"
-        class="w-full md:w-1/3 flex flex-col transition-all duration-300 bg-white shadow-md rounded-md overflow-hidden h-full"
+        class="w-full md:w-1/3 flex flex-col transition-all duration-300 h-full"
       >
-        <!-- 上半部分 - 使用独立组件 -->
-        <div class="h-1/2">
-          <RightPanelTop
-            v-model:ma="ma"
-            v-model:buyAlgorithm="buyAlgorithm"
-            v-model:sellAlgorithm="sellAlgorithm"
-            @pageCalculation="handlePageCalculation"
-            @globalCalculation="handleGlobalCalculation"
-          />
-        </div>
-        
-        <!-- 下半部分 -->
-        <div class="h-1/2 p-4">
-          <div class="bg-white rounded-md p-2 h-full">
-            <!-- 下半部分保持为空 -->
-          </div>
-        </div>
+        <RightPanel
+          v-model:ma="ma"
+          v-model:buyAlgorithm="buyAlgorithm"
+          v-model:sellAlgorithm="sellAlgorithm"
+          :transactions="transactions"
+          @pageCalculation="handlePageCalculation"
+          @globalCalculation="handleGlobalCalculation"
+        />
       </div>
     </div>
   </div>
@@ -57,7 +48,7 @@ import {
   createChartOption 
 } from './ChartUtils.js'
 
-import RightPanelTop from './RightPanelTop.vue'
+import RightPanel from './RightPanel.vue'
 
 const props = defineProps({
   stockCode: {
