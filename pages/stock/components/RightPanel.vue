@@ -85,7 +85,7 @@
             <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
             <AlgorithmConfig 
               type="buy" 
-              :initial-value="buyAlgorithm" 
+              :initialValue="buyAlgorithm" 
               @update:value="updateBuyAlgorithm"
             />
           </div>
@@ -95,7 +95,7 @@
             <h4 class="font-medium text-gray-700 mb-2">卖出算法</h4>
             <AlgorithmConfig 
               type="sell" 
-              :initial-value="sellAlgorithm" 
+              :initialValue="sellAlgorithm" 
               @update:value="updateSellAlgorithm"
             />
           </div>

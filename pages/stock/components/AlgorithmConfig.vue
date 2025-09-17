@@ -1,8 +1,6 @@
 <template>
   <div class="algorithm-config">
     <div class="mb-4">
-      <h3 class="text-lg font-medium text-gray-800 mb-3 border-l-4 border-blue-500 pl-2">{{ title }}算法配置</h3>
-      
       <!-- 算法组列表 -->
       <div class="space-y-2">
         <div v-for="(condition, conditionIndex) in algorithmGroups" :key="conditionIndex">
@@ -105,8 +103,8 @@ const availableConditions = [
   { value: 'VOLUME_HIGH', label: '成交量放大' }
 ]
 
-// 算法组数据结构 - 初始化逻辑简化
-const algorithmGroups = ref([[]])
+// 算法组数据结构 - 使用props中的initialValue进行初始化
+const algorithmGroups = ref(props.initialValue && props.initialValue.length > 0 ? props.initialValue : [[]])
 
 // 监听配置变化，向父组件发送更新
 watch(algorithmGroups, (newValue) => {
