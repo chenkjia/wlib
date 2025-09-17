@@ -85,7 +85,7 @@
             <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
             <AlgorithmConfig 
               type="buy" 
-              :initialValue="buyAlgorithm" 
+              :initialValue="props.buyAlgorithm" 
               @update:value="updateBuyAlgorithm"
             />
           </div>
@@ -95,7 +95,7 @@
             <h4 class="font-medium text-gray-700 mb-2">卖出算法</h4>
             <AlgorithmConfig 
               type="sell" 
-              :initialValue="sellAlgorithm" 
+              :initialValue="props.sellAlgorithm" 
               @update:value="updateSellAlgorithm"
             />
           </div>
@@ -213,6 +213,16 @@ const props = defineProps({
   transactions: {
     type: Array,
     default: () => []
+  },
+  // 买入算法
+  buyAlgorithm: {
+    type: Array,
+    default: () => []
+  },
+  // 卖出算法
+  sellAlgorithm: {
+    type: Array,
+    default: () => []
   }
 })
 
@@ -227,29 +237,12 @@ const emit = defineEmits([
 // 本地响应式状态
 const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
 
-// 买入和卖出算法配置
-const buyAlgorithm = ref([
-  // 默认买入算法示例
-  [
-    "MAS_GT_MAM",
-  ]
-])
-
-const sellAlgorithm = ref([
-  // 默认卖出算法示例
-  [
-    "MAS_GT_MAM"
-  ]
-])
-
 // 更新算法配置的方法
 function updateBuyAlgorithm(newValue) {
-  buyAlgorithm.value = newValue
   emit('update:buyAlgorithm', newValue)
 }
 
 function updateSellAlgorithm(newValue) {
-  sellAlgorithm.value = newValue
   emit('update:sellAlgorithm', newValue)
 }
 
@@ -257,16 +250,16 @@ function updateSellAlgorithm(newValue) {
 function handlePageCalculation() {
   emit('pageCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
+    buyAlgorithm: props.buyAlgorithm,
+    sellAlgorithm: props.sellAlgorithm
   })
 }
 
 function handleGlobalCalculation() {
   emit('globalCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
+    buyAlgorithm: props.buyAlgorithm,
+    sellAlgorithm: props.sellAlgorithm
   })
 }
 

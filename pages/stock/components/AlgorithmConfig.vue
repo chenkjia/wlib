@@ -104,7 +104,7 @@ const availableConditions = [
 ]
 
 // 算法组数据结构 - 使用props中的initialValue进行初始化
-const algorithmGroups = ref(props.initialValue && props.initialValue.length > 0 ? props.initialValue : [[]])
+const algorithmGroups = ref(JSON.parse(JSON.stringify(props.initialValue && props.initialValue.length > 0 ? props.initialValue : [[]])))
 
 // 监听配置变化，向父组件发送更新
 watch(algorithmGroups, (newValue) => {
