@@ -83,6 +83,8 @@ const sellAlgorithm = ref([
   // 默认卖出算法示例
   ['MAM_CROSS_DOWN_MAL']
 ])
+// 交易记录
+const transactions = ref([])
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 let myChart = null
