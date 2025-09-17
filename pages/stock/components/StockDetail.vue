@@ -73,6 +73,7 @@ const chartContainer = ref(null)
 const isFullScreen = ref(false)
 const loading = ref(true)
 const error = ref('')
+const dayLine = ref([]) // 存储日线数据
 // MA配置参数（对象格式）
 const ma = ref({
   s: 5, // 短期MA
@@ -114,11 +115,7 @@ function debounce(fn, delay) {
 
 // 页内计算处理函数
 function handlePageCalculation() {
-  console.log({
-    ma: ma.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
-  })
+  refreshChart()
 }
 
 // 全局计算处理函数
@@ -193,14 +190,6 @@ function formatDateMMDD(value) {
   return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
-// 获取盈亏样式类
-function getProfitClass(profit) {
-  if (!profit && profit !== 0) return ''
-  if (profit > 0) return 'text-green-600'
-  if (profit < 0) return 'text-red-600'
-  return 'text-orange-500'
-}
-
 
 // 颜色配置
 const upColor = '#00da3c'
@@ -209,32 +198,32 @@ const downColor = '#ec0000'
 // 刷新图表
 async function refreshChart() {
   try {
-    loading.value = true
-    error.value = ''
+    // 确保图表容器存在
+    if (!chartContainer.value) {
+      console.error('图表容器不存在')
+      return
+    }
     
-    const startTime = performance.now()
+    // 如果图表已存在，先销毁它
+    if (myChart) {
+      console.log('sdf')
+      myChart.dispose()
+      myChart = null
+    }
     
-    // 获取日线数据并计算目标趋势
-    const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
-    let rawData = await response.json()
+    console.log('eee')
+    // 重新初始化图表
+    myChart = echarts.init(chartContainer.value, 'dark')
     
-    perfMetrics.dataProcessTime = performance.now() - startTime
-    const renderStart = performance.now()
-    
-    // 初始化图表
-    await initChart(rawData)
-    
-    perfMetrics.renderTime = performance.now() - renderStart
-    console.log('Performance metrics:', perfMetrics)
-    
-    loading.value = false
+    // 初始化图表数据
+    await initChart()
   } catch (err) {
-    handleError('更新数据失败', err)
+    handleError('刷新图表失败', err)
   }
 }
 
 // 初始化图表
-async function initChart(rawData) {
+async function initChart() {
   try {
     if (!myChart) {
       console.error('图表未初始化')
@@ -242,15 +231,16 @@ async function initChart(rawData) {
     }
     
     // 分割数据
-    let data = splitData(rawData)
+    let data = splitData(dayLine.value)
     
     // 计算交易点（买入卖出点）
     const { dayLineWithMetric,
       hourLineWithMetric,
       transactions
     } = calculateStock({
-      dayLine: rawData,
-      hourLine: rawData,
+      dayLine: dayLine.value,
+      hourLine: dayLine.value,
+      ma: ma.value,
       buyConditions: buyAlgorithm.value,
       sellConditions: sellAlgorithm.value
     })
@@ -260,7 +250,7 @@ async function initChart(rawData) {
     if (transactions.length > 0) {
       transactions.forEach((transaction, index) => {
         // 找到买入点在数据中的索引
-        const buyIndex = rawData.findIndex(item => item.time === transaction.buyTime)
+        const buyIndex = dayLine.findIndex(item => item.time === transaction.buyTime)
         if (buyIndex !== -1) {
           data.trendStartPoints.push({
             name: `买入${index + 1}`,
@@ -274,7 +264,7 @@ async function initChart(rawData) {
         
         // 找到卖出点在数据中的索引
         if (transaction.sellTime) {
-          const sellIndex = rawData.findIndex(item => item.time === transaction.sellTime)
+          const sellIndex = dayLine.findIndex(item => item.time === transaction.sellTime)
           if (sellIndex !== -1) {
             data.trendEndPoints.push({
               name: `卖出${index + 1}`,
@@ -316,64 +306,16 @@ function handleError(message, err) {
   emit('error', err.message)
 }
 
-// 添加恢复机制
-async function recoverFromError() {
-  try {
-    error.value = ''
-    loading.value = true
-    
-    // 清理资源
-    if (myChart) {
-      myChart.dispose()
-      myChart = null
-    }
-    
-    // 等待一段时间
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    // 重新加载
-    await loadStockData()
-  } catch (err) {
-    handleError('恢复失败', err)
-  }
-}
 
 // 加载股票数据
 async function loadStockData() {
   try {
     loading.value = true
     error.value = ''
-    
-    // 如果图表已存在，先销毁它
-    if (myChart) {
-      myChart.dispose()
-      myChart = null
-    }
-    
-    // 确保 DOM 元素已经挂载
-    await nextTick()
-    
-    // 增强检查逻辑
-    let retryCount = 0
-    const maxRetries = 3
-    
-    while (!chartContainer.value && retryCount < maxRetries) {
-      await new Promise(resolve => setTimeout(resolve, 100))
-      retryCount++
-    }
-    
-    if (!chartContainer.value) {
-      throw new Error('图表容器不存在')
-    }
-    
-    try {
-      myChart = echarts.init(chartContainer.value, 'dark')
-    } catch (chartError) {
-      throw new Error('初始化图表失败: ' + chartError.message)
-    }
-    
-    // 调用刷新图表函数获取数据并初始化图表
-    await refreshChart()
+    // 获取日线数据并计算目标趋势
+    const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
+    dayLine.value = await response.json()
+    loading.value = false
   } catch (err) {
     handleError('加载数据失败', err)
   }
@@ -384,26 +326,8 @@ async function loadStockData() {
 // 监听股票代码变化
 watch(() => props.stockCode, async (newCode, oldCode) => {
   if (newCode && newCode !== oldCode) {
-    try {
-      // 清理旧图表资源
-      if (myChart) {
-        myChart.dispose()
-        myChart = null
-      }
-      
-      await nextTick()
-      
-      // 更可靠的容器检查
-      let attempts = 0
-      while (!chartContainer.value && attempts < 5) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-        attempts++
-      }
-      
-      loadStockData()
-    } catch (err) {
-      handleError('监听股票代码变化时出错', err)
-    }
+    await loadStockData()
+    await refreshChart()
   }
 }, { immediate: true })
 
