@@ -65,24 +65,44 @@ const isFullScreen = ref(false)
 const loading = ref(true)
 const error = ref('')
 const dayLine = ref([]) // 存储日线数据
+
+// 从本地存储读取配置或使用默认值
+const getLocalConfig = (key, defaultValue) => {
+  if (process.client) {
+    const stored = localStorage.getItem(`stock_config_${key}`)
+    return stored ? JSON.parse(stored) : defaultValue
+  }
+  return defaultValue
+}
+// 保存配置到本地存储
+const saveConfigToLocalStorage = () => {
+  if (process.client) {
+    localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
+    localStorage.setItem(`stock_config_buyAlgorithm`, JSON.stringify(buyAlgorithm.value))
+    localStorage.setItem(`stock_config_sellAlgorithm`, JSON.stringify(sellAlgorithm.value))
+  }
+}
+
 // MA配置参数（对象格式）
-const ma = ref({
+const ma = ref(getLocalConfig('ma', {
   s: 7, // 短期MA
   m: 50, // 中期MA
   l: 100, // 长期MA
   x: 200  // 超长期MA
-})
+}))
 
 // 买入和卖出算法配置
-const buyAlgorithm = ref([
+const buyAlgorithm = ref(getLocalConfig('buyAlgorithm', [
   // 默认买入算法示例
   ['MAM_CROSS_UP_MAL']
-])
+]))
 
-const sellAlgorithm = ref([
+const sellAlgorithm = ref(getLocalConfig('sellAlgorithm', [
   // 默认卖出算法示例
   ['MAM_CROSS_DOWN_MAL']
-])
+]))
+
+
 // 交易记录
 const transactions = ref([])
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
@@ -108,11 +128,15 @@ function debounce(fn, delay) {
 
 // 页内计算处理函数
 function handlePageCalculation() {
+  // 保存配置到本地存储
+  saveConfigToLocalStorage()
   refreshChart()
 }
 
 // 全局计算处理函数
 function handleGlobalCalculation() {
+  // 保存配置到本地存储
+  saveConfigToLocalStorage()
   console.log('执行全局计算')
   console.log({
     ma: ma.value,
@@ -206,8 +230,12 @@ async function refreshChart() {
     // 重新初始化图表
     myChart = echarts.init(chartContainer.value, 'dark')
     
-    // 初始化图表数据
-    await initChart()
+    
+    // 处理数据
+    const { data, dayLineWithMetric } = processStockData()
+    
+    // 渲染图表
+    renderChart(data, dayLineWithMetric)
   } catch (err) {
     handleError('刷新图表失败', err)
   }
@@ -308,23 +336,6 @@ function renderChart(data, dayLineWithMetric) {
   myChart.setOption(option)
 }
 
-// 初始化图表
-async function initChart() {
-  try {
-    if (!myChart) {
-      console.error('图表未初始化')
-      return
-    }
-    
-    // 处理数据
-    const { data, dayLineWithMetric } = processStockData()
-    
-    // 渲染图表
-    renderChart(data, dayLineWithMetric)
-  } catch (error) {
-    handleError('初始化图表失败', error)
-  }
-}
 
 
 
