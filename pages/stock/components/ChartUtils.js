@@ -249,28 +249,32 @@ export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, 
         type: 'line',
         data: maS,
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
         name: 'maM',
         type: 'line',
         data: maM,
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
         name: 'maL',
         type: 'line',
         data: maL,
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
         name: 'maX',
         type: 'line',
         data: maX,
         smooth: true,
-        lineStyle: { opacity: 0.5 }
+        lineStyle: { opacity: 0.5 },
+        showSymbol: false
       },
       {
         name: '成交量',

@@ -3,7 +3,9 @@
     <div class="flex flex-col md:flex-row h-full">
       <!-- 中间K线图 -->
       <div :class="['chart-wrapper relative transition-all duration-300', isRightPanelCollapsed ? 'w-full' : 'w-full md:w-2/3']">
-        <!-- 图表顶部控制面板已移除 -->
+        <!-- 图表顶部交易统计组件 -->
+        <TradeStats :transactions="transactions" />
+        
         <div class="chart-container" ref="chartContainer"></div>
         
         <!-- 右侧面板收缩按钮 -->
@@ -41,6 +43,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
 import { calculateStock } from '~/utils/chartUtils.js'
+import TradeStats from '~/components/TradeStats.vue'
 
 // 导入图表工具函数
 import { 
