@@ -211,6 +211,101 @@ async function refreshChart() {
   }
 }
 
+// 处理股票数据计算
+function processStockData() {
+  // 分割数据
+  let data = splitData(dayLine.value)
+  
+  // 计算交易点（买入卖出点）
+  const { dayLineWithMetric,
+    hourLineWithMetric,
+    transactions: calculatedTransactions
+  } = calculateStock({
+    dayLine: dayLine.value,
+    hourLine: dayLine.value,
+    ma: ma.value,
+    buyConditions: buyAlgorithm.value,
+    sellConditions: sellAlgorithm.value
+  })
+  console.log('计算出的交易点:', calculatedTransactions)
+  console.log('交易点数量:', calculatedTransactions.length)
+  
+  // 更新交易数据，用于右侧栏显示
+  transactions.value = calculatedTransactions
+  
+  // 添加交易点到图表标记中
+  if (calculatedTransactions.length > 0) {
+    calculatedTransactions.forEach((transaction, index) => {
+      // 找到买入点在数据中的索引
+      const buyIndex = dayLine.value.findIndex(item => item.time === transaction.buyTime)
+      if (buyIndex !== -1) {
+        data.trendStartPoints.push({
+          name: `买入${index + 1}`,
+          coord: [buyIndex, transaction.buyPrice],
+          value: `买入: ${transaction.buyPrice}`,
+          itemStyle: { color: '#00da3c' },
+          symbol: 'pin',
+          symbolSize: 30,
+          label: {
+            show: true,
+            position: 'top',
+            distance: 10,
+            formatter: '买',
+            fontSize: 12,
+            color: '#fff',
+            backgroundColor: '#00da3c',
+            padding: 3,
+            borderRadius: 3
+          }
+        })
+      }
+      // 找到卖出点在数据中的索引
+      if (transaction.sellTime) {
+        const sellIndex = dayLine.value.findIndex(item => item.time === transaction.sellTime)
+        if (sellIndex !== -1) {
+          const profitColor = transaction.profit > 0 ? '#00da3c' : '#ec0000'
+          data.trendEndPoints.push({
+            name: `卖出${index + 1}`,
+            coord: [sellIndex, transaction.sellPrice],
+            value: `卖出: ${transaction.sellPrice} 收益: ${transaction.profit?.toFixed(2)}%`,
+            itemStyle: { color: profitColor },
+            symbol: 'pin',
+            symbolSize: 30,
+            label: {
+              show: true,
+              position: 'bottom',
+              distance: 10,
+              formatter: '卖',
+              fontSize: 12,
+              color: '#fff',
+              backgroundColor: profitColor,
+              padding: 3,
+              borderRadius: 3
+            }
+          })
+        }
+      }
+    })
+  }
+  
+  return { data, dayLineWithMetric }
+}
+
+// 渲染图表
+function renderChart(data, dayLineWithMetric) {
+  // 设置图表选项
+  const option = createChartOption(
+    data, 
+    dayLineWithMetric.maS, 
+    dayLineWithMetric.maM, 
+    dayLineWithMetric.maL, 
+    dayLineWithMetric.maX, 
+    formatDateYYYYMMDD, 
+    formatDateMMDD
+  )
+  myChart.setOption(option)
+}
+
 // 初始化图表
 async function initChart() {
   try {
@@ -219,87 +314,11 @@ async function initChart() {
       return
     }
     
-    // 分割数据
-    let data = splitData(dayLine.value)
+    // 处理数据
+    const { data, dayLineWithMetric } = processStockData()
     
-    // 计算交易点（买入卖出点）
-    const { dayLineWithMetric,
-      hourLineWithMetric,
-      transactions
-    } = calculateStock({
-      dayLine: dayLine.value,
-      hourLine: dayLine.value,
-      ma: ma.value,
-      buyConditions: buyAlgorithm.value,
-      sellConditions: sellAlgorithm.value
-    })
-    console.log('计算出的交易点:', transactions)
-    console.log('交易点数量:', transactions.length)
-    // 添加交易点到图表标记中
-    if (transactions.length > 0) {
-      transactions.forEach((transaction, index) => {
-        // 找到买入点在数据中的索引
-        const buyIndex = dayLine.value.findIndex(item => item.time === transaction.buyTime)
-        if (buyIndex !== -1) {
-          data.trendStartPoints.push({
-            name: `买入${index + 1}`,
-            coord: [buyIndex, transaction.buyPrice],
-            value: `买入: ${transaction.buyPrice}`,
-            itemStyle: { color: '#00da3c' },
-            symbol: 'pin',
-            symbolSize: 30,
-            label: {
-              show: true,
-              position: 'top',
-              distance: 10,
-              formatter: '买',
-              fontSize: 12,
-              color: '#fff',
-              backgroundColor: '#00da3c',
-              padding: 3,
-              borderRadius: 3
-            }
-          })
-        }
-        // 找到卖出点在数据中的索引
-        if (transaction.sellTime) {
-          const sellIndex = dayLine.value.findIndex(item => item.time === transaction.sellTime)
-          if (sellIndex !== -1) {
-            const profitColor = transaction.profit > 0 ? '#00da3c' : '#ec0000'
-            data.trendEndPoints.push({
-              name: `卖出${index + 1}`,
-              coord: [sellIndex, transaction.sellPrice],
-              value: `卖出: ${transaction.sellPrice} 收益: ${transaction.profit?.toFixed(2)}%`,
-              itemStyle: { color: profitColor },
-              symbol: 'pin',
-              symbolSize: 30,
-              label: {
-                show: true,
-                position: 'bottom',
-                distance: 10,
-                formatter: '卖',
-                fontSize: 12,
-                color: '#fff',
-                backgroundColor: profitColor,
-                padding: 3,
-                borderRadius: 3
-              }
-            })
-          }
-        }
-      })
-    }
-    // 设置图表选项
-    const option = createChartOption(
-      data, 
-      dayLineWithMetric.maS, 
-      dayLineWithMetric.maM, 
-      dayLineWithMetric.maL, 
-      dayLineWithMetric.maX, 
-      formatDateYYYYMMDD, 
-      formatDateMMDD
-    )
-    myChart.setOption(option)
+    // 渲染图表
+    renderChart(data, dayLineWithMetric)
   } catch (error) {
     handleError('初始化图表失败', error)
   }
