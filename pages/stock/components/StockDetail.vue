@@ -137,15 +137,27 @@ function handlePageCalculation() {
 }
 
 // 全局计算处理函数
-function handleGlobalCalculation() {
+async function handleGlobalCalculation() {
   // 保存配置到本地存储
   saveConfigToLocalStorage()
-  console.log('执行全局计算')
-  console.log({
-    ma: ma.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
-  })
+  
+  // 导入计算队列服务
+  const calculationQueueService = await import('~/services/CalculationQueueService.js').then(m => m.default)
+  
+  // 创建计算任务
+  const task = {
+    params: {
+      ma: ma.value,
+      buyAlgorithm: buyAlgorithm.value,
+      sellAlgorithm: sellAlgorithm.value
+    }
+  }
+  
+  // 添加任务到队列
+  const taskId = calculationQueueService.addTask(task)
+  
+  // 显示提示信息
+  alert(`已将计算任务添加到队列，任务ID: ${taskId}`)
 }
 
 // 切换全屏显示
