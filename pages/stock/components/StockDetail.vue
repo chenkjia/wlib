@@ -301,7 +301,7 @@ function processStockData() {
             name: `卖出${index + 1}`,
             coord: [sellIndex, transaction.sellPrice],
             value: `卖出: ${transaction.sellPrice} 收益: ${transaction.profit?.toFixed(2)}%`,
-            itemStyle: { color: profitColor },
+            itemStyle: { color: '#ec0000' },
             symbol: 'pin',
             symbolSize: 30,
             label: {
@@ -311,7 +311,7 @@ function processStockData() {
               formatter: '卖',
               fontSize: 12,
               color: '#fff',
-              backgroundColor: profitColor,
+              backgroundColor: '#ec0000',
               padding: 3,
               borderRadius: 3
             }
