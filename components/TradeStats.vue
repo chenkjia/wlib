@@ -1,26 +1,61 @@
 <template>
-  <div class="trade-stats-bar">
-    <div class="stat-item">
-      <span class="stat-label">交易:</span>
-      <span class="stat-value">{{ stats.totalTrades }}</span>
+  <div class="trade-stats-container">
+    <!-- 第一行：交易相关指标 -->
+    <div class="trade-stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">交易总天数:</span>
+        <span class="stat-value">{{ stats.daysDuration }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">交易总涨跌幅:</span>
+        <span class="stat-value" :class="priceChangeClass">{{ formatNumber(stats.priceChange) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">交易日均涨跌幅:</span>
+        <span class="stat-value" :class="dailyChangeClass">{{ formatNumber(stats.dailyChange) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">交易笔数:</span>
+        <span class="stat-value">{{ stats.totalTrades }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">盈/亏:</span>
+        <span class="stat-value">
+          <span class="profit">{{ stats.profitTrades }}</span>/<span class="loss">{{ stats.lossTrades }}</span>
+        </span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">胜率:</span>
+        <span class="stat-value" :class="winRateClass">{{ formatNumber(stats.winRate) }}%</span>
+      </div>
     </div>
-    <div class="stat-item">
-      <span class="stat-label">盈/亏:</span>
-      <span class="stat-value">
-        <span class="profit">{{ stats.profitTrades }}</span>/<span class="loss">{{ stats.lossTrades }}</span>
-      </span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">胜率:</span>
-      <span class="stat-value" :class="winRateClass">{{ stats.winRate }}%</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">平均:</span>
-      <span class="stat-value" :class="avgProfitClass">{{ stats.avgProfit }}%</span>
-    </div>
-    <div class="stat-item">
-      <span class="stat-label">累计:</span>
-      <span class="stat-value" :class="totalProfitClass">{{ stats.totalProfit }}%</span>
+    
+    <!-- 第二行：日线及对比指标 -->
+    <div class="trade-stats-bar">
+      <div class="stat-item">
+        <span class="stat-label">日线总天数:</span>
+        <span class="stat-value">{{ stats.dayLineCount }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">日线总涨跌幅:</span>
+        <span class="stat-value" :class="dayLinePriceChangeClass">{{ formatNumber(stats.dayLinePriceChange) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">日线日均涨跌幅:</span>
+        <span class="stat-value" :class="dayLineDailyChangeClass">{{ formatNumber(stats.dayLineDailyChange) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">涨跌幅差值:</span>
+        <span class="stat-value" :class="priceChangeDiffClass">{{ formatNumber(stats.priceChangeDiff) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">日均差值:</span>
+        <span class="stat-value" :class="dailyChangeDiffClass">{{ formatNumber(stats.dailyChangeDiff) }}%</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">最大回撤:</span>
+        <span class="stat-value" :class="maxDrawdownClass">{{ formatNumber(stats.maxDrawdown) }}%</span>
+      </div>
     </div>
   </div>
 </template>
@@ -29,93 +64,88 @@
 import { ref, computed } from 'vue'
 
 const props = defineProps({
-  transactions: {
-    type: Array,
-    default: () => []
+  backtestData: {
+    type: Object,
+    default: () => ({})
   }
 })
+
+// 格式化数字，保留两位小数
+const formatNumber = (value) => {
+  if (value === undefined || value === null) return '0.00'
+  return Number(value).toFixed(2)
+}
 
 // 计算交易统计数据
 const stats = computed(() => {
-  const transactions = props.transactions || []
+  const data = props.backtestData || {}
   
-  // 默认值
-  const defaultStats = {
-    totalTrades: 0,
-    profitTrades: 0,
-    lossTrades: 0,
-    winRate: '0.00',
-    avgProfit: '0.00',
-    totalProfit: '0.00'
-  }
-  
-  if (!transactions.length) return defaultStats
-  
-  // 计算统计数据
-  const completedTrades = transactions.filter(t => t.sellTime) // 只计算已完成的交易
-  const totalTrades = completedTrades.length
-  
-  if (totalTrades === 0) return defaultStats
-  
-  const profitTrades = completedTrades.filter(t => t.profit > 0).length
-  const lossTrades = completedTrades.filter(t => t.profit <= 0).length
-  
-  const winRate = totalTrades > 0 ? (profitTrades / totalTrades * 100).toFixed(2) : '0.00'
-  
-  const profits = completedTrades.map(t => t.profit || 0)
-  const avgProfit = profits.length > 0 
-    ? (profits.reduce((sum, profit) => sum + profit, 0) / profits.length).toFixed(2) 
-    : '0.00'
-  
-  const totalProfit = profits.length > 0 
-    ? profits.reduce((sum, profit) => sum + profit, 0).toFixed(2) 
-    : '0.00'
-  
+  // 使用backtestData中的数据，如果不存在则使用默认值
   return {
-    totalTrades,
-    profitTrades,
-    lossTrades,
-    winRate,
-    avgProfit,
-    totalProfit
+    // 交易相关指标
+    totalTrades: data.totalTrades || 0,
+    profitTrades: data.profitTrades || 0,
+    lossTrades: data.lossTrades || 0,
+    winRate: data.winRate || 0,
+    daysDuration: data.daysDuration || 0,
+    priceChange: data.priceChange || 0,
+    dailyChange: data.dailyChange || 0,
+    maxDrawdown: data.maxDrawdown || 0,
+    
+    // 日线相关指标
+    dayLineCount: data.dayLineCount || 0,
+    dayLinePriceChange: data.dayLinePriceChange || 0,
+    dayLineDailyChange: data.dayLineDailyChange || 0,
+    
+    // 对比指标
+    priceChangeDiff: data.priceChangeDiff || 0,
+    dailyChangeDiff: data.dailyChangeDiff || 0
   }
 })
 
-// 计算CSS类
-const winRateClass = computed(() => {
-  const rate = parseFloat(stats.value.winRate)
-  if (rate > 50) return 'profit'
-  if (rate < 50) return 'loss'
-  return ''
-})
+// 计算CSS类 - 交易相关指标
+const winRateClass = computed(() => stats.value.winRate >= 50 ? 'positive' : 'negative')
 
-const avgProfitClass = computed(() => {
-  const profit = parseFloat(stats.value.avgProfit)
-  if (profit > 0) return 'profit'
-  if (profit < 0) return 'loss'
-  return ''
-})
+const priceChangeClass = computed(() => stats.value.priceChange > 0 ? 'positive' : 'negative')
 
-const totalProfitClass = computed(() => {
-  const profit = parseFloat(stats.value.totalProfit)
-  if (profit > 0) return 'profit'
-  if (profit < 0) return 'loss'
-  return ''
-})
+const dailyChangeClass = computed(() => stats.value.dailyChange > 0 ? 'positive' : 'negative')
+
+// 计算CSS类 - 日线相关指标
+const dayLinePriceChangeClass = computed(() => stats.value.dayLinePriceChange > 0 ? 'positive' : 'negative')
+
+const dayLineDailyChangeClass = computed(() => stats.value.dayLineDailyChange > 0 ? 'positive' : 'negative')
+
+// 计算CSS类 - 对比指标
+const priceChangeDiffClass = computed(() => stats.value.priceChangeDiff > 0 ? 'positive' : 'negative')
+
+const dailyChangeDiffClass = computed(() => stats.value.dailyChangeDiff > 0 ? 'positive' : 'negative')
+
+const maxDrawdownClass = computed(() => 'negative') // 最大回撤始终为负面指标
 </script>
 
 <style scoped>
-.trade-stats-bar {
+.trade-stats-container {
   width: 100%;
   background-color: #000000;
   border-radius: 0;
   margin-bottom: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.trade-stats-bar {
+  width: 100%;
   padding: 4px 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  box-shadow: none;
+  border-bottom: 1px solid #222;
+}
+
+.trade-stats-bar:last-child {
+  border-bottom: none;
 }
 
 .stat-item {
@@ -137,11 +167,11 @@ const totalProfitClass = computed(() => {
   color: #fff;
 }
 
-.profit {
+.positive {
   color: #00da3c;
 }
 
-.loss {
+.negative {
   color: #ec0000;
 }
 

@@ -253,6 +253,7 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
     daysDuration: 0,       // 交易总天数
     priceChange: 0,        // 交易总涨跌幅
     dailyChange: 0,        // 交易日均涨跌幅
+    maxDrawdown: 0,        // 最大回撤
     // 日线相关统计
     dayLineCount: 0,       // 日线总数
     dayLinePriceChange: 0, // 日线总涨跌幅
@@ -305,17 +306,18 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
         result.dayLineDailyChange = change / result.dayLineCount
       }
       
-      // 计算涨跌幅比（交易总涨跌幅/日线总涨跌幅）
+      // 计算涨跌幅差值（交易总涨跌幅-日线总涨跌幅）
       if (change !== 0) {
-        result.priceChangeRatio = (result.priceChange / change) * 100
+        result.priceChangeDiff = result.priceChange - change
       }
       
-      // 计算日均比（交易日均涨跌幅/日线日均涨跌幅）
+      // 计算日均差值（交易日均涨跌幅-日线日均涨跌幅）
       if (result.dayLineDailyChange !== 0) {
-        result.dailyChangeRatio = (result.dailyChange / result.dayLineDailyChange) * 100
+        result.dailyChangeDiff = result.dailyChange - result.dayLineDailyChange
       }
     }
   }
+  result.maxDrawdown = Math.min(...completedTrades.map(({profit}) => profit))
   
   return result
 }
@@ -344,7 +346,8 @@ export const calculateTransactions = (props) => {
         sellTime: signal.time,
         sellPrice: signal.price,
         profit,
-        tradeDays
+        tradeDays,
+        duration: tradeDays // 添加duration字段，与tradeDays保持一致
       })
       
       lastBuySignal = null

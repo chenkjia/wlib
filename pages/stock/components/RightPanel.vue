@@ -127,41 +127,7 @@
       <!-- 计算结果 Tab -->
       <div v-show="activeTab === 'results'" class="tab-pane bg-white rounded-md p-2">
         <div class="flex flex-col h-full">
-          <!-- 上半部分：买卖统计 -->
-          <div class="bg-gray-50 p-3 rounded-md mb-4">
-            <h4 class="font-medium text-gray-700 mb-2">买卖统计</h4>
-            <div v-if="transactions && transactions.length > 0">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white p-3 rounded-md shadow-sm">
-                  <div class="text-sm text-gray-500">总交易次数</div>
-                  <div class="text-xl font-semibold">{{ transactions.length }}</div>
-                </div>
-                <div class="bg-white p-3 rounded-md shadow-sm">
-                  <div class="text-sm text-gray-500">盈利次数</div>
-                  <div class="text-xl font-semibold text-green-600">
-                    {{ transactions.filter(t => t.profit > 0).length }}
-                  </div>
-                </div>
-                <div class="bg-white p-3 rounded-md shadow-sm">
-                  <div class="text-sm text-gray-500">亏损次数</div>
-                  <div class="text-xl font-semibold text-red-600">
-                    {{ transactions.filter(t => t.profit <= 0).length }}
-                  </div>
-                </div>
-                <div class="bg-white p-3 rounded-md shadow-sm">
-                  <div class="text-sm text-gray-500">平均收益</div>
-                  <div class="text-xl font-semibold" :class="averageProfit > 0 ? 'text-green-600' : 'text-red-600'">
-                    {{ averageProfit.toFixed(2) }}%
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center text-gray-500 py-4">
-              暂无交易数据
-            </div>
-          </div>
-          
-          <!-- 下半部分：买卖清单 -->
+          <!-- 买卖清单 -->
           <div class="bg-gray-50 p-3 rounded-md flex-grow overflow-y-auto">
             <h4 class="font-medium text-gray-700 mb-2">买卖清单</h4>
             <div v-if="transactions && transactions.length > 0" class="overflow-x-auto">
@@ -173,6 +139,7 @@
                     <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">买入价格</th>
                     <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">卖出日期</th>
                     <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">卖出价格</th>
+                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">持续天数</th>
                     <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">收益率</th>
                   </tr>
                 </thead>
@@ -183,6 +150,7 @@
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.buyPrice }}</td>
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ formatDate(transaction.sellTime) }}</td>
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.sellPrice }}</td>
+                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.duration || '-' }}</td>
                     <td class="py-2 px-3 border-b border-gray-200 text-sm" :class="transaction.profit > 0 ? 'text-green-600' : 'text-red-600'">
                       {{ transaction.profit?.toFixed(2) }}%
                     </td>

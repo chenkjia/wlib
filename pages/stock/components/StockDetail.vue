@@ -4,7 +4,7 @@
       <!-- 中间K线图 -->
       <div :class="['chart-wrapper relative transition-all duration-300', isRightPanelCollapsed ? 'w-full' : 'w-full md:w-2/3']">
         <!-- 图表顶部交易统计组件 -->
-        <TradeStats :transactions="transactions" />
+        <TradeStats :backtestData="backtestData" />
         
         <div class="chart-container" ref="chartContainer"></div>
         
@@ -42,7 +42,7 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import * as echarts from 'echarts'
 
-import { calculateStock } from '~/utils/chartUtils.js'
+import { calculateStock, calculateBacktestData } from '~/utils/chartUtils.js'
 import TradeStats from '~/components/TradeStats.vue'
 
 // 导入图表工具函数
@@ -108,6 +108,8 @@ const sellAlgorithm = ref(getLocalConfig('sellAlgorithm', [
 
 // 交易记录
 const transactions = ref([])
+// 回测数据
+const backtestData = ref({})
 const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 let myChart = null
@@ -264,7 +266,8 @@ function processStockData() {
   // 计算交易点（买入卖出点）
   const { dayLineWithMetric,
     hourLineWithMetric,
-    transactions: calculatedTransactions
+    transactions: calculatedTransactions,
+    backtestData: calculatedBacktestData
   } = calculateStock({
     dayLine: dayLine.value,
     hourLine: dayLine.value,
@@ -277,6 +280,8 @@ function processStockData() {
   
   // 更新交易数据，用于右侧栏显示
   transactions.value = calculatedTransactions
+  // 更新回测数据，用于顶部统计栏显示
+  backtestData.value = calculatedBacktestData
   
   // 添加交易点到图表标记中
   if (calculatedTransactions.length > 0) {
