@@ -227,11 +227,97 @@ export const calculateStock = (props) => {
     buyConditions,
     sellConditions
   })
+  // 通过交易记录计算回测数据
+  const backtestData = calculateBacktestData(transactions, dayLine)
   return {
     dayLineWithMetric,
     hourLineWithMetric,
-    transactions
+    transactions,
+    backtestData
   }
+}
+
+/**
+ * 计算交易回测数据，统计交易关键指标
+ * @param {Array} transactions - 交易记录数组
+ * @param {Array} dayLine - 日线数据数组
+ * @returns {Object} 包含交易统计指标的对象
+ */
+export const calculateBacktestData = (transactions, dayLine = []) => {
+  // 默认值
+  const result = {
+    totalTrades: 0,        // 交易笔数
+    profitTrades: 0,       // 盈利笔数
+    lossTrades: 0,         // 亏损笔数
+    winRate: 0,            // 胜率
+    daysDuration: 0,       // 交易总天数
+    priceChange: 0,        // 交易总涨跌幅
+    dailyChange: 0,        // 交易日均涨跌幅
+    // 日线相关统计
+    dayLineCount: 0,       // 日线总数
+    dayLinePriceChange: 0, // 日线总涨跌幅
+    dayLineDailyChange: 0, // 日线日均涨跌幅
+    // 对比指标
+    priceChangeRatio: 0,   // 涨跌幅比（交易总涨跌幅/日线总涨跌幅）
+    dailyChangeRatio: 0,   // 日均比（交易日均涨跌幅/日线日均涨跌幅）
+  }
+  
+  // 过滤出已完成的交易（有买入和卖出时间）
+  const completedTrades = transactions.filter(t => t.buyTime && t.sellTime)
+  result.totalTrades = completedTrades.length
+  
+  if (completedTrades.length === 0) {
+    return result
+  }
+  
+  // 计算盈利和亏损交易笔数
+  result.profitTrades = completedTrades.filter(t => t.profit > 0).length
+  result.lossTrades = completedTrades.filter(t => t.profit <= 0).length
+  
+  // 计算胜率
+  result.winRate = result.profitTrades / result.totalTrades * 100
+  
+  // 计算交易总天数（所有交易持仓天数的总和）
+  result.daysDuration = completedTrades.reduce((total, trade) => total + trade.tradeDays, 0)
+  
+  // 计算交易总涨跌幅（从第一笔交易买入价到最后一笔交易卖出价）
+  result.priceChange = completedTrades.reduce((total, trade) => total + trade.profit, 0)
+  // 计算交易日均涨跌幅
+  if (result.daysDuration > 0) {
+    result.dailyChange = result.priceChange / result.daysDuration
+  }
+  
+  // 计算日线相关统计
+  if (Array.isArray(dayLine) && dayLine.length > 0) {
+    // 日线总数
+    result.dayLineCount = dayLine.length
+    
+    // 日线总涨跌幅（从第一个日线到最后一个日线）
+    const firstDayLine = dayLine[0]
+    const lastDayLine = dayLine[dayLine.length - 1]
+    
+    if (firstDayLine && lastDayLine && firstDayLine.close && lastDayLine.close) {
+      const change = ((lastDayLine.close - firstDayLine.close) / firstDayLine.close) * 100
+      result.dayLinePriceChange = change
+      
+      // 计算日线日均涨跌幅
+      if (result.dayLineCount > 0) {
+        result.dayLineDailyChange = change / result.dayLineCount
+      }
+      
+      // 计算涨跌幅比（交易总涨跌幅/日线总涨跌幅）
+      if (change !== 0) {
+        result.priceChangeRatio = (result.priceChange / change) * 100
+      }
+      
+      // 计算日均比（交易日均涨跌幅/日线日均涨跌幅）
+      if (result.dayLineDailyChange !== 0) {
+        result.dailyChangeRatio = (result.dailyChange / result.dayLineDailyChange) * 100
+      }
+    }
+  }
+  
+  return result
 }
 
 // calculateTransactions
@@ -250,13 +336,15 @@ export const calculateTransactions = (props) => {
     } else if (signal.type === 'sell' && lastBuySignal) {
       // 计算这笔交易的收益
       const profit = ((signal.price - lastBuySignal.price) / lastBuySignal.price) * 100
-      
+      // 计算持续天数
+      const tradeDays = Math.ceil((new Date(signal.time).getTime() - new Date(lastBuySignal.time).getTime()) / (1000 * 3600 * 24)) || 1 // 至少为1天
       transactions.push({
         buyTime: lastBuySignal.time,
         buyPrice: lastBuySignal.price,
         sellTime: signal.time,
         sellPrice: signal.price,
-        profit
+        profit,
+        tradeDays
       })
       
       lastBuySignal = null
