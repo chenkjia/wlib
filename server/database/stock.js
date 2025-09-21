@@ -21,10 +21,11 @@ class StockDB {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
             
-            // 构建查询条件，区分大小写的搜索
+            // 构建查询条件，大小写不敏感的搜索
             let query = { };
             if (search) {
-                query = { code: search };
+                // 使用正则表达式实现大小写不敏感搜索
+                query = { code: { $regex: new RegExp('^' + search, 'i') } };
             }
             
             // 添加重点关注过滤条件

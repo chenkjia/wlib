@@ -6,16 +6,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 
-const route = useRoute()
 const router = useRouter()
 
 onMounted(() => {
-  // 获取当前股票代码
-  const stockCode = route.params.code
+  // 默认使用ETH代码
+  const stockCode = 'ETH'
   
   // 重定向到主页，并传递股票代码作为查询参数
   router.replace({ 
