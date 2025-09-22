@@ -142,12 +142,9 @@ function handlePageCalculation() {
 async function handleGlobalCalculation() {
   // 保存配置到本地存储
   saveConfigToLocalStorage()
-  
-  // 导入计算队列服务
-  const calculationQueueService = await import('~/services/CalculationQueueService.js').then(m => m.default)
-  
   // 创建计算任务
   const task = {
+    name: '全局计算任务',
     params: {
       ma: ma.value,
       buyAlgorithm: buyAlgorithm.value,
@@ -155,11 +152,27 @@ async function handleGlobalCalculation() {
     }
   }
   
-  // 添加任务到队列
-  const taskId = calculationQueueService.addTask(task)
-  
-  // 显示提示信息
-  alert(`已将计算任务添加到队列，任务ID: ${taskId}`)
+  try {
+    // 使用简化的任务创建API
+    const { data, error } = await useFetch('/api/task/create', {
+      method: 'POST',
+      body: task
+    })
+    
+    if (error.value) {
+      throw new Error(error.value.message || '创建任务失败')
+    }
+    
+    if (data.value && data.value.task) {
+      // 显示成功消息
+      alert('计算任务已创建，任务ID: ' + data.value.task._id)
+    } else {
+      throw new Error('创建任务失败')
+    }
+  } catch (error) {
+    console.error('创建计算任务失败:', error)
+    alert('创建计算任务失败: ' + (error.message || '未知错误'))
+  }
 }
 
 // 切换全屏显示

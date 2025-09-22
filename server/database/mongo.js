@@ -5,6 +5,7 @@ import HourLineDB from './hourLine.js';
 import TransactionDB from './transaction.js';
 import SignalDB from './signal.js';
 import GoalDB from './goal.js';
+import TaskDB from './task.js';
 
 /**
  * MongoDB 数据库连接和基础操作类
@@ -45,6 +46,13 @@ class MongoDB {
     static saveGoal = GoalDB.saveGoal;
     static updateGoal = GoalDB.updateGoal;
     static clearGoal = GoalDB.clearGoal;
+
+    static getTask = TaskDB.getTask;
+    static createTask = TaskDB.createTask;
+    static updateTaskStatus = TaskDB.updateTaskStatus;
+    static getTasks = TaskDB.getTasks;
+    static deleteTask = TaskDB.deleteTask;
+    static clearTasks = TaskDB.clearTasks;
 }
 
 export default MongoDB;
