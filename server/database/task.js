@@ -1,6 +1,8 @@
 import logger from '~/utils/logger.js';
 import { Task } from './models/task.js';
 
+import BacktestExecutor from '../strategies/backtest.js';
+
 /**
  * 任务数据库操作类
  */
@@ -34,9 +36,14 @@ class TaskDB {
             const task = new Task({
                 name,
                 params,
-                status: 'pending'
+                status: 'pending',
+                progress: 0
             });
             await task.save();
+            
+            const executor = new BacktestExecutor();
+            executor.backtestAll(task.params);
+            
             return task;
         } catch (error) {
             logger.error('创建任务失败:', error);
@@ -69,6 +76,30 @@ class TaskDB {
             return task;
         } catch (error) {
             logger.error('更新任务状态失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 更新任务进度
+     * @param {string} id - 任务ID
+     * @param {number} progress - 任务进度 (0-100)
+     * @returns {Promise<Object>} 更新后的任务
+     */
+    static async updateTaskProgress(id, progress) {
+        try {
+            const task = await Task.findById(id);
+            if (!task) {
+                throw new Error(`任务ID ${id} 不存在`);
+            }
+            
+            task.progress = progress;
+            task.updatedAt = new Date();
+            
+            await task.save();
+            return task;
+        } catch (error) {
+            logger.error('更新任务进度失败:', error);
             throw error;
         }
     }
@@ -119,6 +150,7 @@ class TaskDB {
             throw error;
         }
     }
+
 }
 
 export default TaskDB;

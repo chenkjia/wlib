@@ -27,8 +27,8 @@
       >
         <RightPanel
           v-model:ma="ma"
-          v-model:buyAlgorithm="buyAlgorithm"
-          v-model:sellAlgorithm="sellAlgorithm"
+          v-model:buyConditions="buyConditions"
+          v-model:sellConditions="sellConditions"
           :transactions="transactions"
           @pageCalculation="handlePageCalculation"
           @globalCalculation="handleGlobalCalculation"
@@ -81,8 +81,8 @@ const getLocalConfig = (key, defaultValue) => {
 const saveConfigToLocalStorage = () => {
   if (process.client) {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
-    localStorage.setItem(`stock_config_buyAlgorithm`, JSON.stringify(buyAlgorithm.value))
-    localStorage.setItem(`stock_config_sellAlgorithm`, JSON.stringify(sellAlgorithm.value))
+    localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
+localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
   }
 }
 
@@ -94,14 +94,14 @@ const ma = ref(getLocalConfig('ma', {
   x: 200  // 超长期MA
 }))
 
-// 买入和卖出算法配置
-const buyAlgorithm = ref(getLocalConfig('buyAlgorithm', [
-  // 默认买入算法示例
+// 买入和卖出条件配置
+const buyConditions = ref(getLocalConfig('buyConditions', [
+  // 默认买入条件示例
   ['MAM_CROSS_UP_MAL']
 ]))
 
-const sellAlgorithm = ref(getLocalConfig('sellAlgorithm', [
-  // 默认卖出算法示例
+const sellConditions = ref(getLocalConfig('sellConditions', [
+  // 默认卖出条件示例
   ['MAM_CROSS_DOWN_MAL']
 ]))
 
@@ -147,8 +147,8 @@ async function handleGlobalCalculation() {
     name: '全局计算任务',
     params: {
       ma: ma.value,
-      buyAlgorithm: buyAlgorithm.value,
-      sellAlgorithm: sellAlgorithm.value
+      buyConditions: buyConditions.value,
+      sellConditions: sellConditions.value
     }
   }
   
@@ -285,8 +285,8 @@ function processStockData() {
     dayLine: dayLine.value,
     hourLine: dayLine.value,
     ma: ma.value,
-    buyConditions: buyAlgorithm.value,
-    sellConditions: sellAlgorithm.value
+    buyConditions: buyConditions.value,
+    sellConditions: sellConditions.value
   })
   console.log('计算出的交易点:', calculatedTransactions)
   console.log('交易点数量:', calculatedTransactions.length)

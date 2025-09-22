@@ -92,8 +92,8 @@
       <div v-show="activeTab === 'buyAlgo'" class="tab-pane bg-white rounded-md p-2">
         <AlgorithmConfig 
           type="buy" 
-          :initial-value="buyAlgorithm" 
-          @update:value="updateBuyAlgorithm"
+          :initial-value="buyConditions"
+@update:value="updateBuyConditions"
         />
       </div>
       
@@ -101,8 +101,8 @@
       <div v-show="activeTab === 'sellAlgo'" class="tab-pane bg-white rounded-md p-2">
         <AlgorithmConfig 
           type="sell" 
-          :initial-value="sellAlgorithm" 
-          @update:value="updateSellAlgorithm"
+          :initial-value="sellConditions"
+@update:value="updateSellConditions"
         />
       </div>
     </div>
@@ -143,8 +143,8 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:ma',
-  'update:buyAlgorithm',
-  'update:sellAlgorithm',
+  'update:buyConditions',
+'update:sellConditions',
   'pageCalculation',
   'globalCalculation'
 ])
@@ -152,14 +152,14 @@ const emit = defineEmits([
 // 本地响应式状态
 
 // 买入和卖出算法配置
-const buyAlgorithm = ref([
+const buyConditions = ref([
   // 默认买入算法示例
   [
     "MAS_GT_MAM",
   ]
 ])
 
-const sellAlgorithm = ref([
+const sellConditions = ref([
   // 默认卖出算法示例
   [
     "MAS_GT_MAM"
@@ -167,14 +167,14 @@ const sellAlgorithm = ref([
 ])
 
 // 更新算法配置的方法
-function updateBuyAlgorithm(newValue) {
-  buyAlgorithm.value = newValue
-  emit('update:buyAlgorithm', newValue)
+function updateBuyConditions(newValue) {
+  buyConditions.value = newValue
+  emit('update:buyConditions', newValue)
 }
 
-function updateSellAlgorithm(newValue) {
-  sellAlgorithm.value = newValue
-  emit('update:sellAlgorithm', newValue)
+function updateSellConditions(newValue) {
+  sellConditions.value = newValue
+  emit('update:sellConditions', newValue)
 }
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 
@@ -182,16 +182,16 @@ const activeTab = ref('params') // 当前激活的标签页，默认为参数设
 function handlePageCalculation() {
   emit('pageCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
+    buyConditions: buyConditions.value,
+    sellConditions: sellConditions.value
   })
 }
 
 function handleGlobalCalculation() {
   emit('globalCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: buyAlgorithm.value,
-    sellAlgorithm: sellAlgorithm.value
+    buyConditions: buyConditions.value,
+    sellConditions: sellConditions.value
   })
 }
 

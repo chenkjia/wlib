@@ -14,12 +14,6 @@
       >
         计算结果
       </button>
-      <button 
-        @click="activeTab = 'queue'"
-        :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'queue' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
-      >
-        计算队列
-      </button>
     </div>     
     
     <!-- Tab内容 - 可滚动区域 -->
@@ -91,8 +85,8 @@
             <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
             <AlgorithmConfig 
               type="buy" 
-              :initialValue="props.buyAlgorithm" 
-              @update:value="updateBuyAlgorithm"
+              :initialValue="props.buyConditions"
+@update:value="updateBuyConditions"
             />
           </div>
           
@@ -101,8 +95,8 @@
             <h4 class="font-medium text-gray-700 mb-2">卖出算法</h4>
             <AlgorithmConfig 
               type="sell" 
-              :initialValue="props.sellAlgorithm" 
-              @update:value="updateSellAlgorithm"
+              :initialValue="props.sellConditions"
+@update:value="updateSellConditions"
             />
           </div>
           
@@ -165,77 +159,13 @@
         </div>
       </div>
       
-      <!-- 计算队列 Tab -->
-      <div v-show="activeTab === 'queue'" class="tab-pane bg-white rounded-md p-2">
-        <div class="flex flex-col h-full">
-          <!-- 上半部分：计算结果展示区 -->
-          <div class="bg-gray-50 p-3 rounded-md mb-4">
-            <h4 class="font-medium text-gray-700 mb-2">计算结果</h4>
-            <div v-if="calculationResult" class="bg-white p-3 rounded-md shadow-sm">
-              <div class="grid grid-cols-2 gap-4 mb-3">
-                <div>
-                  <div class="text-sm text-gray-500">任务ID</div>
-                  <div class="text-sm font-mono">{{ calculationResult.taskId || '-' }}</div>
-                </div>
-                <div>
-                  <div class="text-sm text-gray-500">计算时间</div>
-                  <div class="text-sm">{{ formatDateTime(calculationResult.timestamp) }}</div>
-                </div>
-              </div>
-              
-              <div class="border-t border-gray-100 pt-3 mt-2">
-                <h5 class="text-sm font-medium text-gray-700 mb-2">统计指标</h5>
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <div class="text-sm text-gray-500">总收益率</div>
-                    <div class="text-lg font-semibold" :class="calculationResult.stats?.totalProfit > 0 ? 'text-green-600' : 'text-red-600'">
-                      {{ calculationResult.stats?.totalProfit?.toFixed(2) || 0 }}%
-                    </div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">胜率</div>
-                    <div class="text-lg font-semibold">
-                      {{ calculationResult.stats?.winRate?.toFixed(2) || 0 }}%
-                    </div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">交易次数</div>
-                    <div class="text-lg font-semibold">
-                      {{ calculationResult.stats?.totalTransactions || 0 }}
-                    </div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-500">平均收益</div>
-                    <div class="text-lg font-semibold" :class="calculationResult.stats?.avgProfit > 0 ? 'text-green-600' : 'text-red-600'">
-                      {{ calculationResult.stats?.avgProfit?.toFixed(2) || 0 }}%
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="text-center text-gray-500 py-4">
-              暂无计算结果数据
-            </div>
-          </div>
-          
-          <!-- 分隔线 -->
-          <div class="border-t border-gray-300 my-3"></div>
-          
-          <!-- 下半部分：计算队列展示区 -->
-          <div class="bg-gray-50 p-3 rounded-md flex-grow overflow-y-auto">
-            <h4 class="font-medium text-gray-700 mb-2">计算队列</h4>
-            <CalculationQueueStatus ref="queueStatus" @result-updated="updateCalculationResult" />
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed, onMounted } from 'vue'
+import { ref, defineProps, defineEmits, computed } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
-import CalculationQueueStatus from '~/components/CalculationQueueStatus.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -254,12 +184,12 @@ const props = defineProps({
     default: () => []
   },
   // 买入算法
-  buyAlgorithm: {
-    type: Array,
-    default: () => []
-  },
-  // 卖出算法
-  sellAlgorithm: {
+  buyConditions: {
+      type: Array,
+      default: () => []
+    },
+  // 卖出条件
+  sellConditions: {
     type: Array,
     default: () => []
   }
@@ -267,51 +197,36 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:ma',
-  'update:buyAlgorithm',
-  'update:sellAlgorithm',
+  'update:buyConditions',
+'update:sellConditions',
   'pageCalculation',
   'globalCalculation'
 ])
 
 // 本地响应式状态
 const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
-const calculationResult = ref(null) // 计算结果
-const queueStatus = ref(null) // 队列状态引用
-
-// 更新计算结果
-function updateCalculationResult(result) {
-  calculationResult.value = result
-  // 如果有新结果且不在队列标签页，可以考虑添加一个通知或提示
+function updateBuyConditions(newValue) {
+  emit('update:buyConditions', newValue)
 }
 
-// 格式化日期（带时间）
-function formatDateTime(timestamp) {
-  if (!timestamp) return '-'
-  const date = new Date(timestamp)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
-function updateBuyAlgorithm(newValue) {
-  emit('update:buyAlgorithm', newValue)
-}
-
-function updateSellAlgorithm(newValue) {
-  emit('update:sellAlgorithm', newValue)
+function updateSellConditions(newValue) {
+  emit('update:sellConditions', newValue)
 }
 
 // 计算按钮处理函数
 function handlePageCalculation() {
   emit('pageCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: props.buyAlgorithm,
-    sellAlgorithm: props.sellAlgorithm
+    buyConditions: props.buyConditions,
+    sellConditions: props.sellConditions
   })
 }
 
 function handleGlobalCalculation() {
   emit('globalCalculation', {
     ma: syncedMa.value,
-    buyAlgorithm: props.buyAlgorithm,
-    sellAlgorithm: props.sellAlgorithm
+    buyConditions: props.buyConditions,
+    sellConditions: props.sellConditions
   })
 }
 

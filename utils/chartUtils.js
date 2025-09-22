@@ -259,8 +259,8 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
     dayLinePriceChange: 0, // 日线总涨跌幅
     dayLineDailyChange: 0, // 日线日均涨跌幅
     // 对比指标
-    priceChangeRatio: 0,   // 涨跌幅比（交易总涨跌幅/日线总涨跌幅）
-    dailyChangeRatio: 0,   // 日均比（交易日均涨跌幅/日线日均涨跌幅）
+    priceChangeDiff: 0,
+    dailyChangeDiff: 0,
   }
   
   // 过滤出已完成的交易（有买入和卖出时间）
@@ -369,7 +369,7 @@ const calculateSignals = (props) => {
   } = props
   const buyLength = buyConditions.length
   const sellLength = sellConditions.length
-  
+  logger.info(dayLineWithMetric)
   // 如果买入或卖出条件长度为0，或者其中包含空数组，则直接返回空数组
   if (buyLength === 0 || sellLength === 0 || buyConditions.some((item) => item.length === 0) || sellConditions.some((item) => item.length === 0)) {
     return []
