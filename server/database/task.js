@@ -1,7 +1,6 @@
 import logger from '~/utils/logger.js';
 import { Task } from './models/task.js';
-
-import BacktestExecutor from '../strategies/backtest.js';
+import taskQueueManager from '../services/taskQueueManager.js';
 
 /**
  * 任务数据库操作类
@@ -41,12 +40,8 @@ class TaskDB {
             });
             await task.save();
             
-            const executor = new BacktestExecutor();
-            // 执行回测并获取结果
-            const result = await executor.backtestAll(task.params);
-            
-            // 更新任务状态和结果
-            await this.updateTaskStatus(task._id, 'completed', result);
+            // 将任务添加到队列中，而不是直接执行
+            taskQueueManager.addTask(task);
             
             return task;
         } catch (error) {

@@ -36,10 +36,10 @@ class BacktestExecutor {
    */
   async backtestAll(strategy) {
     // 获取股票列表
-    // const stockList = await MongoDB.getAll();
+    const stockList = await MongoDB.getAll();
 
-    const stocks = ['AAVE', 'ETH', 'AE', 'SFL', 'BAT', 'CET', 'CMT'];
-    const stockList = stocks.map(symbol => ({ code: symbol }));
+    // const stocks = ['AAVE', 'ETH', 'AE', 'SFL', 'BAT', 'CET', 'CMT'];
+    // const stockList = stocks.map(symbol => ({ code: symbol }));
     console.log(stockList.length);
     const backtestResults = [];
     // 对每个股票执行回测策略
