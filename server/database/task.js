@@ -42,7 +42,11 @@ class TaskDB {
             await task.save();
             
             const executor = new BacktestExecutor();
-            executor.backtestAll(task.params);
+            // 执行回测并获取结果
+            const result = await executor.backtestAll(task.params);
+            
+            // 更新任务状态和结果
+            await this.updateTaskStatus(task._id, 'completed', result);
             
             return task;
         } catch (error) {

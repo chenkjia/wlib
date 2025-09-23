@@ -12,7 +12,11 @@ class BacktestExecutor {
    */
   async backtestSingle(symbol, strategy) {
       const stock = await MongoDB.getStock(symbol);
-      const { backtestData } = calculateStock({...stock, ...strategy});
+      const { backtestData } = calculateStock({
+        dayLine: stock.dayLine,
+        hourLine: stock.hourLine,
+        ...strategy
+      });
       return backtestData;
   }
 
@@ -46,11 +50,7 @@ class BacktestExecutor {
         // 使用BacktestExecutor执行单个股票回测
         const backtestData = await this.backtestSingle(stock.code, strategy);
         backtestResults.push(backtestData);
-        if (result.success) {
-            logger.info(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} ${result.message}`);
-        } else {
-            logger.error(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} 回测失败: ${result.message}`);
-        }
+        logger.info(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} 回测完成`);
     }
     // 需要统计回测结果
     const stockCount = backtestResults.length;

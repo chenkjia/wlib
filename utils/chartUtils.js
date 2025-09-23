@@ -4,6 +4,7 @@
  */
 
 import { algorithmMap } from './algorithmUtils.js'
+import logger from './logger.js'
 
 /**
  * 获取较小数量级的值
@@ -290,8 +291,20 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
   
   // 计算日线相关统计
   if (Array.isArray(dayLine) && dayLine.length > 0) {
-    // 日线总数
-    result.dayLineCount = dayLine.length
+    // 日线计数：从第一次交易开始时间到最后一个日线的天数
+    if (completedTrades.length > 0) {
+      const firstTradeTime = completedTrades[0].buyTime;
+      const firstTradeDate = new Date(firstTradeTime);
+      const lastDayLineDate = new Date(dayLine[dayLine.length - 1].date);
+      
+      // 计算两个日期之间的天数差
+      const diffTime = Math.abs(lastDayLineDate - firstTradeDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      result.dayLineCount = diffDays || 1; // 至少为1天
+    } else {
+      result.dayLineCount = 0;
+    }
     
     // 日线总涨跌幅（从第一个日线到最后一个日线）
     const firstDayLine = dayLine[0]
@@ -369,7 +382,6 @@ const calculateSignals = (props) => {
   } = props
   const buyLength = buyConditions.length
   const sellLength = sellConditions.length
-  logger.info(dayLineWithMetric)
   // 如果买入或卖出条件长度为0，或者其中包含空数组，则直接返回空数组
   if (buyLength === 0 || sellLength === 0 || buyConditions.some((item) => item.length === 0) || sellConditions.some((item) => item.length === 0)) {
     return []
