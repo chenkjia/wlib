@@ -14,6 +14,12 @@
       >
         计算结果
       </button>
+      <button 
+        @click="activeTab = 'tasks'"
+        :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'tasks' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
+      >
+        任务列表
+      </button>
     </div>     
     
     <!-- Tab内容 - 可滚动区域 -->
@@ -86,7 +92,7 @@
             <AlgorithmConfig 
               type="buy" 
               :initialValue="props.buyConditions"
-@update:value="updateBuyConditions"
+              @update:value="updateBuyConditions"
             />
           </div>
           
@@ -96,7 +102,7 @@
             <AlgorithmConfig 
               type="sell" 
               :initialValue="props.sellConditions"
-@update:value="updateSellConditions"
+              @update:value="updateSellConditions"
             />
           </div>
           
@@ -145,20 +151,24 @@
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ formatDate(transaction.sellTime) }}</td>
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.sellPrice }}</td>
                     <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.duration || '-' }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm" :class="transaction.profit > 0 ? 'text-green-600' : 'text-red-600'">
-                      {{ transaction.profit?.toFixed(2) }}%
+                    <td class="py-2 px-3 border-b border-gray-200 text-sm" :class="getColorClass(transaction.profit)">
+                      {{ formatProfit(transaction.profit) }}
                     </td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div v-else class="text-center text-gray-500 py-4">
-              暂无交易数据
+            <div v-else class="text-center py-4 text-gray-500">
+              暂无交易记录
             </div>
           </div>
         </div>
       </div>
       
+      <!-- 任务列表 Tab -->
+      <div v-show="activeTab === 'tasks'" class="tab-pane bg-white rounded-md p-2">
+        <TaskList />
+      </div>
     </div>
   </div>
 </template>
@@ -166,6 +176,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, computed } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
+import TaskList from './TaskList.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -272,6 +283,20 @@ function formatDate(dateString) {
   const date = new Date(dateString)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
+
+// 格式化收益率
+function formatProfit(profit) {
+  if (profit === undefined || profit === null) return '-'
+  return `${profit.toFixed(2)}%`
+}
+
+// 获取收益率颜色类
+function getColorClass(profit) {
+  if (profit === undefined || profit === null) return ''
+  return profit > 0 ? 'text-green-600' : 'text-red-600'
+}
+
+
 </script>
 
 <style scoped>

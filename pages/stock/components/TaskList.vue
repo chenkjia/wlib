@@ -1,0 +1,206 @@
+<template>
+  <div class="space-y-4">
+    <h4 class="font-medium text-gray-700 mb-2">任务列表</h4>
+    
+    <!-- 搜索和过滤 -->
+    <div class="mb-3">
+      <div class="relative">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="搜索任务名称"
+          class="w-full px-3 py-2 pl-10 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+        />
+        <!-- 搜索图标 -->
+        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 状态过滤 -->
+    <div class="mb-3">
+      <select
+        v-model="statusFilter"
+        @change="fetchTasks()"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        <option value="">全部状态</option>
+        <option value="pending">等待中</option>
+        <option value="processing">进行中</option>
+        <option value="completed">已完成</option>
+        <option value="failed">失败</option>
+      </select>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div v-if="loading" class="py-4 text-center">
+      <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+      <p class="mt-2">加载中...</p>
+    </div>
+    
+    <!-- 错误信息 -->
+    <div v-else-if="error" class="py-4 text-center text-red-500">
+      <p>{{ error }}</p>
+      <button 
+        @click="fetchTasks" 
+        class="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+      >
+        重试
+      </button>
+    </div>
+    
+    <!-- 任务列表 -->
+    <div v-else-if="displayedTasks.length > 0" class="space-y-1">
+      <div 
+        v-for="task in displayedTasks" 
+        :key="task._id"
+        class="p-3 text-sm cursor-pointer transition-all duration-200 border-b rounded-lg hover:bg-gray-50"
+        style="border-color: var(--border-light);"
+      >
+        <div class="flex justify-between items-center">
+          <div class="font-medium">{{ task.name }}</div>
+          <div class="text-xs px-2 py-1 rounded-full" 
+            :class="{
+              'bg-yellow-100 text-yellow-800': task.status === 'pending',
+              'bg-blue-100 text-blue-800': task.status === 'in_progress',
+              'bg-green-100 text-green-800': task.status === 'completed',
+              'bg-red-100 text-red-800': task.status === 'failed'
+            }"
+          >
+            {{ getStatusText(task.status) }}
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 mt-1">创建时间: {{ formatDate(task.createdAt) }}</div>
+        <div v-if="task.completedAt" class="text-xs text-gray-500">完成时间: {{ formatDate(task.completedAt) }}</div>
+      </div>
+    </div>
+    
+    <!-- 分页控件 -->
+    <div v-if="totalPages > 1" class="mt-4 pt-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
+      <div class="text-sm text-gray-500">
+        第 {{ currentPage }} 页，共 {{ totalPages }} 页
+      </div>
+      <div class="flex gap-3">
+        <button 
+          @click="changePage(currentPage - 1)" 
+          :disabled="currentPage <= 1"
+          :class="currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''"
+          class="px-3 py-1 text-sm rounded-lg transition-all bg-blue-500 text-white hover:bg-blue-600"
+        >
+          上一页
+        </button>
+        <button 
+          @click="changePage(currentPage + 1)" 
+          :disabled="currentPage >= totalPages"
+          :class="currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''"
+          class="px-3 py-1 text-sm rounded-lg transition-all bg-blue-500 text-white hover:bg-blue-600"
+        >
+          下一页
+        </button>
+      </div>
+    </div>
+    
+    <!-- 无结果 -->
+    <div v-else-if="displayedTasks.length === 0" class="py-4 text-center text-gray-500">
+      <p>没有找到匹配的任务</p>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { useDebounce } from '@vueuse/core'
+
+// 状态变量
+const searchQuery = ref('')
+const statusFilter = ref('')
+const currentPage = ref(1)
+const pageSize = ref(10)
+const loading = ref(false)
+const error = ref(null)
+const tasks = ref([])
+const totalCount = ref(0)
+
+// 计算属性
+const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
+const displayedTasks = computed(() => tasks.value)
+
+// 防抖搜索
+const debouncedSearch = useDebounce(searchQuery, 500)
+
+// 监听搜索和页码变化
+watch([debouncedSearch, currentPage], () => {
+  fetchTasks()
+})
+
+// 获取任务列表
+async function fetchTasks() {
+  loading.value = true
+  error.value = null
+  
+  try {
+    const params = new URLSearchParams()
+    params.append('page', currentPage.value.toString())
+    params.append('pageSize', pageSize.value.toString())
+    
+    if (searchQuery.value) {
+      params.append('name', searchQuery.value)
+    }
+    
+    if (statusFilter.value) {
+      params.append('status', statusFilter.value)
+    }
+    
+    console.log('Fetching tasks with params:', params.toString())
+    const response = await fetch(`/api/task?${params.toString()}`)
+    
+    if (!response.ok) {
+      throw new Error(`获取任务列表失败: ${response.status} ${response.statusText}`)
+    }
+    
+    const data = await response.json()
+    console.log('Task data received:', data)
+    
+    // API返回的是data字段
+    tasks.value = data.data || []
+    totalCount.value = data.total || 0
+  } catch (error) {
+    console.error('获取任务列表错误:', error)
+    error.value = error.message
+  } finally {
+    loading.value = false
+  }
+}
+
+// 切换任务页码
+function changePage(page) {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+}
+
+// 获取任务状态文本
+function getStatusText(status) {
+  const statusMap = {
+    'pending': '等待中',
+    'processing': '进行中',
+    'completed': '已完成',
+    'failed': '失败'
+  }
+  return statusMap[status] || status
+}
+
+// 日期格式化函数
+function formatDate(dateString) {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+// 初始加载任务列表
+onMounted(() => {
+  fetchTasks()
+})
+</script>
