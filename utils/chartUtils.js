@@ -159,10 +159,6 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
 export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
-  if (!Array.isArray(data) || data.length === 0) {
-      return [];
-  }
-
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
   const maS = calculateMA(close, s);
