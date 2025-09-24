@@ -388,7 +388,7 @@ async function loadStockData() {
     loading.value = true
     error.value = ''
     // 获取日线数据并计算目标趋势
-    const response = await fetch(`/api/dayLine?code=${props.stockCode}`)
+    const response = await fetch(`/api/dayLine?code=${encodeURIComponent(props.stockCode)}`)
     dayLine.value = await response.json()
     loading.value = false
   } catch (err) {

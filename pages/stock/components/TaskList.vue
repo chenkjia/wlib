@@ -57,15 +57,22 @@
       <div 
         v-for="task in displayedTasks" 
         :key="task._id"
-        class="p-3 text-sm cursor-pointer transition-all duration-200 border-b rounded-lg hover:bg-gray-50"
+        class="p-3 text-sm border-b rounded-lg hover:bg-gray-50"
         style="border-color: var(--border-light);"
       >
-        <div class="flex justify-between items-center">
-          <div class="font-medium">{{ task.name }}</div>
+        <div class="flex justify-between items-center cursor-pointer" @click="toggleTaskExpand(task._id)">
+          <div class="font-medium flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transition-transform duration-200" 
+              :class="expandedTasks.includes(task._id) ? 'transform rotate-90' : ''" 
+              viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+            </svg>
+            {{ task.name }}
+          </div>
           <div class="text-xs px-2 py-1 rounded-full" 
             :class="{
               'bg-yellow-100 text-yellow-800': task.status === 'pending',
-              'bg-blue-100 text-blue-800': task.status === 'in_progress',
+              'bg-blue-100 text-blue-800': task.status === 'processing',
               'bg-green-100 text-green-800': task.status === 'completed',
               'bg-red-100 text-red-800': task.status === 'failed'
             }"
@@ -75,6 +82,29 @@
         </div>
         <div class="text-xs text-gray-500 mt-1">创建时间: {{ formatDate(task.createdAt) }}</div>
         <div v-if="task.completedAt" class="text-xs text-gray-500">完成时间: {{ formatDate(task.completedAt) }}</div>
+        
+        <!-- 展开的任务详情 -->
+        <div v-if="expandedTasks.includes(task._id)" class="mt-3 pt-2 border-t border-gray-100">
+          <div v-if="task.params" class="mt-2">
+            <div class="font-medium text-gray-700 mb-1">任务参数:</div>
+            <div class="bg-gray-50 p-2 rounded text-xs">
+              <div v-for="(value, key) in task.params" :key="key" class="mb-1">
+                <span class="font-medium">{{ key }}:</span> {{ JSON.stringify(value) }}
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="task.result" class="mt-3">
+            <div class="font-medium text-gray-700 mb-1">任务结果:</div>
+            <div class="bg-gray-50 p-2 rounded text-xs">
+              <pre>{{ JSON.stringify(task.result, null, 2) }}</pre>
+            </div>
+          </div>
+          
+          <div v-if="!task.params && !task.result" class="text-gray-500 text-xs italic mt-2">
+            无参数和结果数据
+          </div>
+        </div>
       </div>
     </div>
     
@@ -123,6 +153,7 @@ const loading = ref(false)
 const error = ref(null)
 const tasks = ref([])
 const totalCount = ref(0)
+const expandedTasks = ref([]) // 存储已展开的任务ID
 
 // 计算属性
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
@@ -172,6 +203,16 @@ async function fetchTasks() {
     error.value = error.message
   } finally {
     loading.value = false
+  }
+}
+
+// 切换任务展开状态
+function toggleTaskExpand(taskId) {
+  const index = expandedTasks.value.indexOf(taskId)
+  if (index === -1) {
+    expandedTasks.value.push(taskId)
+  } else {
+    expandedTasks.value.splice(index, 1)
   }
 }
 
