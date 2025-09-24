@@ -11,6 +11,7 @@ const stockSchema = new mongoose.Schema({
     isHourFocused: { type: Boolean, default: false, index: true }, // 是否小时线重点关注
     focusedDays: { type: Number, default: 0, index: true }, // 日线连续关注天数
     hourFocusedDays: { type: Number, default: 0, index: true }, // 小时线连续关注天数
+    isStar: { type: Boolean, default: false, index: true }, // 是否星标股票
     dayLine: [{
         time: Date,
         open: Number,

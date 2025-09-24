@@ -14,9 +14,10 @@ class StockDB {
      * @param {string} sortOrder - 排序方向
      * @param {string} focusFilter - 重点关注过滤器
      * @param {string} hourFocusFilter - 小时线关注过滤器
+     * @param {string} starFilter - 星标过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all') {
+    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all') {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -40,6 +41,13 @@ class StockDB {
                 query.isHourFocused = true;
             } else if (hourFocusFilter === 'unfocused') {
                 query.isHourFocused = { $ne: true };
+            }
+            
+            // 添加星标过滤条件
+            if (starFilter === 'starred') {
+                query.isStar = true;
+            } else if (starFilter === 'unstarred') {
+                query.isStar = { $ne: true };
             }
             
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
@@ -295,6 +303,44 @@ class StockDB {
             throw error;
         }
     }
+
+    /**
+ * 更新股票星标状态
+ * @param {string} code - 股票代码
+ * @param {boolean} isStar - 是否星标
+ * @returns {Promise<Object>} 更新结果
+ */
+static async updateStockStar(code, isStar) {
+    try {
+        const result = await Stock.updateOne(
+            { code },
+            { $set: { isStar } }
+        );
+        
+        return {
+            code,
+            isStar,
+            updated: result.modifiedCount > 0
+        };
+    } catch (error) {
+        logger.error(`更新股票 ${code} 星标状态失败:`, error);
+        throw error;
+    }
+}
+
+/**
+ * 获取所有星标股票
+ * @returns {Promise<Array>} 星标股票列表
+ */
+static async getStarredStocks() {
+    try {
+        const stocks = await Stock.find({ isStar: true }, { code: 1, _id: 0 });
+        return stocks.map(stock => stock.code);
+    } catch (error) {
+        logger.error('获取星标股票失败:', error);
+        throw error;
+    }
+}
 
     /**
      * 保存股票列表

@@ -28,7 +28,7 @@
           
           <!-- 过滤器 -->
           <div class="mb-3">
-            <div class="flex gap-2">
+            <div class="flex gap-2 mb-2">
               <select
                 v-model="focusFilter"
                 @change="currentPage = 1; fetchStocks()"
@@ -46,6 +46,15 @@
                 <option value="all">全部小时线</option>
                 <option value="focused">小时线关注</option>
                 <option value="unfocused">非小时线关注</option>
+              </select>
+              <select
+                v-model="starFilter"
+                @change="currentPage = 1; fetchStocks()"
+                class="finance-input flex-1 text-sm"
+              >
+                <option value="all">全部</option>
+                <option value="starred">已星标</option>
+                <option value="unstarred">未星标</option>
               </select>
             </div>
           </div>
@@ -104,19 +113,16 @@
               <div 
                  v-for="stock in displayedStocks" 
                  :key="stock.code"
-                @click="selectStock(stock.code)"
-                class="grid grid-cols-4 gap-2 p-3 text-sm cursor-pointer transition-all duration-200 border-b rounded-lg"
+                class="grid grid-cols-5 gap-2 p-3 text-sm cursor-pointer transition-all duration-200 border-b rounded-lg"
                 :style="{
                   backgroundColor: selectedStockCode === stock.code ? 'var(--accent-400)' : 'transparent',
                   borderColor: 'var(--border-light)',
                   color: selectedStockCode === stock.code ? 'white' : 'var(--text-primary)'
                 }"
-                @mouseover="$event.target.style.backgroundColor = selectedStockCode !== stock.code ? 'var(--bg-secondary)' : 'var(--accent-400)'"
-                @mouseout="$event.target.style.backgroundColor = selectedStockCode === stock.code ? 'var(--accent-400)' : 'transparent'"
               >
-                <div class="font-medium">{{ stock.code }}</div>
-                <div class="truncate">{{ stock.name }}</div>
-                <div class="text-center font-medium">
+                <div class="font-medium" @click="selectStock(stock.code)">{{ stock.code }}</div>
+                <div class="truncate" @click="selectStock(stock.code)">{{ stock.name }}</div>
+                <div class="text-center font-medium" @click="selectStock(stock.code)">
                   <span :class="{
                     'finance-profit-positive': stock.focusedDays > 0,
                     'finance-profit-negative': stock.focusedDays < 0,
@@ -125,7 +131,7 @@
                     {{ stock.focusedDays || 0 }}
                   </span>
                 </div>
-                <div class="text-center font-medium">
+                <div class="text-center font-medium" @click="selectStock(stock.code)">
                   <span :class="{
                     'finance-profit-positive': stock.hourFocusedDays > 0,
                     'finance-profit-negative': stock.hourFocusedDays < 0,
@@ -133,6 +139,16 @@
                   }" :title="`小时线关注天数: ${stock.hourFocusedDays || 0}`">
                     {{ stock.hourFocusedDays || 0 }}
                   </span>
+                </div>
+                <div class="text-center" @click.stop="toggleStarStock(stock.code)">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mx-auto transition-colors" 
+                    :fill="starredStocks.includes(stock.code) ? 'currentColor' : 'none'" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor" 
+                    :stroke-width="starredStocks.includes(stock.code) ? 0 : 1.5"
+                    :style="{ color: selectedStockCode === stock.code ? 'white' : 'var(--accent-500)' }">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
                 </div>
               </div>
             </div>
@@ -214,6 +230,8 @@ const searchQuery = ref('')
 // 使用防抖处理搜索查询，延迟300毫秒
 const debouncedSearchQuery = useDebounce(searchQuery, 300)
 const selectedStockCode = ref('')
+// 星标股票列表
+const starredStocks = ref([])
 
 // 分页相关状态
 const currentPage = ref(1)
@@ -228,6 +246,7 @@ const sortOrder = ref('asc')
 // 过滤器状态
 const focusFilter = ref('all') // 重点关注过滤器：all, focused, unfocused
 const hourFocusFilter = ref('all') // 小时线关注过滤器：all, focused, unfocused
+const starFilter = ref('all') // 星标过滤器：all, starred, unstarred
 
 // 当前显示的股票列表
 const displayedStocks = computed(() => {
@@ -239,6 +258,43 @@ const displayedStocks = computed(() => {
 // 选择股票
 function selectStock(code) {
   selectedStockCode.value = code
+}
+
+// 切换股票星标状态
+async function toggleStarStock(code) {
+  try {
+    // 调用API更新数据库中的星标状态
+    const response = await fetch('/api/stocks/star', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        isStar: !starredStocks.value.includes(code)
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // 更新本地状态
+      const index = starredStocks.value.indexOf(code)
+      if (index === -1) {
+        // 添加星标
+        starredStocks.value.push(code)
+      } else {
+        // 移除星标
+        starredStocks.value.splice(index, 1)
+      }
+      // 保存到本地存储
+      localStorage.setItem('starredStocks', JSON.stringify(starredStocks.value))
+    } else {
+      console.error('更新星标状态失败:', result.message);
+    }
+  } catch (error) {
+    console.error('更新星标状态出错:', error);
+  }
 }
 
 // 切换排序
@@ -290,6 +346,9 @@ async function fetchStocks() {
     if (hourFocusFilter.value !== 'all') {
       url += `&hourFocusFilter=${hourFocusFilter.value}`
     }
+    if (starFilter.value !== 'all') {
+      url += `&starFilter=${starFilter.value}`
+    }
     
     const response = await fetch(url)
     if (!response.ok) {
@@ -333,7 +392,7 @@ watch(() => route.query.stock, (newStock) => {
   }
 })
 
-onMounted(() => {
+onMounted(async () => {
   fetchStocks()
   
   // 检查URL中是否有股票代码参数
@@ -343,6 +402,41 @@ onMounted(() => {
   } else if (!selectedStockCode.value) {
     // 如果没有从URL或股票列表中选择股票，默认设置为ETH
     selectedStockCode.value = 'ETH'
+  }
+  
+  try {
+    // 从API获取星标股票列表
+    const response = await fetch('/api/stocks/starred');
+    const result = await response.json();
+    
+    if (result.success && Array.isArray(result.data)) {
+      starredStocks.value = result.data;
+      // 同步到本地存储
+      localStorage.setItem('starredStocks', JSON.stringify(starredStocks.value));
+    } else {
+      // 如果API请求失败，尝试从本地存储加载
+      const savedStarredStocks = localStorage.getItem('starredStocks');
+      if (savedStarredStocks) {
+        try {
+          starredStocks.value = JSON.parse(savedStarredStocks);
+        } catch (e) {
+          console.error('解析星标股票数据失败:', e);
+          starredStocks.value = [];
+        }
+      }
+    }
+  } catch (error) {
+    console.error('获取星标股票列表失败:', error);
+    // 从本地存储加载星标股票
+    const savedStarredStocks = localStorage.getItem('starredStocks');
+    if (savedStarredStocks) {
+      try {
+        starredStocks.value = JSON.parse(savedStarredStocks);
+      } catch (e) {
+        console.error('解析星标股票数据失败:', e);
+        starredStocks.value = [];
+      }
+    }
   }
 })
 </script>

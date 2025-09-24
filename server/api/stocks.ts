@@ -36,13 +36,14 @@ export default defineEventHandler(async (event) => {
     // 获取过滤参数
     const focusFilter = query.focusFilter as string || 'all';
     const hourFocusFilter = query.hourFocusFilter as string || 'all';
+    const starFilter = query.starFilter as string || 'all';
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter),
       timeoutPromise
     ]) as StockListResult;
     
