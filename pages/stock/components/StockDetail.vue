@@ -30,8 +30,7 @@
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           :transactions="transactions"
-          @pageCalculation="handlePageCalculation"
-          @globalCalculation="handleGlobalCalculation"
+          @calculation="handleCalculation"
         />
       </div>
     </div>
@@ -132,23 +131,26 @@ function debounce(fn, delay) {
 }
 
 // 页内计算处理函数
-function handlePageCalculation() {
+function handleCalculation(params) {
   // 保存配置到本地存储
   saveConfigToLocalStorage()
-  refreshChart()
+  if (params.type === 'page') {
+    refreshChart()
+  } else {
+    handleRemoteCalculation(params)
+  }
 }
 
 // 全局计算处理函数
-async function handleGlobalCalculation() {
-  // 保存配置到本地存储
-  saveConfigToLocalStorage()
+async function handleRemoteCalculation(params) {
   // 创建计算任务
   const task = {
-    name: '全局计算任务',
+    name: params.type === 'star' ? '星标计算任务' : '全局计算任务',
     params: {
-      ma: ma.value,
-      buyConditions: buyConditions.value,
-      sellConditions: sellConditions.value
+      type: params.type,
+      ma: params.ma,
+      buyConditions: params.buyConditions,
+      sellConditions: params.sellConditions
     }
   }
   

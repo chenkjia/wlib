@@ -335,7 +335,7 @@ static async updateStockStar(code, isStar) {
 static async getStarredStocks() {
     try {
         const stocks = await Stock.find({ isStar: true }, { code: 1, _id: 0 });
-        return stocks.map(stock => stock.code);
+        return stocks;
     } catch (error) {
         logger.error('获取星标股票失败:', error);
         throw error;

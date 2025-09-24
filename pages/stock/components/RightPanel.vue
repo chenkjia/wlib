@@ -110,13 +110,19 @@
           <div class="flex justify-center space-x-4 mt-4">
             <button 
               class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              @click="handlePageCalculation"
+              @click="handleCalculation('page')"
             >
               页内计算
             </button>
             <button 
+              class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50"
+              @click="handleCalculation('star')"
+            >
+              星标计算
+            </button>
+            <button 
               class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-              @click="handleGlobalCalculation"
+              @click="handleCalculation('global')"
             >
               全局计算
             </button>
@@ -209,9 +215,8 @@ const props = defineProps({
 const emit = defineEmits([
   'update:ma',
   'update:buyConditions',
-'update:sellConditions',
-  'pageCalculation',
-  'globalCalculation'
+  'update:sellConditions',
+  'calculation'
 ])
 
 // 本地响应式状态
@@ -225,20 +230,15 @@ function updateSellConditions(newValue) {
 }
 
 // 计算按钮处理函数
-function handlePageCalculation() {
-  emit('pageCalculation', {
+function handleCalculation(type) {
+  const params = {
+    type: type, // 添加类型参数
     ma: syncedMa.value,
     buyConditions: props.buyConditions,
     sellConditions: props.sellConditions
-  })
-}
-
-function handleGlobalCalculation() {
-  emit('globalCalculation', {
-    ma: syncedMa.value,
-    buyConditions: props.buyConditions,
-    sellConditions: props.sellConditions
-  })
+  }
+  
+  emit('calculation', params)
 }
 
 // 使用计算属性实现双向绑定
