@@ -127,6 +127,11 @@
               全局计算
             </button>
           </div>
+          
+          <!-- 计算提示信息 -->
+          <div v-if="calculationMessage" class="text-center mt-2 text-sm" :class="messageClass">
+            {{ calculationMessage }}
+          </div>
         </div>
       </div>
       
@@ -221,6 +226,9 @@ const emit = defineEmits([
 
 // 本地响应式状态
 const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
+const calculationMessage = ref('') // 计算提示消息
+const messageClass = ref('text-gray-600') // 消息样式类
+
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
 }
@@ -237,6 +245,24 @@ function handleCalculation(type) {
     buyConditions: props.buyConditions,
     sellConditions: props.sellConditions
   }
+  
+  // 显示计算提示消息
+  let message = '';
+  if (type === 'page') {
+    message = '页内计算任务已提交';
+  } else if (type === 'star') {
+    message = '星标计算任务已提交';
+  } else if (type === 'global') {
+    message = '全局计算任务已提交';
+  }
+  
+  calculationMessage.value = message;
+  messageClass.value = 'text-green-600';
+  
+  // 2秒后自动清除消息
+  setTimeout(() => {
+    calculationMessage.value = '';
+  }, 2000);
   
   emit('calculation', params)
 }

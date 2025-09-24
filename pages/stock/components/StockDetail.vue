@@ -161,19 +161,14 @@ async function handleRemoteCalculation(params) {
       body: task
     })
     
-    if (error.value) {
-      throw new Error(error.value.message || '创建任务失败')
-    }
-    
     if (data.value && data.value.task) {
-      // 显示成功消息
-      alert('计算任务已创建，任务ID: ' + data.value.task._id)
-    } else {
-      throw new Error('创建任务失败')
+      // 任务创建成功，不需要额外提示，RightPanel已经有提示
+    } else if (error.value) {
+      throw new Error(error.value.message || '创建任务失败')
     }
   } catch (error) {
     console.error('创建计算任务失败:', error)
-    alert('创建计算任务失败: ' + (error.message || '未知错误'))
+    
   }
 }
 
