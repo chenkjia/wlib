@@ -178,14 +178,14 @@
       
       <!-- 任务列表 Tab -->
       <div v-show="activeTab === 'tasks'" class="tab-pane bg-white rounded-md p-2">
-        <TaskList />
+        <TaskList ref="taskListRef" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed } from 'vue'
+import { ref, defineProps, defineEmits, computed, watch } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 import TaskList from './TaskList.vue'
 
@@ -228,6 +228,15 @@ const emit = defineEmits([
 const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
+const taskListRef = ref(null) // 任务列表组件引用
+
+// 监听标签页切换
+watch(activeTab, (newTab) => {
+  if (newTab === 'tasks' && taskListRef.value) {
+    // 当切换到任务列表标签时，自动刷新任务列表
+    taskListRef.value.refresh()
+  }
+})
 
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
