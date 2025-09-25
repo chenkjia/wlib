@@ -1,30 +1,22 @@
 <template>
-  <div class="stock-detail">
-    <div class="flex flex-col md:flex-row h-full">
+  <div class="stock-detail flex flex-col md:flex-row h-full">
+    <div class="flex flex-row w-full h-full">
       <!-- 中间K线图 -->
-      <div :class="['chart-wrapper relative transition-all duration-300', isRightPanelCollapsed ? 'w-full' : 'w-full md:w-2/3']">
+      <div
+        v-show="panelState!=='expanded'"
+        class="w-2/3 flex flex-col transition-all duration-300 h-full"
+        :class="[{'w-full': panelState === 'collapsed'}]">
         <!-- 图表顶部交易统计组件 -->
         <TradeStats :backtestData="backtestData" />
         
         <div class="chart-container" ref="chartContainer"></div>
         
-        <!-- 右侧面板收缩按钮 -->
-        <button 
-          @click="toggleRightPanel"
-          class="absolute top-1/2 right-2 transform -translate-y-1/2 z-30 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg transition-all duration-200"
-          :title="isRightPanelCollapsed ? '展开右侧面板' : '收起右侧面板'"
-        >
-          <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isRightPanelCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </button>
       </div>
-      
       <!-- 右侧面板 -->
       <div 
-        v-show="!isRightPanelCollapsed"
-        class="w-full md:w-1/3 flex flex-col transition-all duration-300 h-full"
-      >
+        v-show="panelState!=='collapsed'"
+        class="w-1/3 flex flex-col transition-all duration-300 h-full"
+        :class="[{'w-full': panelState === 'expanded'}]">
         <RightPanel
           v-model:ma="ma"
           v-model:buyConditions="buyConditions"
@@ -33,6 +25,15 @@
           @calculation="handleCalculation"
         />
       </div>
+        <!-- 右侧面板收缩按钮 -->
+        <button 
+          @click="toggleRightPanel"
+          class="absolute top-5 right-2 transform -translate-y-1/2 z-30 bg-gray-800 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg transition-all duration-200"
+        >
+          <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': panelState === 'collapsed' }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+          </svg>
+        </button>
     </div>
   </div>
 </template>
@@ -109,7 +110,7 @@ const sellConditions = ref(getLocalConfig('sellConditions', [
 const transactions = ref([])
 // 回测数据
 const backtestData = ref({})
-const isRightPanelCollapsed = ref(false) // 右侧面板收缩状态，默认展开
+const panelState = ref('normal') // 右侧面板收缩状态，默认展开
 const activeTab = ref('params') // 当前激活的标签页，默认为参数设置
 let myChart = null
 
@@ -199,7 +200,15 @@ function toggleFullScreen() {
 
 // 切换右侧面板显示状态
 function toggleRightPanel() {
-  isRightPanelCollapsed.value = !isRightPanelCollapsed.value
+  if (panelState.value === 'expanded')  {
+    panelState.value = 'normal'
+  } else if (panelState.value === 'normal') {
+    // 收缩
+    panelState.value = 'collapsed'
+  } else {
+    // 展开
+    panelState.value = 'expanded'
+  }
   
   // 调整图表大小
   setTimeout(() => {
