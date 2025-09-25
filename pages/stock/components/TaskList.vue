@@ -64,90 +64,57 @@
       </button>
     </div>
     
-    <!-- 任务列表 -->
-    <div v-else-if="displayedTasks.length > 0" class="space-y-1">
-      <div 
-        v-for="task in displayedTasks" 
-        :key="task._id"
-        class="p-3 text-sm border-b rounded-lg hover:bg-gray-50"
-        style="border-color: var(--border-light);"
+    <!-- Nuxt UI Table 任务列表 -->
+    <div v-else>
+      <UTable 
+        :data="tasks" 
+        :columns="columns"
+        :loading="loading"
+        class="w-full"
+        :ui="{
+          wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
+          td: {
+            base: 'p-3 border-b border-gray-100',
+            padding: 'px-4 py-3'
+          },
+          th: {
+            base: 'text-left p-3 border-b border-gray-200 bg-gray-50',
+            padding: 'px-4 py-3',
+            color: 'text-gray-700 font-medium'
+          }
+        }"
       >
-        <div class="flex justify-between items-center cursor-pointer" @click="toggleTaskExpand(task._id)">
-          <div class="font-medium flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 transition-transform duration-200" 
-              :class="expandedTasks.includes(task._id) ? 'transform rotate-90' : ''" 
-              viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-            </svg>
-            {{ task.name }}
+        <template #empty-state>
+          <div class="py-4 text-center text-gray-500">
+            <p>没有找到匹配的任务</p>
           </div>
-          <div class="text-xs px-2 py-1 rounded-full" 
-            :class="{
-              'bg-yellow-100 text-yellow-800': task.status === 'pending',
-              'bg-blue-100 text-blue-800': task.status === 'processing',
-              'bg-green-100 text-green-800': task.status === 'completed',
-              'bg-red-100 text-red-800': task.status === 'failed'
-            }"
-          >
-            {{ getStatusText(task.status) }}
-          </div>
-        </div>
-        <div class="text-xs text-gray-500 mt-1">创建时间: {{ formatDate(task.createdAt) }}</div>
-        <div v-if="task.completedAt" class="text-xs text-gray-500">完成时间: {{ formatDate(task.completedAt) }}</div>
+        </template>
         
-        <!-- 展开的任务详情 -->
-        <div v-if="expandedTasks.includes(task._id)" class="mt-3 pt-2 border-t border-gray-100">
-          <div v-if="task.params" class="mt-2">
-            <div class="font-medium text-gray-700 mb-1">任务参数:</div>
-            <div class="bg-gray-50 p-2 rounded text-xs">
-              <div v-for="(value, key) in task.params" :key="key" class="mb-1">
-                <span class="font-medium">{{ key }}:</span> {{ JSON.stringify(value) }}
-              </div>
-            </div>
-          </div>
-          
-          <div v-if="task.result" class="mt-3">
-            <div class="font-medium text-gray-700 mb-1">任务结果:</div>
-            <div class="bg-gray-50 p-2 rounded text-xs">
-              <pre>{{ JSON.stringify(task.result, null, 2) }}</pre>
-            </div>
-          </div>
-          
-          <div v-if="!task.params && !task.result" class="text-gray-500 text-xs italic mt-2">
-            无参数和结果数据
-          </div>
+        <!-- 状态列自定义渲染 -->
+        <template #status-cell="{ row }">
+          <UBadge
+            :color="getStatusColor(row.original.status)"
+            :text="getStatusText(row.original.status)"
+            size="sm"
+          >
+            {{ getStatusText(row.original.status) }}
+          </UBadge>
+        </template>
+      </UTable>
+      
+      <!-- 分页控件 -->
+      <div v-if="totalPages > 1" class="mt-4 pt-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
+        <div class="text-sm text-gray-500">
+          第 {{ currentPage }} 页，共 {{ totalPages }} 页
         </div>
+        <UPagination
+          v-model="currentPage"
+          :total="totalCount"
+          :page-count="totalPages"
+          :per-page="pageSize"
+          :ui="{ wrapper: 'flex gap-1' }"
+        />
       </div>
-    </div>
-    
-    <!-- 分页控件 -->
-    <div v-if="totalPages > 1" class="mt-4 pt-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
-      <div class="text-sm text-gray-500">
-        第 {{ currentPage }} 页，共 {{ totalPages }} 页
-      </div>
-      <div class="flex gap-3">
-        <button 
-          @click="changePage(currentPage - 1)" 
-          :disabled="currentPage <= 1"
-          :class="currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : ''"
-          class="px-3 py-1 text-sm rounded-lg transition-all bg-blue-500 text-white hover:bg-blue-600"
-        >
-          上一页
-        </button>
-        <button 
-          @click="changePage(currentPage + 1)" 
-          :disabled="currentPage >= totalPages"
-          :class="currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : ''"
-          class="px-3 py-1 text-sm rounded-lg transition-all bg-blue-500 text-white hover:bg-blue-600"
-        >
-          下一页
-        </button>
-      </div>
-    </div>
-    
-    <!-- 无结果 -->
-    <div v-else-if="displayedTasks.length === 0" class="py-4 text-center text-gray-500">
-      <p>没有找到匹配的任务</p>
     </div>
   </div>
 </template>
@@ -170,6 +137,20 @@ const expandedTasks = ref([]) // 存储已展开的任务ID
 // 计算属性
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
 const displayedTasks = computed(() => tasks.value)
+
+// 表格列定义
+const columns = ref([
+  {
+    accessorKey: 'name',
+    header: '任务名称',
+    id: 'name'
+  },
+  {
+    accessorKey: 'status',
+    header: '状态',
+    id: 'status'
+  }
+])
 
 // 防抖搜索
 const debouncedSearch = useDebounce(searchQuery, 500)
@@ -244,15 +225,29 @@ function changePage(page) {
   currentPage.value = page
 }
 
-// 获取任务状态文本
-function getStatusText(status) {
-  const statusMap = {
-    'pending': '等待中',
-    'processing': '进行中',
-    'completed': '已完成',
-    'failed': '失败'
+const statusMap = {
+  'pending': {
+    color: 'primary',
+    text: '等待中'
+  },
+  'processing': {
+    color: 'info',
+    text: '进行中'
+  },
+  'completed': {
+    color: 'success',
+    text: '已完成'
+  },
+  'failed': {
+    color: 'error',
+    text: '失败'
   }
-  return statusMap[status] || status
+}
+function getStatusColor(status) {
+  return statusMap[status]?.color || 'neutral'
+}
+function getStatusText(status) {
+  return statusMap[status]?.text || status
 }
 
 // 日期格式化函数

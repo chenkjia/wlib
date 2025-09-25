@@ -1,0 +1,376 @@
+{
+  "total": 21,
+  "page": 1,
+  "pageSize": 10,
+  "data": [
+    {
+      "_id": "68d3f1a1f60ae5f8142eb26c",
+      "name": "星标计算任务",
+      "status": "completed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAS_LT_MAM"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T13:26:57.203Z",
+      "updatedAt": "2025-09-24T13:27:04.120Z",
+      "__v": 0,
+      "result": {
+        "totalTrades": 9.75,
+        "profitTrades": 3.875,
+        "lossTrades": 5.875,
+        "daysDuration": 384.5,
+        "priceChange": 904.2989705027039,
+        "dailyChange": 1.7290126491244344,
+        "maxDrawdown": -28.78529737182557,
+        "dayLineCount": 2099.625,
+        "dayLinePriceChange": 7539.5477946760675,
+        "dayLineDailyChange": 2.6145581876836723,
+        "priceChangeDiff": -6635.248824173364,
+        "dailyChangeDiff": -0.8855455385592381,
+        "winRate": 0.3974358974358974
+      }
+    },
+    {
+      "_id": "68d389868d1d005e18df06de",
+      "name": "星标计算任务",
+      "status": "completed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T06:02:46.041Z",
+      "updatedAt": "2025-09-24T06:02:52.969Z",
+      "__v": 0,
+      "result": {
+        "totalTrades": 9.625,
+        "profitTrades": 4,
+        "lossTrades": 5.625,
+        "daysDuration": 945.25,
+        "priceChange": 1063.0109184896721,
+        "dailyChange": 0.8250727532422027,
+        "maxDrawdown": -51.411622523554655,
+        "dayLineCount": 2099.625,
+        "dayLinePriceChange": 7539.5477946760675,
+        "dayLineDailyChange": 2.6145581876836723,
+        "priceChangeDiff": -6476.536876186395,
+        "dailyChangeDiff": -1.7894854344414695,
+        "winRate": 0.4155844155844156
+      }
+    },
+    {
+      "_id": "68d365a68d1d005e18d676d0",
+      "name": "星标计算任务",
+      "status": "completed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:29:42.519Z",
+      "updatedAt": "2025-09-24T03:29:50.740Z",
+      "__v": 0,
+      "result": {
+        "totalTrades": 9.625,
+        "profitTrades": 4,
+        "lossTrades": 5.625,
+        "daysDuration": 945.25,
+        "priceChange": 1063.0109184896721,
+        "dailyChange": 0.8250727532422027,
+        "maxDrawdown": -51.411622523554655,
+        "dayLineCount": 2099.625,
+        "dayLinePriceChange": 7539.5477946760675,
+        "dayLineDailyChange": 2.6145581876836723,
+        "priceChangeDiff": -6476.536876186395,
+        "dailyChangeDiff": -1.7894854344414695,
+        "winRate": 0.4155844155844156
+      }
+    },
+    {
+      "_id": "68d362b58d1d005e18cf1bad",
+      "name": "星标计算任务",
+      "status": "completed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:17:09.941Z",
+      "updatedAt": "2025-09-24T03:17:18.448Z",
+      "__v": 0,
+      "result": {
+        "totalTrades": 9.625,
+        "profitTrades": 4,
+        "lossTrades": 5.625,
+        "daysDuration": 945.25,
+        "priceChange": 1063.0109184896721,
+        "dailyChange": 0.8250727532422027,
+        "maxDrawdown": -51.411622523554655,
+        "dayLineCount": 2099.625,
+        "dayLinePriceChange": 7539.5477946760675,
+        "dayLineDailyChange": 2.6145581876836723,
+        "priceChangeDiff": -6476.536876186395,
+        "dailyChangeDiff": -1.7894854344414695,
+        "winRate": 0.4155844155844156
+      }
+    },
+    {
+      "_id": "68d361cf8d1d005e18c7885f",
+      "name": "全局计算任务",
+      "status": "completed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:13:19.904Z",
+      "updatedAt": "2025-09-24T03:13:28.161Z",
+      "__v": 0,
+      "result": {
+        "totalTrades": 9.625,
+        "profitTrades": 4,
+        "lossTrades": 5.625,
+        "daysDuration": 945.25,
+        "priceChange": 1063.0109184896721,
+        "dailyChange": 0.8250727532422027,
+        "maxDrawdown": -51.411622523554655,
+        "dayLineCount": 2099.625,
+        "dayLinePriceChange": 7539.5477946760675,
+        "dayLineDailyChange": 2.6145581876836723,
+        "priceChangeDiff": -6476.536876186395,
+        "dailyChangeDiff": -1.7894854344414695,
+        "winRate": 0.4155844155844156
+      }
+    },
+    {
+      "_id": "68d361962ccdc08f89320ed2",
+      "name": "全局计算任务",
+      "status": "failed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:12:22.036Z",
+      "updatedAt": "2025-09-24T03:12:22.089Z",
+      "__v": 0,
+      "result": {
+        "error": "股票代码 undefined 不存在"
+      }
+    },
+    {
+      "_id": "68d3615b61361d126c319213",
+      "name": "全局计算任务",
+      "status": "failed",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:11:23.642Z",
+      "updatedAt": "2025-09-24T03:11:23.750Z",
+      "__v": 0,
+      "result": {
+        "error": "股票代码 undefined 不存在"
+      }
+    },
+    {
+      "_id": "68d3600967ea3110c8c9eafa",
+      "name": "全局计算任务",
+      "status": "processing",
+      "params": {
+        "type": "star",
+        "ma": {
+          "s": 7,
+          "m": 50,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-24T03:05:45.257Z",
+      "updatedAt": "2025-09-24T03:05:45.318Z",
+      "__v": 0
+    },
+    {
+      "_id": "68d24cd6fd5663a712352516",
+      "name": "全局计算任务",
+      "status": "pending",
+      "params": {
+        "ma": {
+          "s": 7,
+          "m": 44,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-23T07:31:34.551Z",
+      "updatedAt": "2025-09-23T07:31:34.551Z",
+      "__v": 0
+    },
+    {
+      "_id": "68d24cd2fd5663a712344522",
+      "name": "全局计算任务",
+      "status": "pending",
+      "params": {
+        "ma": {
+          "s": 7,
+          "m": 43,
+          "l": 100,
+          "x": 200
+        },
+        "buyConditions": [
+          [
+            "MAM_CROSS_UP_MAL",
+            "MAS_GT_MAM"
+          ]
+        ],
+        "sellConditions": [
+          [
+            "MAM_CROSS_DOWN_MAL"
+          ]
+        ]
+      },
+      "progress": 0,
+      "createdAt": "2025-09-23T07:31:30.267Z",
+      "updatedAt": "2025-09-23T07:31:30.267Z",
+      "__v": 0
+    }
+  ]
+}
