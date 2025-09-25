@@ -15,8 +15,8 @@
     </div>
     
     <!-- 搜索和过滤 -->
-    <div class="mb-3">
-      <div class="relative">
+    <div class="mb-3 flex gap-3">
+      <div class="relative flex-1">
         <input
           v-model="searchQuery"
           type="text"
@@ -30,21 +30,21 @@
           </svg>
         </div>
       </div>
-    </div>
-    
-    <!-- 状态过滤 -->
-    <div class="mb-3">
-      <select
-        v-model="statusFilter"
-        @change="fetchTasks()"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-      >
-        <option value="">全部状态</option>
-        <option value="pending">等待中</option>
-        <option value="processing">进行中</option>
-        <option value="completed">已完成</option>
-        <option value="failed">失败</option>
-      </select>
+      
+      <!-- 状态过滤 -->
+      <div class="w-1/3">
+        <select
+          v-model="statusFilter"
+          @change="fetchTasks()"
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">全部状态</option>
+          <option value="pending">等待中</option>
+          <option value="processing">进行中</option>
+          <option value="completed">已完成</option>
+          <option value="failed">失败</option>
+        </select>
+      </div>
     </div>
     
     <!-- 加载状态 -->
