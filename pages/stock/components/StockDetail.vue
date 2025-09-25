@@ -4,7 +4,7 @@
       <!-- 中间K线图 -->
       <div
         v-show="panelState!=='expanded'"
-        class="w-2/3 flex flex-col transition-all duration-300 h-full"
+        class="w-2/3 flex flex-col h-full"
         :class="[{'w-full': panelState === 'collapsed'}]">
         <!-- 图表顶部交易统计组件 -->
         <TradeStats :backtestData="backtestData" />
@@ -15,14 +15,16 @@
       <!-- 右侧面板 -->
       <div 
         v-show="panelState!=='collapsed'"
-        class="w-1/3 flex flex-col transition-all duration-300 h-full"
+        class="w-1/3 flex flex-col h-full"
         :class="[{'w-full': panelState === 'expanded'}]">
         <RightPanel
           v-model:ma="ma"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           :transactions="transactions"
+          :panelState="panelState"
           @calculation="handleCalculation"
+          @changePanelState="changePanelState"
         />
       </div>
         <!-- 右侧面板收缩按钮 -->
@@ -187,39 +189,25 @@ function toggleFullScreen() {
   }
   
   // 调整图表大小
-  setTimeout(() => {
-    if (myChart) {
-      try {
-        myChart.resize()
-      } catch (err) {
-        console.error('调整图表大小失败:', err)
-      }
-    }
-  }, 100)
+  setTimeout(handleResize, 100)
 }
-
+function changePanelState (state) {
+  panelState.value = state
+  setTimeout(handleResize, 100)
+}
 // 切换右侧面板显示状态
 function toggleRightPanel() {
   if (panelState.value === 'expanded')  {
-    panelState.value = 'normal'
+    changePanelState('normal')
   } else if (panelState.value === 'normal') {
     // 收缩
-    panelState.value = 'collapsed'
+    changePanelState('collapsed')
   } else {
     // 展开
-    panelState.value = 'expanded'
+    changePanelState('expanded')
   }
   
   // 调整图表大小
-  setTimeout(() => {
-    if (myChart) {
-      try {
-        myChart.resize()
-      } catch (err) {
-        console.error('调整图表大小失败:', err)
-      }
-    }
-  }, 300) // 等待CSS动画完成
 }
 
 // 日期格式化函数

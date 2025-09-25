@@ -2,16 +2,27 @@
   <div class="space-y-4">
     <div class="flex justify-between items-center mb-2">
       <h4 class="font-medium text-gray-700">任务列表</h4>
-      <button 
-        @click="refresh" 
-        class="px-2 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-        :disabled="loading"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" :class="{'animate-spin': loading}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        刷新
-      </button>
+      <div class="flex gap-2">
+        <button 
+          @click="refresh" 
+          class="px-2 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
+          :disabled="loading"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" :class="{'animate-spin': loading}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          刷新
+        </button>
+        <button 
+          @click="changePanelState(props.panelState === 'expanded' ? 'normal' : 'expanded')" 
+          class="px-2 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4m-4 0l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+          </svg>
+          {{ props.panelState === 'expanded' ? '恢复' : '展开' }}
+        </button>
+      </div>
     </div>
     
     <!-- 搜索和过滤 -->
@@ -122,6 +133,15 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useDebounce } from '@vueuse/core'
+
+const props = defineProps({
+  panelState: {
+    type: String,
+    default: 'normal'
+  }
+})
+
+const emit = defineEmits(['changePanelState', 'error'])
 
 // 状态变量
 const searchQuery = ref('')
@@ -248,6 +268,9 @@ function getStatusColor(status) {
 }
 function getStatusText(status) {
   return statusMap[status]?.text || status
+}
+function changePanelState(state) {
+  emit('changePanelState', state)
 }
 
 // 日期格式化函数
