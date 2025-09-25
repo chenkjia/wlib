@@ -81,6 +81,7 @@
         :data="tasks" 
         :columns="columns"
         :loading="loading"
+        :column-visibility="columnVisibility"
         class="w-full"
         :ui="{
           wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
@@ -95,6 +96,94 @@
           }
         }"
       >
+        
+        <template #params-cell="{ row }">
+          {{ row.params ? (JSON.stringify(row.params).substring(0, 50) + (JSON.stringify(row.params).length > 50 ? '...' : '')) : '-' }}
+        </template>
+        
+        <template #totalTrades-cell="{ row }">
+          {{ row.original.result?.totalTrades !== undefined ? row.original.result.totalTrades.toFixed(2) : '-' }}
+        </template>
+        
+        <template #profitTrades-cell="{ row }">
+          {{ row.original.result?.profitTrades !== undefined ? row.original.result.profitTrades.toFixed(2) : '-' }}
+        </template>
+        
+        <template #lossTrades-cell="{ row }">
+          {{ row.original.result?.lossTrades !== undefined ? row.original.result.lossTrades.toFixed(2) : '-' }}
+        </template>
+        
+        <template #winRate-cell="{ row }">
+          <span v-if="row.original.result?.winRate !== undefined" 
+                :class="row.original.result.winRate >= 0.5 ? 'text-green-600' : 'text-red-600'">
+            {{ (row.original.result.winRate * 100).toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #daysDuration-cell="{ row }">
+          {{ row.original.result?.daysDuration !== undefined ? row.original.result.daysDuration.toFixed(2) : '-' }}
+        </template>
+        
+        <template #priceChange-cell="{ row }">
+          <span v-if="row.original.result?.priceChange !== undefined" 
+                :class="row.original.result.priceChange > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.priceChange.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #dailyChange-cell="{ row }">
+          <span v-if="row.original.result?.dailyChange !== undefined" 
+                :class="row.original.result.dailyChange > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.dailyChange.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #maxDrawdown-cell="{ row }">
+          <span v-if="row.original.result?.maxDrawdown !== undefined" class="text-red-600">
+            {{ row.original.result.maxDrawdown.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #dayLineCount-cell="{ row }">
+          {{ row.original.result?.dayLineCount !== undefined ? row.original.result.dayLineCount.toFixed(2) : '-' }}
+        </template>
+        
+        <template #dayLinePriceChange-cell="{ row }">
+          <span v-if="row.original.result?.dayLinePriceChange !== undefined" 
+                :class="row.original.result.dayLinePriceChange > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.dayLinePriceChange.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #dayLineDailyChange-cell="{ row }">
+          <span v-if="row.original.result?.dayLineDailyChange !== undefined" 
+                :class="row.original.result.dayLineDailyChange > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.dayLineDailyChange.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #priceChangeDiff-cell="{ row }">
+          <span v-if="row.original.result?.priceChangeDiff !== undefined" 
+                :class="row.original.result.priceChangeDiff > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.priceChangeDiff.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #dailyChangeDiff-cell="{ row }">
+          <span v-if="row.original.result?.dailyChangeDiff !== undefined" 
+                :class="row.original.result.dailyChangeDiff > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.result.dailyChangeDiff.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
         <template #empty-state>
           <div class="py-4 text-center text-gray-500">
             <p>没有找到匹配的任务</p>
@@ -158,6 +247,55 @@ const expandedTasks = ref([]) // 存储已展开的任务ID
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
 const displayedTasks = computed(() => tasks.value)
 
+// 根据面板状态控制列的可见性
+const columnVisibility = computed(() => {
+  if (props.panelState === 'expanded') {
+    // 扩展状态下显示所有列
+    return {
+      name: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+      params: true,
+      totalTrades: true,
+      profitTrades: true,
+      lossTrades: true,
+      winRate: true,
+      daysDuration: true,
+      priceChange: true,
+      dailyChange: true,
+      maxDrawdown: true,
+      dayLineCount: true,
+      dayLinePriceChange: true,
+      dayLineDailyChange: true,
+      priceChangeDiff: true,
+      dailyChangeDiff: true
+    }
+  } else {
+    // 默认状态下只显示名称和状态列
+    return {
+      name: true,
+      status: true,
+      createdAt: false,
+      updatedAt: false,
+      params: false,
+      totalTrades: false,
+      profitTrades: false,
+      lossTrades: false,
+      winRate: false,
+      daysDuration: false,
+      priceChange: false,
+      dailyChange: false,
+      maxDrawdown: false,
+      dayLineCount: false,
+      dayLinePriceChange: false,
+      dayLineDailyChange: false,
+      priceChangeDiff: false,
+      dailyChangeDiff: false
+    }
+  }
+})
+
 // 表格列定义
 const columns = ref([
   {
@@ -169,6 +307,81 @@ const columns = ref([
     accessorKey: 'status',
     header: '状态',
     id: 'status'
+  },
+  {
+    accessorKey: 'result.winRate',
+    header: '胜率',
+    id: 'winRate'
+  },
+  {
+    accessorKey: 'result.dailyChange',
+    header: '交易日均涨跌幅',
+    id: 'dailyChange'
+  },
+  {
+    accessorKey: 'result.dailyChangeDiff',
+    header: '日均差值',
+    id: 'dailyChangeDiff'
+  },
+  {
+    accessorKey: 'createdAt',
+    header: '创建时间',
+    id: 'createdAt'
+  },
+  {
+    accessorKey: 'params',
+    header: '参数',
+    id: 'params'
+  },
+  {
+    accessorKey: 'result.totalTrades',
+    header: '交易笔数',
+    id: 'totalTrades'
+  },
+  {
+    accessorKey: 'result.profitTrades',
+    header: '盈利笔数',
+    id: 'profitTrades'
+  },
+  {
+    accessorKey: 'result.lossTrades',
+    header: '亏损笔数',
+    id: 'lossTrades'
+  },
+  {
+    accessorKey: 'result.daysDuration',
+    header: '交易总天数',
+    id: 'daysDuration'
+  },
+  {
+    accessorKey: 'result.priceChange',
+    header: '交易总涨跌幅',
+    id: 'priceChange'
+  },
+  {
+    accessorKey: 'result.maxDrawdown',
+    header: '最大回撤',
+    id: 'maxDrawdown'
+  },
+  {
+    accessorKey: 'result.dayLineCount',
+    header: '日线总天数',
+    id: 'dayLineCount'
+  },
+  {
+    accessorKey: 'result.dayLinePriceChange',
+    header: '日线总涨跌幅',
+    id: 'dayLinePriceChange'
+  },
+  {
+    accessorKey: 'result.dayLineDailyChange',
+    header: '日线日均涨跌幅',
+    id: 'dayLineDailyChange'
+  },
+  {
+    accessorKey: 'result.priceChangeDiff',
+    header: '涨跌幅差值',
+    id: 'priceChangeDiff'
   }
 ])
 
