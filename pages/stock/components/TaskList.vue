@@ -95,6 +95,7 @@
             color: 'text-gray-700 font-medium'
           }
         }"
+        :column-pinning="{left: ['name'], right: ['actions']}"
       >
         <template #createdAt-cell="{ row }">
           {{ formatDate(row.original.createdAt) }}
@@ -280,7 +281,8 @@ const columnVisibility = computed(() => {
       dayLinePriceChange: true,
       dayLineDailyChange: true,
       priceChangeDiff: true,
-      dailyChangeDiff: true
+      dailyChangeDiff: true,
+      actions: true
     }
   } else {
     // 默认状态下只显示名称和状态列
@@ -302,7 +304,8 @@ const columnVisibility = computed(() => {
       dayLinePriceChange: false,
       dayLineDailyChange: false,
       priceChangeDiff: false,
-      dailyChangeDiff: true
+      dailyChangeDiff: true,
+      actions: false
     }
   }
 })
