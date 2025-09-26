@@ -25,6 +25,7 @@
           :panelState="panelState"
           @calculation="handleCalculation"
           @changePanelState="changePanelState"
+          @useTaskParams="useTaskParams"
         />
       </div>
         <!-- 右侧面板收缩按钮 -->
@@ -84,7 +85,7 @@ const saveConfigToLocalStorage = () => {
   if (process.client) {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
-localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
+    localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
   }
 }
 
@@ -144,6 +145,14 @@ function handleCalculation(params) {
   }
 }
 
+function useTaskParams(params) {
+  // ma: params.ma,
+  // buyConditions: params.buyConditions,
+  // sellConditions: params.sellConditions
+  buyConditions.value = params.buyConditions
+  sellConditions.value = params.sellConditions
+  ma.value = params.ma
+}
 // 全局计算处理函数
 async function handleRemoteCalculation(params) {
   // 创建计算任务

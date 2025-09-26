@@ -178,7 +178,12 @@
       
       <!-- 任务列表 Tab -->
       <div v-show="activeTab === 'tasks'" class="tab-pane bg-white rounded-md p-2">
-        <TaskList ref="taskListRef" :panelState="panelState" @changePanelState="$emit('changePanelState', $event)" />
+        <TaskList
+          ref="taskListRef"
+          :panelState="panelState"
+          @changePanelState="$emit('changePanelState', $event)" 
+          @useTaskParams="$emit('useTaskParams', $event)"
+        />
       </div>
     </div>
   </div>

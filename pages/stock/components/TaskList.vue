@@ -97,6 +97,18 @@
         }"
         :column-pinning="{left: ['name'], right: ['actions']}"
       >
+        <template #useParams-cell="{ row }">
+          <button 
+            @click="useTaskParams(row.original)" 
+            class="p-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            title="使用此任务参数"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+        </template>
+        
         <template #name-cell="{ row }">
           <div class="flex items-center">
             <span v-if="editingTaskId !== row.original._id" @click="startEditTaskName(row.original)" class="cursor-pointer hover:text-blue-500">
@@ -260,6 +272,13 @@ const props = defineProps({
 
 const emit = defineEmits(['changePanelState', 'error'])
 
+// 使用任务参数
+const useTaskParams = (task) => {
+  if (task && task.params) {
+    emit('useTaskParams', task.params)
+  }
+}
+
 // 状态变量
 const searchQuery = ref('')
 const statusFilter = ref('')
@@ -378,6 +397,12 @@ async function saveTaskName(taskId) {
 
 // 表格列定义
 const columns = ref([
+  {
+    accessorKey: 'actions',
+    header: '',
+    id: 'useParams',
+    size: 50
+  },
   {
     accessorKey: 'name',
     header: '任务名称',
