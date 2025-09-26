@@ -101,7 +101,7 @@ class BacktestExecutor {
     
     // 计算胜率和比率
     stats.winRate = stats.profitTrades / (stats.totalTrades || 1);
- 
+    stats.stockCount = stockCount;
     return stats;
   }
 }

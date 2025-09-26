@@ -323,6 +323,11 @@ const columns = ref([
     id: 'status'
   },
   {
+    accessorKey: 'result.stockCount',
+    header: '股数',
+    id: 'stockCount'
+  },
+  {
     accessorKey: 'result.winRate',
     header: '胜率',
     id: 'winRate'
