@@ -97,6 +97,22 @@
         }"
         :column-pinning="{left: ['name'], right: ['actions']}"
       >
+        <template #name-cell="{ row }">
+          <div class="flex items-center">
+            <span v-if="editingTaskId !== row.original._id" @click="startEditTaskName(row.original)" class="cursor-pointer hover:text-blue-500">
+              {{ row.original.name }}
+            </span>
+            <div v-else class="flex items-center">
+              <input 
+                v-model="editingTaskName" 
+                @keyup.enter="saveTaskName(row.original._id)" 
+                @blur="saveTaskName(row.original._id)"
+                class="border border-gray-300 rounded px-2 py-1 text-sm w-full" 
+                ref="taskNameInput"
+              />
+            </div>
+          </div>
+        </template>
         <template #createdAt-cell="{ row }">
           {{ formatDate(row.original.createdAt) }}
         </template>
@@ -232,7 +248,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useDebounce } from '@vueuse/core'
 
 const props = defineProps({
@@ -254,6 +270,9 @@ const error = ref(null)
 const tasks = ref([])
 const totalCount = ref(0)
 const expandedTasks = ref([]) // 存储已展开的任务ID
+const editingTaskId = ref(null) // 当前正在编辑的任务ID
+const editingTaskName = ref('') // 编辑中的任务名称
+const taskNameInput = ref(null) // 任务名称输入框引用
 
 // 计算属性
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
@@ -309,6 +328,53 @@ const columnVisibility = computed(() => {
     }
   }
 })
+
+// 开始编辑任务名称
+function startEditTaskName(task) {
+  editingTaskId.value = task._id
+  editingTaskName.value = task.name
+  // 下一个tick后聚焦输入框
+  nextTick(() => {
+    if (taskNameInput.value) {
+      taskNameInput.value.focus()
+    }
+  })
+}
+
+// 保存任务名称
+async function saveTaskName(taskId) {
+  if (!editingTaskName.value.trim()) {
+    editingTaskId.value = null
+    return
+  }
+  
+  try {
+    const response = await fetch(`/api/task/${taskId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: editingTaskName.value.trim()
+      })
+    })
+    
+    if (!response.ok) {
+      throw new Error(`更新任务名称失败: ${response.status} ${response.statusText}`)
+    }
+    
+    // 更新本地任务列表中的名称
+    const taskIndex = tasks.value.findIndex(t => t._id === taskId)
+    if (taskIndex !== -1) {
+      tasks.value[taskIndex].name = editingTaskName.value.trim()
+    }
+  } catch (err) {
+    console.error('更新任务名称错误:', err)
+    error.value = err.message
+  } finally {
+    editingTaskId.value = null
+  }
+}
 
 // 表格列定义
 const columns = ref([

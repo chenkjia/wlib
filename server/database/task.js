@@ -102,6 +102,34 @@ class TaskDB {
             throw error;
         }
     }
+    
+    /**
+     * 更新任务信息
+     * @param {string} id - 任务ID
+     * @param {Object} updateData - 更新数据
+     * @returns {Promise<Object>} 更新后的任务
+     */
+    static async updateTask(id, updateData) {
+        try {
+            const task = await Task.findById(id);
+            if (!task) {
+                throw new Error(`任务ID ${id} 不存在`);
+            }
+            
+            // 更新任务字段
+            if (updateData.name) {
+                task.name = updateData.name;
+            }
+            
+            task.updatedAt = new Date();
+            
+            await task.save();
+            return task;
+        } catch (error) {
+            logger.error('更新任务信息失败:', error);
+            throw error;
+        }
+    }
 
     /**
      * 获取所有任务列表
