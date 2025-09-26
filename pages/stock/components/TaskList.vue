@@ -96,7 +96,9 @@
           }
         }"
       >
-        
+        <template #createdAt-cell="{ row }">
+          {{ formatDate(row.original.createdAt) }}
+        </template>
         <template #params-cell="{ row }">
           {{ row.params ? (JSON.stringify(row.params).substring(0, 50) + (JSON.stringify(row.params).length > 50 ? '...' : '')) : '-' }}
         </template>
@@ -183,7 +185,14 @@
           </span>
           <span v-else>-</span>
         </template>
-        
+        <template #actions-cell="{ row }">
+          <button 
+            @click.stop="deleteTask(row.original._id)" 
+            class="px-2 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
+          >
+            删除
+          </button>
+        </template>
         <template #empty-state>
           <div class="py-4 text-center text-gray-500">
             <p>没有找到匹配的任务</p>
@@ -285,13 +294,13 @@ const columnVisibility = computed(() => {
       winRate: false,
       daysDuration: false,
       priceChange: false,
-      dailyChange: false,
+      dailyChange: true,
       maxDrawdown: false,
       dayLineCount: false,
       dayLinePriceChange: false,
       dayLineDailyChange: false,
       priceChangeDiff: false,
-      dailyChangeDiff: false
+      dailyChangeDiff: true
     }
   }
 })
@@ -315,7 +324,7 @@ const columns = ref([
   },
   {
     accessorKey: 'result.dailyChange',
-    header: '交易日均涨跌幅',
+    header: '交易日均',
     id: 'dailyChange'
   },
   {
@@ -324,9 +333,9 @@ const columns = ref([
     id: 'dailyChangeDiff'
   },
   {
-    accessorKey: 'createdAt',
-    header: '创建时间',
-    id: 'createdAt'
+    accessorKey: 'result.dayLineDailyChange',
+    header: '日线日均',
+    id: 'dayLineDailyChange'
   },
   {
     accessorKey: 'params',
@@ -374,14 +383,19 @@ const columns = ref([
     id: 'dayLinePriceChange'
   },
   {
-    accessorKey: 'result.dayLineDailyChange',
-    header: '日线日均涨跌幅',
-    id: 'dayLineDailyChange'
-  },
-  {
     accessorKey: 'result.priceChangeDiff',
     header: '涨跌幅差值',
     id: 'priceChangeDiff'
+  },
+  {
+    accessorKey: 'createdAt',
+    header: '创建时间',
+    id: 'createdAt'
+  },
+  {
+    id: 'actions',
+    header: '操作',
+    cell: (row) => row.id
   }
 ])
 
@@ -437,6 +451,34 @@ function refresh() {
   fetchTasks()
 }
 
+// 删除任务
+async function deleteTask(taskId) {
+  if (!confirm('确定要删除此任务吗？')) {
+    return
+  }
+  
+  loading.value = true
+  error.value = null
+  
+  try {
+    const response = await fetch(`/api/task/${taskId}`, {
+      method: 'DELETE'
+    })
+    
+    if (!response.ok) {
+      throw new Error(`删除任务失败: ${response.status} ${response.statusText}`)
+    }
+    
+    // 删除成功后刷新任务列表
+    fetchTasks()
+  } catch (err) {
+    console.error('删除任务错误:', err)
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
 // 暴露方法给父组件
 defineExpose({
   refresh
@@ -490,7 +532,7 @@ function changePanelState(state) {
 function formatDate(dateString) {
   if (!dateString) return '-'
   const date = new Date(dateString)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
 // 初始加载任务列表
