@@ -185,6 +185,7 @@
           </span>
           <span v-else>-</span>
         </template>
+        
         <template #actions-cell="{ row }">
           <button 
             @click.stop="deleteTask(row.original._id)" 
@@ -193,6 +194,7 @@
             删除
           </button>
         </template>
+        
         <template #empty-state>
           <div class="py-4 text-center text-gray-500">
             <p>没有找到匹配的任务</p>
