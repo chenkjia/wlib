@@ -95,7 +95,7 @@
             color: 'text-gray-700 font-medium'
           }
         }"
-        :column-pinning="{left: ['name'], right: ['actions']}"
+        :column-pinning="{left: ['useParams','name'], right: ['actions']}"
       >
         <template #useParams-cell="{ row }">
           <button 
