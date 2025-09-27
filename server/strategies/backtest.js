@@ -34,7 +34,8 @@ class BacktestExecutor {
    * @param {Object} strategy 策略配置
    * @returns {Promise<Object[]>} 回测结果列表
    */
-  async backtestAll(strategy) {
+  async backtestAll(task) {
+    const strategy = task.params
     // 根据策略类型获取股票列表
     let stockList;
     if (strategy.type === 'star') {
@@ -53,11 +54,20 @@ class BacktestExecutor {
     for (let i = 0; i < stockList.length; i++) {
         const stock = stockList[i];
         logger.info(`开始对第 ${i+1}/${stockList.length} 个股票 ${stock.code} 执行回测策略...`);
-        
         // 使用BacktestExecutor执行单个股票回测
         const backtestData = await this.backtestSingle(stock.code, strategy);
         backtestResults.push(backtestData);
-        logger.info(`第 ${i+1}/${stockList.length} 个股票 ${stock.code} 回测完成`);
+        if (task._id && (i + 1) % 5 === 0) {
+            const progress = Math.floor(((i + 1) / stockList.length) * 100);
+            await MongoDB.updateTaskProgress(task._id, progress);
+            logger.info(`已更新任务进度: ${progress}%`);
+        }
+    }
+    
+    // 任务完成后更新进度为100%
+    if (task._id) {
+        await MongoDB.updateTaskProgress(task._id, 100);
+        logger.info('任务进度已更新为100%');
     }
     // 需要统计回测结果
     const stockCount = backtestResults.length;

@@ -52,6 +52,7 @@ class MongoDB {
     static getTask = TaskDB.getTask;
     static createTask = TaskDB.createTask;
     static updateTaskStatus = TaskDB.updateTaskStatus;
+    static updateTaskProgress = TaskDB.updateTaskProgress;
     static updateTask = TaskDB.updateTask;
     static getTasks = TaskDB.getTasks;
     static deleteTask = TaskDB.deleteTask;

@@ -230,6 +230,20 @@
           </div>
         </template>
         
+        <!-- 进度列自定义渲染 -->
+        <template #progress-cell="{ row }">
+          <div class="w-[100px]">
+            <UProgress 
+              v-if="row.original.progress !== undefined" 
+              v-model="row.original.progress" 
+              :max="100"
+              :color="row.original.status === 'processing' ? 'primary' : (row.original.status === 'completed' ? 'success' : 'gray')"
+              class="w-full"
+            />
+            <span v-else>-</span>
+          </div>
+        </template>
+        
         <!-- 状态列自定义渲染 -->
         <template #status-cell="{ row }">
           <UBadge
@@ -407,6 +421,11 @@ const columns = ref([
     accessorKey: 'name',
     header: '任务名称',
     id: 'name'
+  },
+  {
+    accessorKey: 'progress',
+    header: '进度',
+    id: 'progress'
   },
   {
     accessorKey: 'status',
