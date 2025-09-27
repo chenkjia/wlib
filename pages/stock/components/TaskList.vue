@@ -230,29 +230,28 @@
           </div>
         </template>
         
-        <!-- 进度列自定义渲染 -->
-        <template #progress-cell="{ row }">
-          <div class="w-[100px]">
-            <UProgress 
-              v-if="row.original.progress !== undefined" 
-              v-model="row.original.progress" 
-              :max="100"
-              :color="row.original.status === 'processing' ? 'primary' : (row.original.status === 'completed' ? 'success' : 'gray')"
-              class="w-full"
-            />
-            <span v-else>-</span>
-          </div>
-        </template>
-        
         <!-- 状态列自定义渲染 -->
         <template #status-cell="{ row }">
-          <UBadge
-            :color="getStatusColor(row.original.status)"
-            :text="getStatusText(row.original.status)"
-            size="sm"
-          >
-            {{ getStatusText(row.original.status) }}
-          </UBadge>
+            <!-- 如果是待处理或进行中状态，显示进度条 -->
+          <div v-if="['pending', 'processing'].includes(row.original.status) && row.original.progress !== undefined" class="w-[50px]">
+            <UProgress 
+              :value="row.original.progress" 
+              :max="100"
+              :color="row.original.status === 'processing' ? 'primary' : 'gray'"
+              class="w-full"
+            />
+            <div class="text-xs text-gray-500 text-right">{{ row.original.progress }}%</div>
+          </div>
+          <div v-else class="flex flex-col gap-1">
+            <UBadge
+              :color="getStatusColor(row.original.status)"
+              :text="getStatusText(row.original.status)"
+              size="sm"
+            >
+              {{ getStatusText(row.original.status) }}
+            </UBadge>
+            
+          </div>
         </template>
       </UTable>
       
@@ -421,11 +420,6 @@ const columns = ref([
     accessorKey: 'name',
     header: '任务名称',
     id: 'name'
-  },
-  {
-    accessorKey: 'progress',
-    header: '进度',
-    id: 'progress'
   },
   {
     accessorKey: 'status',
