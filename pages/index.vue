@@ -8,21 +8,31 @@
           
           <!-- 搜索框 -->
           <div class="relative mb-3">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="搜索股票代码或名称"
-              class="finance-input w-full pl-10"
-            />
-            <!-- 搜索图标 -->
-            <div class="absolute left-3 top-1/2 transform -translate-y-1/2" style="color: var(--text-muted);">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <!-- 搜索中指示器 -->
-            <div v-if="searchQuery && searchQuery !== debouncedSearchQuery.value" class="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2" style="border-color: var(--accent-500);"></div>
+            <div class="flex gap-2">
+              <div class="relative flex-1">
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  placeholder="搜索股票代码或名称"
+                  class="finance-input w-full"
+                  style="padding-left: 2.5rem;"
+                  @keyup.enter="handleSearch"
+                />
+                <!-- 搜索图标 -->
+                <div class="absolute left-3 top-1/2 transform -translate-y-1/2" style="color: var(--text-muted);">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+              </div>
+              <!-- 搜索按钮 -->
+              <button
+                @click="handleSearch"
+                class="finance-btn-primary px-4 py-2 text-sm"
+                :disabled="stocksLoading"
+              >
+                搜索
+              </button>
             </div>
           </div>
           
@@ -202,23 +212,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import StockDetail from '~/pages/stock/components/StockDetail.vue'
 
-// 防抖函数
-function useDebounce(value, delay = 300) {
-  const debouncedValue = ref(value)
-  let timeout
-  
-  watch(
-    () => value,
-    (newValue) => {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        debouncedValue.value = newValue
-      }, delay)
-    }
-  )
-  
-  return debouncedValue
-}
+
 
 const route = useRoute()
 
@@ -227,8 +221,6 @@ const stocks = ref([])
 const stocksLoading = ref(true)
 const stocksError = ref('')
 const searchQuery = ref('')
-// 使用防抖处理搜索查询，延迟300毫秒
-const debouncedSearchQuery = useDebounce(searchQuery, 300)
 const selectedStockCode = ref('')
 // 星标股票列表
 const starredStocks = ref([])
@@ -334,8 +326,8 @@ async function fetchStocks() {
     
     // 构建URL，包含搜索参数、排序参数和过滤参数
     let url = `/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`
-    if (debouncedSearchQuery.value) {
-      url += `&search=${encodeURIComponent(debouncedSearchQuery.value)}`
+    if (searchQuery.value) {
+      url += `&search=${encodeURIComponent(searchQuery.value)}`
     }
     url += `&sortField=${sortField.value}&sortOrder=${sortOrder.value}`
     
@@ -376,14 +368,14 @@ async function fetchStocks() {
   }
 }
 
-// 监听防抖后的搜索查询变化，重置分页并重新获取数据
-watch(debouncedSearchQuery, () => {
-  // 无论是否有搜索内容，都重置到第一页
+// 手动搜索函数
+function handleSearch() {
+  // 重置到第一页
   currentPage.value = 1
   
   // 重新从服务器获取数据
   fetchStocks()
-})
+}
 
 // 监听路由查询参数变化
 watch(() => route.query.stock, (newStock) => {

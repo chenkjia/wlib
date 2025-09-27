@@ -137,43 +137,10 @@
       
       <!-- 计算结果 Tab -->
       <div v-show="activeTab === 'results'" class="tab-pane bg-white rounded-md p-2">
-        <div class="flex flex-col h-full">
-          <!-- 买卖清单 -->
-          <div class="bg-gray-50 p-3 rounded-md flex-grow overflow-y-auto">
-            <h4 class="font-medium text-gray-700 mb-2">买卖清单</h4>
-            <div v-if="transactions && transactions.length > 0" class="overflow-x-auto">
-              <table class="min-w-full bg-white">
-                <thead>
-                  <tr>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">序号</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">买入日期</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">买入价格</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">卖出日期</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">卖出价格</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">持续天数</th>
-                    <th class="py-2 px-3 border-b border-gray-200 bg-gray-100 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">收益率</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(transaction, index) in transactions" :key="index" class="hover:bg-gray-50">
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ index + 1 }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ formatDate(transaction.buyTime) }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.buyPrice }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ formatDate(transaction.sellTime) }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.sellPrice }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm">{{ transaction.duration || '-' }}</td>
-                    <td class="py-2 px-3 border-b border-gray-200 text-sm" :class="getColorClass(transaction.profit)">
-                      {{ formatProfit(transaction.profit) }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div v-else class="text-center py-4 text-gray-500">
-              暂无交易记录
-            </div>
-          </div>
-        </div>
+        <TransactionList 
+          :transactions="transactions"
+          :loading="calculationLoading"
+        />
       </div>
       
       <!-- 任务列表 Tab -->
@@ -193,6 +160,7 @@
 import { ref, defineProps, defineEmits, computed, watch } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 import TaskList from './TaskList.vue'
+import TransactionList from './TransactionList.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -239,6 +207,7 @@ const emit = defineEmits([
 const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
+const calculationLoading = ref(false) // 计算加载状态
 const taskListRef = ref(null) // 任务列表组件引用
 
 // 监听标签页切换
@@ -269,7 +238,12 @@ function handleCalculation(type) {
   // 显示计算提示消息
   let message = '';
   if (type === 'page') {
-    message = '页内计算任务已提交';
+    message = '页内计算中...';
+    calculationLoading.value = true;
+    // 页内计算完成后需要重置loading状态
+    setTimeout(() => {
+      calculationLoading.value = false;
+    }, 1000);
   } else if (type === 'star') {
     message = '星标计算任务已提交';
   } else if (type === 'global') {
@@ -316,31 +290,8 @@ const syncedMa = computed(() => ({
   x: maX.value
 }))
 
-// 计算平均收益
-const averageProfit = computed(() => {
-  if (!props.transactions || props.transactions.length === 0) return 0
-  const totalProfit = props.transactions.reduce((sum, t) => sum + (t.profit || 0), 0)
-  return totalProfit / props.transactions.length
-})
 
-// 日期格式化函数
-function formatDate(dateString) {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-}
 
-// 格式化收益率
-function formatProfit(profit) {
-  if (profit === undefined || profit === null) return '-'
-  return `${profit.toFixed(2)}%`
-}
-
-// 获取收益率颜色类
-function getColorClass(profit) {
-  if (profit === undefined || profit === null) return ''
-  return profit > 0 ? 'text-green-600' : 'text-red-600'
-}
 
 
 </script>
