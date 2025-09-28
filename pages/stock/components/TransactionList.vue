@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-4">
-    
     <!-- 加载状态 -->
     <div v-if="loading" class="py-4 text-center">
       <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>

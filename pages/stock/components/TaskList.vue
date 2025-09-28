@@ -95,9 +95,9 @@
             color: 'text-gray-700 font-medium'
           }
         }"
-        :column-pinning="{left: ['useParams','name'], right: ['actions']}"
+        :column-pinning="{left: ['params','name'], right: ['actions']}"
       >
-        <template #useParams-cell="{ row }">
+        <template #params-cell="{ row }">
           <button 
             @click="useTaskParams(row.original)" 
             class="p-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
@@ -105,6 +105,16 @@
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
+          <button
+            v-show="props.panelState === 'expanded'"
+            @click="watchParams(row.original)" 
+            class="ml-1 p-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+            title="查看此任务参数"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </button>
         </template>
@@ -128,22 +138,16 @@
         <template #createdAt-cell="{ row }">
           {{ formatDate(row.original.createdAt) }}
         </template>
-        <template #params-cell="{ row }">
-          {{ row.params ? (JSON.stringify(row.params).substring(0, 50) + (JSON.stringify(row.params).length > 50 ? '...' : '')) : '-' }}
-        </template>
-        
+        <!-- 数据开始 -->
         <template #totalTrades-cell="{ row }">
           {{ row.original.result?.totalTrades !== undefined ? row.original.result.totalTrades.toFixed(2) : '-' }}
         </template>
-        
         <template #profitTrades-cell="{ row }">
           {{ row.original.result?.profitTrades !== undefined ? row.original.result.profitTrades.toFixed(2) : '-' }}
         </template>
-        
         <template #lossTrades-cell="{ row }">
           {{ row.original.result?.lossTrades !== undefined ? row.original.result.lossTrades.toFixed(2) : '-' }}
         </template>
-        
         <template #winRate-cell="{ row }">
           <span v-if="row.original.result?.winRate !== undefined" 
                 :class="row.original.result.winRate >= 0.5 ? 'text-green-600' : 'text-red-600'">
@@ -151,7 +155,6 @@
           </span>
           <span v-else>-</span>
         </template>
-        
         <template #daysDuration-cell="{ row }">
           {{ row.original.result?.daysDuration !== undefined ? row.original.result.daysDuration.toFixed(2) : '-' }}
         </template>
@@ -214,6 +217,7 @@
           </span>
           <span v-else>-</span>
         </template>
+        <!-- 数据结束 -->
         
         <template #actions-cell="{ row }">
           <button 
@@ -253,6 +257,22 @@
             
           </div>
         </template>
+        <template #stockCount-cell="{ row }">
+          <UButton
+            v-if="row.original.params?.type === 'star'"
+            variant="ghost"
+            color="neutral"
+            class="mr-2"
+            size="xs"
+            @click="row.toggleExpanded()"
+          >
+            {{ row.original.result.stockCount }}
+          </UButton>
+          <span v-else>{{ row.original.result.stockCount }}</span>
+        </template>
+        <template #expanded="{ row }">
+          <StockResultTable :stocksResult="row.original.stocksResult" />
+        </template>
       </UTable>
       
       <!-- 分页控件 -->
@@ -275,6 +295,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useDebounce } from '@vueuse/core'
+import StockResultTable from './StockResultTable.vue'
 
 const props = defineProps({
   panelState: {
@@ -305,6 +326,7 @@ const expandedTasks = ref([]) // 存储已展开的任务ID
 const editingTaskId = ref(null) // 当前正在编辑的任务ID
 const editingTaskName = ref('') // 编辑中的任务名称
 const taskNameInput = ref(null) // 任务名称输入框引用
+const expandedRows = ref(new Set()) // 存储已展开的行ID
 
 // 计算属性
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize.value))
@@ -342,7 +364,7 @@ const columnVisibility = computed(() => {
       status: true,
       createdAt: false,
       updatedAt: false,
-      params: false,
+      params: true,
       totalTrades: false,
       profitTrades: false,
       lossTrades: false,
@@ -411,10 +433,9 @@ async function saveTaskName(taskId) {
 // 表格列定义
 const columns = ref([
   {
-    accessorKey: 'actions',
-    header: '',
-    id: 'useParams',
-    size: 50
+    accessorKey: 'params',
+    header: '参数',
+    id: 'params'
   },
   {
     accessorKey: 'name',
@@ -450,11 +471,6 @@ const columns = ref([
     accessorKey: 'result.dayLineDailyChange',
     header: '日线日均',
     id: 'dayLineDailyChange'
-  },
-  {
-    accessorKey: 'params',
-    header: '参数',
-    id: 'params'
   },
   {
     accessorKey: 'result.totalTrades',
