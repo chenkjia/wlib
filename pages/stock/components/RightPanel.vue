@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col overflow-hidden bg-white shadow-md rounded-md">
     <!-- Tab导航 - 固定高度 -->
-    <div class="flex border-b border-gray-300 mb-4 flex-shrink-0">
+    <div class="flex border-b border-gray-300 flex-shrink-0">
       <button 
         @click="activeTab = 'config'"
         :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'config' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
@@ -25,7 +25,7 @@
     <!-- Tab内容 - 可滚动区域 -->
     <div class="tab-content overflow-y-auto flex-grow">
       <!-- 配置规则 Tab -->
-      <div v-show="activeTab === 'config'" class="tab-pane bg-white rounded-md p-2">
+      <div v-show="activeTab === 'config'" class="tab-pane bg-white">
         <div class="space-y-4">
           <!-- MA配置 -->
           <div class="bg-gray-50 p-3 rounded-md">
@@ -136,7 +136,7 @@
       </div>
       
       <!-- 计算结果 Tab -->
-      <div v-show="activeTab === 'results'" class="tab-pane bg-white rounded-md p-2">
+      <div v-show="activeTab === 'results'" class="tab-pane bg-white">
         <TransactionList 
           :transactions="transactions"
           :loading="calculationLoading"
@@ -144,7 +144,7 @@
       </div>
       
       <!-- 任务列表 Tab -->
-      <div v-show="activeTab === 'tasks'" class="tab-pane bg-white rounded-md p-2">
+      <div v-show="activeTab === 'tasks'" class="tab-pane bg-white">
         <TaskList
           ref="taskListRef"
           :panelState="panelState"

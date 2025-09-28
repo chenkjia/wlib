@@ -1,6 +1,6 @@
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between items-center mb-2">
+  <div>
+    <div class="flex justify-between items-center p-2">
       <h4 class="font-medium text-gray-700">任务列表</h4>
       <div class="flex gap-2">
         <button 
@@ -26,7 +26,7 @@
     </div>
     
     <!-- 搜索和过滤 -->
-    <div class="mb-3 flex gap-3">
+    <div class="p-2 flex gap-3">
       <div class="relative flex-1">
         <input
           v-model="searchQuery"
@@ -256,7 +256,7 @@
       </UTable>
       
       <!-- 分页控件 -->
-      <div v-if="totalPages > 1" class="mt-4 pt-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
+      <div v-if="totalPages > 1" class="p-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
         <div class="text-sm text-gray-500">
           第 {{ currentPage }} 页，共 {{ totalPages }} 页
         </div>

@@ -1,11 +1,5 @@
 <template>
   <div class="space-y-4">
-    <div class="flex justify-between items-center mb-2">
-      <h4 class="font-medium text-gray-700">买卖清单</h4>
-      <div class="text-sm text-gray-500">
-        共 {{ transactions.length }} 笔交易
-      </div>
-    </div>
     
     <!-- 加载状态 -->
     <div v-if="loading" class="py-4 text-center">
@@ -20,6 +14,7 @@
         :columns="columns"
         :loading="loading"
         class="w-full"
+        v-model:sorting="sorting"
         :ui="{
           wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
           td: {
@@ -53,6 +48,34 @@
           {{ row.original.duration || '-' }}
         </template>
         
+        <template #duration-header="{ column }">
+          <div class="flex items-center justify-center">
+            <UButton
+              class="-mx-2.5"
+              color="neutral"
+              variant="ghost"
+              label="持续天数"
+              :icon="column.getIsSorted() === 'asc' ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow'"
+              @click="sortBy(column)"
+            >
+            </UButton>
+          </div>
+        </template>
+
+        <template #profit-header="{ column }">
+          <div class="flex items-center justify-center">
+            <UButton
+              class="-mx-2.5"
+              color="neutral"
+              variant="ghost"
+              label="收益率"
+              :icon="column.getIsSorted() === 'asc' ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow'"
+              @click="sortBy(column)"
+            >
+            </UButton>
+          </div>
+        </template>
+
         <template #profit-cell="{ row }">
           <span 
             v-if="row.original.profit !== undefined && row.original.profit !== null" 
@@ -125,6 +148,13 @@ const columns = ref([
   }
 ])
 
+const sorting = ref([
+  {
+    id: 'profit',
+    desc: true
+  }
+])
+
 // 日期格式化函数
 function formatDate(dateString) {
   if (!dateString) return '-'
@@ -135,6 +165,13 @@ function formatDate(dateString) {
     day: '2-digit'
   })
 }
+
+// 排序函数 - 按收益率排序
+function sortBy(column) {
+  column.toggleSorting(column.getIsSorted() === 'asc')
+}
+
+
 
 // 收益率格式化函数
 function formatProfit(profit) {
