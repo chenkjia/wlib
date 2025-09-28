@@ -5,6 +5,7 @@ const taskSchema = new mongoose.Schema({
     status: { type: String, default: 'pending' },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
+    stocksResult: { type: Array, default: [] },
     params: { type: mongoose.Schema.Types.Mixed },
     result: { type: mongoose.Schema.Types.Mixed },
     progress: { type: Number, default: 0 }

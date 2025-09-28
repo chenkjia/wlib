@@ -56,12 +56,19 @@ class BacktestExecutor {
         logger.info(`开始对第 ${i+1}/${stockList.length} 个股票 ${stock.code} 执行回测策略...`);
         // 使用BacktestExecutor执行单个股票回测
         const backtestData = await this.backtestSingle(stock.code, strategy);
-        backtestResults.push(backtestData);
+        backtestResults.push({
+          stock: stock.code,
+          ...backtestData
+        });
         if (task._id && (i + 1) % 5 === 0) {
             const progress = Math.floor(((i + 1) / stockList.length) * 100);
             await MongoDB.updateTaskProgress(task._id, progress);
             logger.info(`已更新任务进度: ${progress}%`);
         }
+    }
+    // 如果有任务ID并且是星标任务，更新任务结果
+    if (task._id && strategy.type === 'star') {
+      await MongoDB.updateTask(task._id, { stocksResult: backtestResults });
     }
     
     // 任务完成后更新进度为100%

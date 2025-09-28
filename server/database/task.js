@@ -120,6 +120,10 @@ class TaskDB {
             if (updateData.name) {
                 task.name = updateData.name;
             }
+            // 更新任务字段
+            if (updateData.stocksResult) {
+                task.stocksResult = updateData.stocksResult;
+            }
             
             task.updatedAt = new Date();
             
