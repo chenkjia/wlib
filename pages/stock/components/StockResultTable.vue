@@ -16,12 +16,17 @@
         }
       }"
     >
-      <template #code-cell="{ row }">
-        {{ row.original.code }}
-      </template>
       
-      <template #name-cell="{ row }">
-        {{ row.original.name }}
+      <template #stock-cell="{ row }">
+        <UButton
+          variant="ghost"
+          color="neutral"
+          class="mr-2"
+          size="xs"
+          @click="$emit('changeViewStock', row.original.stock)"
+        >
+          {{ row.original.stock }}
+        </UButton>
       </template>
       
         <!-- 数据开始 -->

@@ -201,6 +201,7 @@
           <StockDetail 
             :stock-code="selectedStockCode || 'ETH'" 
             @error="handleStockDetailError"
+            @changeViewStock="selectStock"
           />
         </div>
     </div>

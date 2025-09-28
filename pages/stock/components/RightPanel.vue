@@ -150,6 +150,7 @@
           :panelState="panelState"
           @changePanelState="$emit('changePanelState', $event)" 
           @useTaskParams="$emit('useTaskParams', $event)"
+          @changeViewStock="$emit('changeViewStock',$event)"
         />
       </div>
     </div>

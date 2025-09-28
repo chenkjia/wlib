@@ -26,6 +26,7 @@
           @calculation="handleCalculation"
           @changePanelState="changePanelState"
           @useTaskParams="useTaskParams"
+          @changeViewStock="$emit('changeViewStock',$event)"
         />
       </div>
         <!-- 右侧面板收缩按钮 -->

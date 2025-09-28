@@ -271,7 +271,10 @@
           <span v-else>{{ row.original.result.stockCount }}</span>
         </template>
         <template #expanded="{ row }">
-          <StockResultTable :stocksResult="row.original.stocksResult" />
+          <StockResultTable
+            :stocksResult="row.original.stocksResult"
+            @changeViewStock="$emit('changeViewStock',$event)"
+          />
         </template>
       </UTable>
       
