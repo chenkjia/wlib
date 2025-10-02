@@ -3,21 +3,21 @@
     <div class="flex justify-between items-center p-2">
       <h4 class="font-medium text-gray-700">任务列表</h4>
       <div class="flex gap-2">
-        <button 
+        <UButton
           @click="refresh" 
-          class="px-2 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center"
-          :disabled="loading"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" :class="{'animate-spin': loading}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          刷新
-        </button>
+          label="刷新"
+          :icon="loading ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
+          :loading="loading"
+          color="info"
+          size="sm"
+          class="flex items-center"
+        />
         <UButton
           @click="changePanelState" 
           :label="props.panelState === 'expanded' ? '恢复' : '展开'"
-          :icon="props.panelState === 'expanded' ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-          class="px-2 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center"
+          :icon="props.panelState === 'expanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
+          color="success"
+          size="sm"
         />
       </div>
     </div>
@@ -92,28 +92,26 @@
             color: 'text-gray-700 font-medium'
           }
         }"
-        :column-pinning="{left: ['params','name'], right: ['actions']}"
+        :column-pinning="{left: ['name'], right: ['actions','params','stockCount']}"
       >
         <template #params-cell="{ row }">
-          <button 
-            @click="useTaskParams(row.original)" 
-            class="p-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-            title="使用此任务参数"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-          <button
-            v-show="props.panelState === 'expanded'"
-            @click="watchParams(row.original)" 
-            class="ml-1 p-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-            title="查看此任务参数"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
+          <div class="flex gap-2">
+            <UButton
+              @click="useTaskParams(row.original)" 
+              icon="i-lucide-code-2"
+              color="info"
+              size="xs"
+              title="使用此任务参数"
+            />
+            <UButton
+              v-show="props.panelState === 'expanded'"
+              @click="watchParams(row.original)" 
+              icon="i-lucide-eye"
+              color="info"
+              size="xs"
+              title="查看此任务参数"
+            />
+          </div>
         </template>
         
         <template #name-cell="{ row }">
@@ -140,10 +138,9 @@
           {{ row.original.result?.totalTrades !== undefined ? row.original.result.totalTrades.toFixed(2) : '-' }}
         </template>
         <template #profitTrades-cell="{ row }">
-          {{ row.original.result?.profitTrades !== undefined ? row.original.result.profitTrades.toFixed(2) : '-' }}
-        </template>
-        <template #lossTrades-cell="{ row }">
-          {{ row.original.result?.lossTrades !== undefined ? row.original.result.lossTrades.toFixed(2) : '-' }}
+          <span class='text-green-600'>{{ row.original.result?.profitTrades !== undefined ? row.original.result.profitTrades.toFixed(2) : '-' }}</span>
+          /
+          <span class='text-red-600'>{{ row.original.result?.lossTrades !== undefined ? row.original.result.lossTrades.toFixed(2) : '-' }}</span>
         </template>
         <template #winRate-cell="{ row }">
           <span v-if="row.original.result?.winRate !== undefined" 
@@ -217,12 +214,12 @@
         <!-- 数据结束 -->
         
         <template #actions-cell="{ row }">
-          <button 
+          <UButton
             @click.stop="deleteTask(row.original._id)" 
-            class="px-2 py-1 text-sm bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"
-          >
-            删除
-          </button>
+            icon="i-lucide-trash-2"
+            color="error"
+            size="xs"
+          />
         </template>
         
         <template #empty-state>
@@ -344,7 +341,6 @@ const columnVisibility = computed(() => {
       params: true,
       totalTrades: true,
       profitTrades: true,
-      lossTrades: true,
       winRate: true,
       daysDuration: true,
       priceChange: true,
@@ -367,7 +363,6 @@ const columnVisibility = computed(() => {
       params: true,
       totalTrades: false,
       profitTrades: false,
-      lossTrades: false,
       winRate: false,
       daysDuration: false,
       priceChange: false,
@@ -479,13 +474,8 @@ const columns = ref([
   },
   {
     accessorKey: 'result.profitTrades',
-    header: '盈利笔数',
+    header: '盈/亏',
     id: 'profitTrades'
-  },
-  {
-    accessorKey: 'result.lossTrades',
-    header: '亏损笔数',
-    id: 'lossTrades'
   },
   {
     accessorKey: 'result.daysDuration',

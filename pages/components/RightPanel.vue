@@ -141,7 +141,7 @@
       
       <!-- 计算结果 Tab -->
       <div v-show="activeTab === 'results'" class="tab-pane bg-white">
-        <TransactionList 
+        <StockResultTable 
           :transactions="transactions"
           :loading="calculationLoading"
         />
@@ -153,7 +153,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, computed, watch } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
-import TransactionList from './TransactionList.vue'
+import StockResultTable from './StockResultTable.vue'
 
 const props = defineProps({
   // MA配置参数
