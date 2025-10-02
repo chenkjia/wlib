@@ -13,15 +13,12 @@
           </svg>
           刷新
         </button>
-        <button 
-          @click="changePanelState(props.panelState === 'expanded' ? 'normal' : 'expanded')" 
+        <UButton
+          @click="changePanelState" 
+          :label="props.panelState === 'expanded' ? '恢复' : '展开'"
+          :icon="props.panelState === 'expanded' ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
           class="px-2 py-1 text-sm bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4m-4 0l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
-          </svg>
-          {{ props.panelState === 'expanded' ? '恢复' : '展开' }}
-        </button>
+        />
       </div>
     </div>
     
@@ -307,7 +304,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['changePanelState', 'error'])
+const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'])
 
 // 使用任务参数
 const useTaskParams = (task) => {
@@ -657,8 +654,9 @@ function getStatusColor(status) {
 function getStatusText(status) {
   return statusMap[status]?.text || status
 }
-function changePanelState(state) {
-  emit('changePanelState', state)
+function changePanelState() {
+  const newState = props.panelState === 'expanded' ? 'normal' : 'expanded'
+  emit('changePanelState', newState)
 }
 
 // 日期格式化函数

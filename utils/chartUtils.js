@@ -53,6 +53,24 @@ export function calculateMA(data, period) {
   }
   return result;
 }
+/**
+ * 计算指数移动平均线
+ * @param {Array<number>} data - 历史行情数据
+ * @param {number} period - 计算周期
+ * @returns {Array<number>} 指数移动平均线数据
+ */
+export function calculateEMA(data, period) {
+  if (!Array.isArray(data) || data.length === 0) {
+    return [];
+  }
+  const result = [];
+  const multiplier = 2 / (period + 1);
+  result.push(data[0]);
+  for (let i = 1; i < data.length; i++) {
+    result.push((data[i] - result[i - 1]) * multiplier + result[i - 1]);
+  }
+  return result;
+}
 
 /**
  * 计算持仓方向

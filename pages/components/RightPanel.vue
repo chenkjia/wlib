@@ -1,24 +1,28 @@
 <template>
   <div class="h-full flex flex-col overflow-hidden bg-white shadow-md rounded-md">
-    <!-- Tab导航 - 固定高度 -->
-    <div class="flex border-b border-gray-300 flex-shrink-0">
-      <button 
+    <!-- 标签页头部 -->
+    <div class="flex border-b" style="border-color: var(--border-light);">
+      <button
         @click="activeTab = 'config'"
-        :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'config' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'config' 
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
       >
         配置规则
       </button>
-      <button 
+      <button
         @click="activeTab = 'results'"
-        :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'results' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'results' 
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
       >
         计算结果
-      </button>
-      <button 
-        @click="activeTab = 'tasks'"
-        :class="['px-4 py-2 font-medium rounded-t-md transition-all', activeTab === 'tasks' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100']"
-      >
-        任务列表
       </button>
     </div>     
     
@@ -142,17 +146,6 @@
           :loading="calculationLoading"
         />
       </div>
-      
-      <!-- 任务列表 Tab -->
-      <div v-show="activeTab === 'tasks'" class="tab-pane bg-white">
-        <TaskList
-          ref="taskListRef"
-          :panelState="panelState"
-          @changePanelState="$emit('changePanelState', $event)" 
-          @useTaskParams="$emit('useTaskParams', $event)"
-          @changeViewStock="$emit('changeViewStock',$event)"
-        />
-      </div>
     </div>
   </div>
 </template>
@@ -160,7 +153,6 @@
 <script setup>
 import { ref, defineProps, defineEmits, computed, watch } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
-import TaskList from './TaskList.vue'
 import TransactionList from './TransactionList.vue'
 
 const props = defineProps({
@@ -188,11 +180,6 @@ const props = defineProps({
   sellConditions: {
     type: Array,
     default: () => []
-  },
-  // 面板状态
-  panelState: {
-    type: String,
-    default: 'normal'
   }
 })
 
@@ -209,15 +196,6 @@ const activeTab = ref('config') // 当前激活的标签页，默认为配置规
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
 const calculationLoading = ref(false) // 计算加载状态
-const taskListRef = ref(null) // 任务列表组件引用
-
-// 监听标签页切换
-watch(activeTab, (newTab) => {
-  if (newTab === 'tasks' && taskListRef.value) {
-    // 当切换到任务列表标签时，自动刷新任务列表
-    taskListRef.value.refresh()
-  }
-})
 
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
