@@ -141,7 +141,7 @@
       
       <!-- 计算结果 Tab -->
       <div v-show="activeTab === 'results'" class="tab-pane bg-white">
-        <StockResultTable 
+        <TransactionList 
           :transactions="transactions"
           :loading="calculationLoading"
         />
@@ -153,7 +153,7 @@
 <script setup>
 import { ref, defineProps, defineEmits, computed, watch } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
-import StockResultTable from './StockResultTable.vue'
+import TransactionList from './TransactionList.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -196,7 +196,6 @@ const activeTab = ref('config') // 当前激活的标签页，默认为配置规
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
 const calculationLoading = ref(false) // 计算加载状态
-
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
 }

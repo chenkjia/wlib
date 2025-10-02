@@ -75,6 +75,20 @@
           </div>
         </template>
 
+        <template #buyTime-header="{ column }">
+          <div class="flex items-center justify-center">
+            <UButton
+              class="-mx-2.5"
+              color="neutral"
+              variant="ghost"
+              label="买入日期"
+              :icon="column.getIsSorted() === 'asc' ? 'i-lucide-arrow-up-narrow-wide' : 'i-lucide-arrow-down-wide-narrow'"
+              @click="sortBy(column)"
+            >
+            </UButton>
+          </div>
+        </template>
+
         <template #profit-cell="{ row }">
           <span 
             v-if="row.original.profit !== undefined && row.original.profit !== null" 

@@ -22,6 +22,9 @@
       >
         <ChartPanel
           :stockCode="selectedStockCode"
+          :dayLineWithMetric="dayLineWithMetric"
+          :transactions="transactions"
+          :backtestData="backtestData"
           :ma="ma"
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
@@ -48,8 +51,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { calculateStock } from '~/utils/chartUtils.js'
 import LeftPanel from './components/LeftPanel.vue'
 import ChartPanel from './components/ChartPanel.vue'
 import RightPanel from './components/RightPanel.vue'
@@ -59,6 +63,7 @@ const route = useRoute()
 // 状态变量
 const selectedStockCode = ref('')
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
+const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 
 // 从本地存储读取配置或使用默认值
 const getLocalConfig = (key, defaultValue) => {
@@ -95,8 +100,10 @@ const sellConditions = ref(getLocalConfig('sellConditions', [
   ['MAM_CROSS_DOWN_MAL']
 ]))
 
-// 交易数据
+// 交易数据和回测数据
 const transactions = ref([])
+const backtestData = ref({})
+const dayLine = ref([]) // 存储日线数据
 
 // 错误处理
 function handleError(error) {
@@ -169,10 +176,61 @@ function handleUseTaskParams(params) {
   saveConfigToLocalStorage()
 }
 
+// 加载股票数据
+async function loadStockData() {
+  if (!selectedStockCode.value) return
+  
+  try {
+    // 获取日线数据
+    const response = await fetch(`/api/dayLine?code=${encodeURIComponent(selectedStockCode.value)}`)
+    dayLine.value = await response.json()
+    
+    // 计算交易数据
+    calculateTransactions()
+  } catch (err) {
+    console.error('加载数据失败:', err)
+  }
+}
+
+// 计算交易数据
+function calculateTransactions() {
+  if (!dayLine.value.length) return
+  
+  // 计算交易点（买入卖出点）
+  const { dayLineWithMetric: calculatedDayLineWithMetric,
+    hourLineWithMetric,
+    transactions: calculatedTransactions,
+    backtestData: calculatedBacktestData
+  } = calculateStock({
+    dayLine: dayLine.value,
+    hourLine: dayLine.value,
+    ma: ma.value,
+    buyConditions: buyConditions.value,
+    sellConditions: sellConditions.value
+  })
+  
+  // 更新交易数据和回测数据
+  dayLineWithMetric.value = calculatedDayLineWithMetric
+  transactions.value = calculatedTransactions
+  backtestData.value = calculatedBacktestData
+}
+
 // 处理查看股票
 function handleChangeViewStock(stockCode) {
   selectedStockCode.value = stockCode
 }
+
+// 监听股票代码变化
+watch(() => selectedStockCode.value, async (newCode, oldCode) => {
+  if (newCode && newCode !== oldCode) {
+    await loadStockData()
+  }
+}, { immediate: true })
+
+// 监听 MA 和条件变化
+watch([() => ma.value, () => buyConditions.value, () => sellConditions.value], () => {
+  calculateTransactions()
+}, { deep: true })
 
 onMounted(() => {
   // 检查URL中是否有股票代码参数

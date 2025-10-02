@@ -11,26 +11,20 @@ export const downColor = '#ec0000'
  * @param {Array} rawData - 原始数据
  * @returns {Object} 分割后的数据
  */
-export function splitData(rawData = []) {
-  const categoryData = []
-  const values = []
-  const volumes = []
-  const trendStartPoints = []
-  const trendEndPoints = []
-  
-  for (let i = 0; i < rawData.length; i++) {
-    const item = rawData[i]
-    categoryData.push(item.time)
-    values.push([item.open, item.close, item.low, item.high])
-    volumes.push([i, item.volume, item.close > item.open ? 1 : -1])
-  }
-  
+export function splitData(rawData = [], transactions = []) {
+  const categoryData = rawData.map(item => item.time)
+  const values = rawData.map(item => [item.open, item.close, item.low, item.high])
+  const volumes = rawData.map((item, index) => [index, item.volume, item.close > item.open ? 1 : -1])
+  const trendData = transactions.map(transaction => ({
+    buyIndex: rawData.findIndex(item => item.time === transaction.buyTime),
+    sellIndex: rawData.findIndex(item => item.time === transaction.sellTime),
+    ...transaction
+  }))
   return {
     categoryData,
     values,
     volumes,
-    trendStartPoints,
-    trendEndPoints
+    trendData
   }
 }
 
@@ -41,18 +35,31 @@ export function splitData(rawData = []) {
  * @param {Object} data - 分割后的数据
  * @returns {Object} 处理后的数据
  */
-export function processTrendPoints(rawData, goals, data) {
-  // 不再添加趋势点标记
-  const trendStartPoints = []
-  const trendEndPoints = []
-    
-  // 不再查找和添加趋势点
-  
-  return {
-    ...data,
-    trendStartPoints,
-    trendEndPoints
-  }
+function processTrendPoints(trendData) {
+  const trendType = ['buy', 'sell']
+  const trendPoints = trendData.reduce((acc, transaction, index) => ([
+    ...acc,
+    ...trendType.map(type => ({
+      name: `${type}${index + 1}`,
+      coord: [transaction[type + 'Index'], transaction[type + 'Price']],
+      value: `${type.toUpperCase()}: ${transaction[type + 'Price']}`,
+      itemStyle: { color: type === 'buy' ? '#00da3c' : '#ec0000' },
+      symbol: 'pin',
+      symbolSize: 30,
+      label: {
+        show: true,
+        position: 'top',
+        distance: 10,
+        formatter: type === 'buy' ? '买' : '卖',
+        fontSize: 12,
+        color: '#fff',
+        backgroundColor: type === 'buy' ? '#00da3c' : '#ec0000',
+        padding: 3,
+        borderRadius: 3
+      }
+    }))
+  ]), [])
+  return trendPoints
 }
 
 /**
@@ -66,7 +73,8 @@ export function processTrendPoints(rawData, goals, data) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, formatDateMMDD) {
+export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD, formatDateMMDD) {
+  const trendPoints = processTrendPoints(data.trendData)
   return {
     animation: false,
     tooltip: {
@@ -216,10 +224,7 @@ export function createChartOption(data, maS, maM, maL, maX, formatDateYYYYMMDD, 
         markPoint: {
           symbol: 'pin',
           symbolSize: 40,
-          data: [
-            ...data.trendStartPoints,
-            ...data.trendEndPoints
-          ],
+          data: trendPoints,
           label: {
             formatter: function(params) {
               return params.data.value;
