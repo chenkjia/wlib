@@ -38,6 +38,7 @@
       >
         <RightPanel
           v-model:ma="ma"
+          v-model:macd="macd"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           :transactions="transactions"
@@ -78,6 +79,7 @@ const getLocalConfig = (key, defaultValue) => {
 const saveConfigToLocalStorage = () => {
   if (process.client) {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
+    localStorage.setItem(`stock_config_macd`, JSON.stringify(macd.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
   }
@@ -89,6 +91,13 @@ const ma = ref(getLocalConfig('ma', {
   m: 50, // 中期MA
   l: 100, // 长期MA
   x: 200  // 超长期MA
+}))
+
+// MACD配置参数
+const macd = ref(getLocalConfig('macd', {
+  s: 12, // 快线
+  l: 26, // 慢线
+  d: 9 // 信号线
 }))
 
 // 买入和卖出条件配置
@@ -136,6 +145,7 @@ async function handleRemoteCalculation(params) {
     params: {
       type: params.type,
       ma: params.ma,
+      macd: params.macd,
       buyConditions: params.buyConditions,
       sellConditions: params.sellConditions
     }
@@ -205,6 +215,7 @@ function calculateTransactions() {
     dayLine: dayLine.value,
     hourLine: dayLine.value,
     ma: ma.value,
+    macd: macd.value,
     buyConditions: buyConditions.value,
     sellConditions: sellConditions.value
   })
@@ -227,8 +238,8 @@ watch(() => selectedStockCode.value, async (newCode, oldCode) => {
   }
 }, { immediate: true })
 
-// 监听 MA 和条件变化
-watch([() => ma.value, () => buyConditions.value, () => sellConditions.value], () => {
+// 监听 MA、MACD 和条件变化
+watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
   calculateTransactions()
 }, { deep: true })
 

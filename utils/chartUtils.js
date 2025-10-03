@@ -176,21 +176,26 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
  * @param {Array<Object>} data - 数据
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
+export function calculateMetric(data, {ma, macd}) {
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
-  const maS = calculateMA(close, s);
-  const maM = calculateMA(close, m);
-  const maL = calculateMA(close, l);
-  const maX = calculateMA(close, x);
+  const maS = calculateMA(close, ma.s);
+  const maM = calculateMA(close, ma.m);
+  const maL = calculateMA(close, ma.l);
+  const maX = calculateMA(close, ma.x);
   const position = calculatePosition({maS, maM, maL})
   const sign1 = calculateSign1({position})
   const sign2 = calculateSign2({maS, maM, maL})
   const trendAlignment = calculateTrendAlignment({maS, maM, maL, maX})
-  const volumeMaS = calculateMA(volume, s);
-  const volumeMaM = calculateMA(volume, m);
-  const volumeMaL = calculateMA(volume, l);
-  const volumeMaX = calculateMA(volume, x);
+  const volumeMaS = calculateMA(volume, ma.s);
+  const volumeMaM = calculateMA(volume, ma.m);
+  const volumeMaL = calculateMA(volume, ma.l);
+  const volumeMaX = calculateMA(volume, ma.x);
+  const emaS = calculateEMA(close, macd.s);
+  const emaL = calculateEMA(close, macd.l);
+  const dif = emaS.map((ema, index) => ema - emaL[index])
+  const dea = calculateEMA(dif, macd.d)
+  const bar = dif.map((line, index) => line - dea[index])
   return {
     line: data,
     data,
@@ -206,36 +211,16 @@ export function calculateMetric(data, {s=7, m=50, l=100, x=200}) {
     volumeMaM,
     volumeMaL,
     volumeMaX,
+    dif,
+    dea,
+    bar
   }
 }
 
-/**
- * 计算日线技术指标
- * @param {Array<Object>} dayLine - 日线数据
- * @returns {Array<Object>} 包含技术指标的日线数据
- */
-export function calculateDayMetric(dayLine, {s=7, m=50, l=100, x=200} = {}) {
-  return calculateMetric(dayLine, {s, m, l, x})
-}
-
-/**
- * 计算小时线技术指标
- * @param {Array<Object>} hourLine - 小时线数据
- * @returns {Array<Object>} 包含技术指标的小时线数据
- */
-export function calculateHourMetric(hourLine, {
-  s=7,
-  m=14,
-  l=50,
-  x=100
-} = {}) {
-  return calculateMetric(hourLine, {s, m, l, x})
-}
-
 export const calculateStock = (props) => {
-  const { dayLine, hourLine, ma, buyConditions, sellConditions } = props
-  const dayLineWithMetric = calculateDayMetric(dayLine, ma)
-  const hourLineWithMetric = calculateHourMetric(hourLine, ma)
+  const { dayLine, hourLine, ma, macd, buyConditions, sellConditions } = props
+  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd })
+  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd })
   const transactions =  calculateTransactions({
     dayLineWithMetric,
     hourLineWithMetric,

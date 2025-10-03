@@ -40,7 +40,31 @@ const algorithmMap = {
     },
     VOLUME_HIGH: (i, {volume}) => {
       return volume[i] > volume[i-1] * 1.1
-    }
+    },
+    VOLUME_LOW: (i, {volume}) => {
+      return volume[i] < volume[i-1] * 0.9
+    },
+    SIGN1: (i, {sign1}) => {
+      return sign1[i] < 50
+    },
+    // macd金叉
+    MACD_CROSS_UP_GOLDEN: (i, {dif, dea}) => {
+      return dif[i-1] < dea[i-1] && dif[i] >= dea[i]
+        && (dea[i-1] <= 0 || Math.abs(dea[i-1]) < 0.05)
+    },
+    // macd死叉
+    MACD_CROSS_DOWN_DEAD: (i, {dif, dea}) => {
+      return dif[i-1] > dea[i-1] && dif[i] <= dea[i]
+        && (dea[i-1] >= 0 || Math.abs(dea[i-1]) < 0.05)
+    },
+    // macd底背离
+    MACD_BOTTOM_DEVIATION: (i, {dif, line}) => {
+      return (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
+    },
+    // macd顶背离
+    MACD_TOP_DEVIATION: (i, {dif, line}) => {
+      return (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
+    },
   }
 
 export { algorithmMap }

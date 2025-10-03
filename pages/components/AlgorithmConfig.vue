@@ -100,7 +100,17 @@ const availableConditions = [
   { value: 'MAL_CROSS_DOWN_MAX', label: '长期均线下穿超长期均线' },
   
   // 成交量相关
-  { value: 'VOLUME_HIGH', label: '成交量放大' }
+  { value: 'VOLUME_HIGH', label: '成交量放大' },
+  { value: 'VOLUME_LOW', label: '成交量缩小' },
+  // macd相关
+  { value: 'MACD_CROSS_UP_GOLDEN', label: 'macd金叉' },
+  { value: 'MACD_CROSS_DOWN_DEAD', label: 'macd死叉' },
+  { value: 'MACD_BOTTOM_DEVIATION', label: 'macd底背离' },
+  { value: 'MACD_TOP_DEVIATION', label: 'macd顶背离' },
+
+  // 其他指标
+  { value: 'SIGN1', label: 'sign1小于50' },
+
 ]
 
 // 算法组数据结构 - 使用props中的initialValue进行初始化

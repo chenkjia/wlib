@@ -11,8 +11,6 @@ async function runBacktest() {
 
         await MongoDB.clearTransaction();
         await executor.backtestAll();
-        // const result = await executor.backtestSingle('ETH');
-        // console.log(result);
         
         logger.info('所有股票回测完成');
     } catch (error) {

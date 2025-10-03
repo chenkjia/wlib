@@ -90,6 +90,52 @@
             </div>
           </div>
           
+          <!-- MACD配置 -->
+          <div class="bg-gray-50 p-3 rounded-md">
+            <h4 class="font-medium text-gray-700 mb-2">MACD配置</h4>
+            <div class="grid grid-cols-3 gap-3">
+              <!-- 快线 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">快线 (EMA12)</label>
+                <div class="flex items-center">
+                  <input 
+                    type="number" 
+                    v-model="macdS" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="5"
+                    max="30"
+                  />
+                </div>
+              </div>
+              <!-- 慢线 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">慢线 (EMA26)</label>
+                <div class="flex items-center">
+                  <input 
+                    type="number" 
+                    v-model="macdL" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="15"
+                    max="50"
+                  />
+                </div>
+              </div>
+              <!-- 信号线 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-600 mb-1">信号线 (EMA9)</label>
+                <div class="flex items-center">
+                  <input 
+                    type="number" 
+                    v-model="macdD" 
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    min="3"
+                    max="20"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <!-- 买入算法 -->
           <div class="bg-gray-50 p-3 rounded-md">
             <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
@@ -166,6 +212,15 @@ const props = defineProps({
       x: 60
     })
   },
+  // MACD配置参数
+  macd: {
+    type: Object,
+    default: () => ({
+      s: 12,
+      l: 26,
+      d: 9
+    })
+  },
   // 交易数据
   transactions: {
     type: Array,
@@ -185,6 +240,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'update:ma',
+  'update:macd',
   'update:buyConditions',
   'update:sellConditions',
   'calculation',
@@ -209,6 +265,7 @@ function handleCalculation(type) {
   const params = {
     type: type, // 添加类型参数
     ma: syncedMa.value,
+    macd: syncedMacd.value,
     buyConditions: props.buyConditions,
     sellConditions: props.sellConditions
   }
@@ -260,12 +317,34 @@ const maX = computed({
   set: (val) => emit('update:ma', { ...props.ma, x: Number(val) })
 })
 
+// MACD 配置的响应式数据
+const macdS = computed({
+  get: () => props.macd?.s ?? 12,
+  set: (val) => emit('update:macd', { ...props.macd, s: Number(val) })
+})
+
+const macdL = computed({
+  get: () => props.macd?.l ?? 26,
+  set: (val) => emit('update:macd', { ...props.macd, l: Number(val) })
+})
+
+const macdD = computed({
+  get: () => props.macd?.d ?? 9,
+  set: (val) => emit('update:macd', { ...props.macd, d: Number(val) })
+})
+
 // 同步后的MA对象
 const syncedMa = computed(() => ({
   s: maS.value,
   m: maM.value,
   l: maL.value,
   x: maX.value
+}))
+
+const syncedMacd = computed(() => ({
+  s: macdS.value,
+  l: macdL.value,
+  d: macdD.value
 }))
 
 
