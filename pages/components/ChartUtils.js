@@ -89,10 +89,10 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
         // K线数据
         if (params[0]) {
           res += `
-            开盘: ${params[0].data[0]}<br/>
-            收盘: ${params[0].data[1]}<br/>
-            最低: ${params[0].data[2]}<br/>
-            最高: ${params[0].data[3]}<br/>
+            开盘: ${params[0].data[1]}<br/>
+            收盘: ${params[0].data[2]}<br/>
+            最低: ${params[0].data[3]}<br/>
+            最高: ${params[0].data[4]}<br/>
           `;
         }
         

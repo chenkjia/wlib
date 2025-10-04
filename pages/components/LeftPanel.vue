@@ -253,7 +253,10 @@ import TaskList from './TaskList.vue'
 // 定义 props 和 emits
 const selectedStockCode = defineModel('selectedStockCode', { type: String, default: '' })
 const panelState = defineModel('panelState', { type: String, default: 'normal' })
-const selectedDataSource = defineModel('selectedDataSource', { type: String, default: 'flib' })
+const selectedDataSource = defineModel('selectedDataSource', { type: Object, default: {
+  value: 'flib',
+  label: '加密货币'
+} })
 
 const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'])
 
@@ -384,8 +387,6 @@ async function fetchStocks() {
     
     if (stocks.value.length > 0 && !selectedStockCode.value) {
       selectedStockCode.value = stocks.value[0].code
-    } else if (!selectedStockCode.value) {
-      selectedStockCode.value = 'ETH'
     }
     
     loading.value = false
@@ -424,7 +425,11 @@ async function handleDataSourceChange(newDataSource) {
       // 重置分页和搜索状态
       currentPage.value = 1;
       searchQuery.value = '';
-      selectedStockCode.value = '';
+      if (newDataSource.value === 'flib') {
+        selectedStockCode.value = 'ETH'
+      } else {
+        selectedStockCode.value = 'sh.600000'
+      }
       // 重新获取股票列表
       await fetchStocks();
     } else {

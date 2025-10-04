@@ -64,7 +64,10 @@ const route = useRoute()
 
 // 状态变量
 const selectedStockCode = ref('')
-const selectedDataSource = ref('flib') // 数据源状态
+const selectedDataSource = ref({
+  value: 'flib',
+  label: '加密货币'
+}) // 数据源状态
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 
@@ -261,8 +264,8 @@ onMounted(() => {
   if (stockFromQuery && typeof stockFromQuery === 'string') {
     selectedStockCode.value = stockFromQuery
   } else {
-    // 如果没有从URL中选择股票，默认设置为ETH
-    selectedStockCode.value = 'ETH'
+    // 如果没有从URL中选择股票，根据数据源默认设置
+    selectedStockCode.value = selectedDataSource.value.value === 'flib' ? 'ETH' : 'sh.600000'
   }
 })
 </script>
