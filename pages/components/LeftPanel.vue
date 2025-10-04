@@ -1,5 +1,17 @@
 <template>
   <div class="w-full h-full flex flex-col">
+    <!-- 数据源切换 -->
+    <div class="p-3 border-b" style="border-color: var(--border-light);">
+      <div class="flex items-center gap-2">
+        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">数据源:</label>
+        <USelectMenu
+          v-model="selectedDataSource"
+          :items="dataSourceOptions"
+          class="flex-1"
+        />
+      </div>
+    </div>
+    
     <!-- 标签页头部 -->
     <div class="flex border-b" style="border-color: var(--border-light);">
       <button
@@ -241,11 +253,18 @@ import TaskList from './TaskList.vue'
 // 定义 props 和 emits
 const selectedStockCode = defineModel('selectedStockCode', { type: String, default: '' })
 const panelState = defineModel('panelState', { type: String, default: 'normal' })
+const selectedDataSource = defineModel('selectedDataSource', { type: String, default: 'flib' })
 
 const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'])
 
 // 标签页状态
 const activeTab = ref('stocks')
+
+// 数据源相关状态 - 移除重复声明，使用defineModel
+const dataSourceOptions = [
+  { value: 'flib', label: '加密货币' },
+  { value: 'alib', label: 'A股' }
+]
 
 // 股票相关状态
 const stocks = ref([])
@@ -335,7 +354,9 @@ async function fetchStocks() {
     loading.value = true
     error.value = ''
     
-    let url = `/api/stocks?page=${currentPage.value}&pageSize=${pageSize.value}`
+    // 根据数据源选择不同的API端点
+    const baseUrl = selectedDataSource.value === 'alib' ? '/api/alib/stocks' : '/api/stocks'
+    let url = `${baseUrl}?page=${currentPage.value}&pageSize=${pageSize.value}`
     if (searchQuery.value) {
       url += `&search=${encodeURIComponent(searchQuery.value)}`
     }
@@ -372,6 +393,47 @@ async function fetchStocks() {
     console.error('获取股票列表失败:', err)
     error.value = '获取股票列表失败: ' + err.message
     loading.value = false
+  }
+}
+
+// watch selectedDataSource
+watch(selectedDataSource, (newDataSource) => {
+  if (newDataSource) {
+    handleDataSourceChange(newDataSource)
+  }
+})
+
+// 数据源切换处理函数
+async function handleDataSourceChange(newDataSource) {
+  try {
+    // 调用数据源切换API
+    const response = await fetch('/api/datasource/switch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        dataSource: newDataSource.value
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('数据源切换成功:', result.message);
+      // 重置分页和搜索状态
+      currentPage.value = 1;
+      searchQuery.value = '';
+      selectedStockCode.value = '';
+      // 重新获取股票列表
+      await fetchStocks();
+    } else {
+      console.error('数据源切换失败:', result.message);
+      error.value = '数据源切换失败: ' + result.message;
+    }
+  } catch (err) {
+    console.error('数据源切换出错:', err);
+    error.value = '数据源切换出错: ' + err.message;
   }
 }
 

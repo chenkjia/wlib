@@ -492,7 +492,12 @@ export default {
   ],
   // MongoDB配置
   mongodb: {
-    uri: 'mongodb://localhost:27017/flib',
+    // 保持向后兼容的默认URI
+    uri: {
+      default:'mongodb://localhost:27017/flib',
+      flib: 'mongodb://localhost:27017/flib',
+      alib: 'mongodb://localhost:27017/alib'
+    },
     options: {
       useNewUrlParser: true,
       useUnifiedTopology: true

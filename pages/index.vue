@@ -9,6 +9,7 @@
         <LeftPanel
           v-model:selectedStockCode="selectedStockCode"
           v-model:panelState="panelState"
+          v-model:selectedDataSource="selectedDataSource"
           @useTaskParams="handleUseTaskParams"
           @changeViewStock="handleChangeViewStock"
           @changePanelState="changePanelState"
@@ -63,6 +64,7 @@ const route = useRoute()
 
 // 状态变量
 const selectedStockCode = ref('')
+const selectedDataSource = ref('flib') // 数据源状态
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 
@@ -191,8 +193,11 @@ async function loadStockData() {
   if (!selectedStockCode.value) return
   
   try {
+    // 根据数据源选择API端点
+    const apiEndpoint = selectedDataSource.value === 'alib' ? '/api/alib/dayLine' : '/api/dayLine'
+    
     // 获取日线数据
-    const response = await fetch(`/api/dayLine?code=${encodeURIComponent(selectedStockCode.value)}`)
+    const response = await fetch(`${apiEndpoint}?code=${encodeURIComponent(selectedStockCode.value)}`)
     dayLine.value = await response.json()
     
     // 计算交易数据
@@ -237,6 +242,13 @@ watch(() => selectedStockCode.value, async (newCode, oldCode) => {
     await loadStockData()
   }
 }, { immediate: true })
+
+// 监听数据源变化，重新加载数据
+watch(() => selectedDataSource.value, async (newDataSource, oldDataSource) => {
+  if (newDataSource !== oldDataSource && selectedStockCode.value) {
+    await loadStockData()
+  }
+})
 
 // 监听 MA、MACD 和条件变化
 watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {

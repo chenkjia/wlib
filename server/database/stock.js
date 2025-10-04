@@ -25,8 +25,13 @@ class StockDB {
             // 构建查询条件，大小写不敏感的搜索
             let query = { };
             if (search) {
-                // 使用正则表达式实现大小写不敏感搜索
-                query = { code: { $regex: new RegExp('^' + search, 'i') } };
+                // 使用正则表达式实现大小写不敏感的模糊搜索，支持股票代码和名称
+                query = {
+                    $or: [
+                        { code: { $regex: new RegExp(search, 'i') } },
+                        { name: { $regex: new RegExp(search, 'i') } }
+                    ]
+                };
             }
             
             // 添加重点关注过滤条件
@@ -130,7 +135,13 @@ class StockDB {
             // 构建查询条件
             let query = {};
             if (search) {
-                query = { code: search };
+                // 使用正则表达式实现大小写不敏感的模糊搜索，支持股票代码和名称
+                query = {
+                    $or: [
+                        { code: { $regex: new RegExp(search, 'i') } },
+                        { name: { $regex: new RegExp(search, 'i') } }
+                    ]
+                };
             }
             
             // 查询所有数据 - 只获取需要的字段
