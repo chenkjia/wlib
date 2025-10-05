@@ -1,5 +1,6 @@
 import logger from '~/utils/logger.js';
 import { Stock } from './models/stock.js';
+import { calculateForwardAdjusted } from '~/utils/chartUtils.js';
 
 /**
  * 日线数据数据库操作类
@@ -61,15 +62,13 @@ class DayLineDB {
     static async getDayLine(code, startTime = null, endTime = null) {
         try {
             if (startTime && endTime) {
-                // 确保类型为Date
-                const start = new Date(startTime)
-                const end = new Date(endTime)
                 const result = await Stock.aggregate([{
                     $match: {code}
                   },
                   {
                     $project: {  // 重组字段
                       dayLine: 1,
+                      adjustFactor: 1,
                     }
                   },
                   {
@@ -85,12 +84,25 @@ class DayLineDB {
                   }
                 ])
                 
-                return result.map(item => item.dayLine) || [];
+                const dayLineData = result.map(item => item.dayLine) || [];
+                
+                // return dayLineData
+                // 获取复权数据
+                const stock = await Stock.findOne({ code }, { _id: 0, adjustFactor: 1 });
+                const adjustFactorData = stock?.adjustFactor || [];
+                
+                // 应用前复权计算
+                return calculateForwardAdjusted(dayLineData, adjustFactorData);
             } else {
                 // 没有时间区间就返回全部
-                const stock = await Stock.findOne({ code }, { _id: 0, dayLine: 1 });
+                const stock = await Stock.findOne({ code }, { _id: 0, dayLine: 1, adjustFactor: 1 });
                 if (!stock) throw new Error(`股票代码 ${code} 不存在`);
-                return stock.dayLine || [];
+                
+                const dayLineData = stock.dayLine || [];
+                // return dayLineData
+                // // 应用前复权计算
+                const adjustFactorData = stock.adjustFactor || [];
+                return calculateForwardAdjusted(dayLineData, adjustFactorData);
             }
         } catch (error) {
             logger.error('获取日线数据失败:', error);

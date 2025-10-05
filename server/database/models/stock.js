@@ -30,6 +30,12 @@ const stockSchema = new mongoose.Schema({
         volume: Number,
         amount: Number
     }],
+    adjustFactor: [{
+        time: Date,
+        adjustfactor: Number,
+        foreAdjustFactor: Number,
+        backAdjustFactor: Number
+    }]
 
 });
 

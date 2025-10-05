@@ -2,7 +2,7 @@
  * 图表数据计算工具函数
  * 用于前端和服务器端共享的图表数据计算函数
  */
-
+import Decimal from 'decimal.js'
 import { algorithmMap } from './algorithmUtils.js'
 import logger from './logger.js'
 
@@ -48,8 +48,8 @@ export function calculateMA(data, period) {
   for (let i = 0; i < data.length; i++) {
     const param = i >= period - 1 ? period : i + 1;
     const sum = data.slice(i - param + 1, i + 1)
-      .reduce((acc, cur) => acc + cur, 0);
-    result.push(sum / param);
+      .reduce((acc, cur) => new Decimal(acc).plus(cur), new Decimal(0));
+    result.push(new Decimal(sum).div(param).toNumber());
   }
   return result;
 }
@@ -64,10 +64,13 @@ export function calculateEMA(data, period) {
     return [];
   }
   const result = [];
-  const multiplier = 2 / (period + 1);
+  const multiplier = new Decimal(2).div(period + 1);
   result.push(data[0]);
   for (let i = 1; i < data.length; i++) {
-    result.push((data[i] - result[i - 1]) * multiplier + result[i - 1]);
+    const prevEMA = new Decimal(result[i - 1]);
+    const currentPrice = new Decimal(data[i]);
+    const newEMA = currentPrice.minus(prevEMA).mul(multiplier).plus(prevEMA);
+    result.push(newEMA.toNumber());
   }
   return result;
 }
@@ -82,9 +85,13 @@ export function calculateEMA(data, period) {
  */
 export function calculatePosition({maS, maM, maL}) {
   return maS.map((short, index) => {
-    if (short > maM[index] && maM[index] > maL[index]) {
+    const shortDecimal = new Decimal(short);
+    const mediumDecimal = new Decimal(maM[index]);
+    const longDecimal = new Decimal(maL[index]);
+    
+    if (shortDecimal.gt(mediumDecimal) && mediumDecimal.gt(longDecimal)) {
       return 1;
-    } else if (short < maM[index] && maM[index] < maL[index]) {
+    } else if (shortDecimal.lt(mediumDecimal) && mediumDecimal.lt(longDecimal)) {
       return -1;
     } else {
       return 0;
@@ -135,10 +142,15 @@ export function calculateSign1({position}) {
  */
 export function calculateSign2({maS, maM, maL}) {
   return maS.map((ma, index) => {
-    const max = Math.max(ma, maM[index], maL[index])
-    const min = Math.min(ma, maM[index], maL[index])
-    return (max - min)/min
-  })
+    const maDecimal = new Decimal(ma);
+    const maMDecimal = new Decimal(maM[index]);
+    const maLDecimal = new Decimal(maL[index]);
+    
+    const max = Decimal.max(maDecimal, maMDecimal, maLDecimal);
+    const min = Decimal.min(maDecimal, maMDecimal, maLDecimal);
+    
+    return max.minus(min).div(min).toNumber();
+  });
 }
 // 计算均线趋势排列：判断四条均线是否呈现正向或负向排列，并统计连续天数
 export function calculateTrendAlignment({maS, maM, maL, maX}) {
@@ -276,16 +288,16 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
   result.lossTrades = completedTrades.filter(t => t.profit <= 0).length
   
   // 计算胜率
-  result.winRate = result.profitTrades / result.totalTrades * 100
+  result.winRate = new Decimal(result.profitTrades).div(result.totalTrades).mul(100).toNumber()
   
   // 计算交易总天数（所有交易持仓天数的总和）
   result.daysDuration = completedTrades.reduce((total, trade) => total + trade.tradeDays, 0)
   
   // 计算交易总涨跌幅（从第一笔交易买入价到最后一笔交易卖出价）
-  result.priceChange = completedTrades.reduce((total, trade) => total + trade.profit, 0)
+  result.priceChange = completedTrades.reduce((total, trade) => new Decimal(total).plus(trade.profit).toNumber(), 0)
   // 计算交易日均涨跌幅
   if (result.daysDuration > 0) {
-    result.dailyChange = result.priceChange / result.daysDuration
+    result.dailyChange = new Decimal(result.priceChange).div(result.daysDuration).toNumber()
   }
   
   // 计算日线相关统计
@@ -299,22 +311,24 @@ export const calculateBacktestData = (transactions, dayLine = []) => {
     
     result.dayLineCount = dayLine.length - firstDayLineIndex;
     if (firstDayLine && lastDayLine && firstDayLine.close && lastDayLine.close) {
-      const change = ((lastDayLine.close - firstDayLine.close) / firstDayLine.close) * 100
+      const lastClose = new Decimal(lastDayLine.close);
+      const firstClose = new Decimal(firstDayLine.close);
+      const change = lastClose.minus(firstClose).div(firstClose).mul(100).toNumber();
       result.dayLinePriceChange = change
       
       // 计算日线日均涨跌幅
       if (result.dayLineCount > 0) {
-        result.dayLineDailyChange = change / result.dayLineCount
+        result.dayLineDailyChange = new Decimal(change).div(result.dayLineCount).toNumber()
       }
       
       // 计算涨跌幅差值（交易总涨跌幅-日线总涨跌幅）
       if (change !== 0) {
-        result.priceChangeDiff = result.priceChange - change
+        result.priceChangeDiff = new Decimal(result.priceChange).minus(change).toNumber()
       }
       
       // 计算日均差值（交易日均涨跌幅-日线日均涨跌幅）
       if (result.dayLineDailyChange !== 0) {
-        result.dailyChangeDiff = result.dailyChange - result.dayLineDailyChange
+        result.dailyChangeDiff = new Decimal(result.dailyChange).minus(result.dayLineDailyChange).toNumber()
       }
     }
   }
@@ -338,7 +352,9 @@ export const calculateTransactions = (props) => {
       lastBuySignal = signal
     } else if (signal.type === 'sell' && lastBuySignal) {
       // 计算这笔交易的收益
-      const profit = ((signal.price - lastBuySignal.price) / lastBuySignal.price) * 100
+      const sellPrice = new Decimal(signal.price);
+      const buyPrice = new Decimal(lastBuySignal.price);
+      const profit = sellPrice.minus(buyPrice).div(buyPrice).mul(100).toNumber();
       // 计算持续天数
       const tradeDays = Math.ceil((new Date(signal.time).getTime() - new Date(lastBuySignal.time).getTime()) / (1000 * 3600 * 24)) || 1 // 至少为1天
       transactions.push({
@@ -416,4 +432,43 @@ const calculateSignals = (props) => {
   }, [])
   
   return signals
+}
+
+/**
+ * 前复权计算函数
+ * @param {Array} dayLineData - 日线数据 [{time, open, close, high, low, volume, ...}, ...]
+ * @param {Array} adjustFactorData - 复权因子数据 [{time, foreAdjustFactor, backAdjustFactor, adjustFactor}, ...]
+ * @returns {Array} 前复权后的日线数据
+ */
+export function calculateForwardAdjusted(dayLineData = [], adjustFactorData = []) {
+  if (!dayLineData || dayLineData.length === 0) {
+    return []
+  }
+  
+  if (!adjustFactorData || adjustFactorData.length === 0) {
+    // 如果没有复权数据，直接返回原数据
+    return dayLineData
+  }
+  
+  // 创建复权因子映射表，以日期为键，使用前复权因子
+  const adjustFactorMap = new Map()
+  adjustFactorData.forEach(item => {
+    const timeKey = new Date(item.time).getTime()
+    adjustFactorMap.set(timeKey, item.foreAdjustFactor)
+  })
+  
+  // 复制原数据，避免修改原始数据
+  const resultData = [...dayLineData]
+  let adjustedIndex = 0
+  for (let rIndex = 0; rIndex < resultData.length; rIndex++) {
+    adjustedIndex = adjustFactorData.findIndex(item => item.time > resultData[rIndex].time)
+    if (adjustedIndex !== -1) {
+      resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
+      resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
+      resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
+      resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)  
+    }
+  }
+  
+  return resultData
 }

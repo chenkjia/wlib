@@ -28,8 +28,8 @@ class StockDB {
                 // 使用正则表达式实现大小写不敏感的模糊搜索，支持股票代码和名称
                 query = {
                     $or: [
-                        { code: { $regex: new RegExp(search, 'i') } },
-                        { name: { $regex: new RegExp(search, 'i') } }
+                        { code: { $regex: new RegExp('^' + search, 'i') } },
+                        { name: { $regex: new RegExp('^' + search, 'i') } }
                     ]
                 };
             }
