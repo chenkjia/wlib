@@ -123,7 +123,7 @@ function focusChartToRange(focusData) {
     const dataLength = props.dayLineWithMetric.data.length
     
     // 计算显示范围，前后各200条数据
-    const bufferSize = 200
+    const bufferSize = 100
     const startIndex = Math.max(0, buyIndex - bufferSize)
     const endIndex = Math.min(dataLength - 1, sellIndex + bufferSize)
     
