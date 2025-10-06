@@ -266,6 +266,7 @@
         <template #expanded="{ row }">
           <StockResultTable
             :stocksResult="row.original.stocksResult"
+            :panelState="props.panelState"
             @changeViewStock="$emit('changeViewStock',$event)"
           />
         </template>
@@ -357,13 +358,13 @@ const columnVisibility = computed(() => {
     // 默认状态下只显示名称和状态列
     return {
       name: true,
-      status: true,
+      status: false,
       createdAt: false,
       updatedAt: false,
       params: true,
       totalTrades: false,
       profitTrades: false,
-      winRate: false,
+      winRate: true,
       daysDuration: false,
       priceChange: false,
       dailyChange: true,
@@ -372,7 +373,7 @@ const columnVisibility = computed(() => {
       dayLinePriceChange: false,
       dayLineDailyChange: false,
       priceChangeDiff: false,
-      dailyChangeDiff: true,
+      dailyChangeDiff: false,
       actions: false
     }
   }

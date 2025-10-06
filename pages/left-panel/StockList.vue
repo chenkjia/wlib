@@ -298,7 +298,7 @@ async function fetchStocks() {
     error.value = ''
     
     // 根据数据源选择不同的API端点
-    const baseUrl = props.selectedDataSource.value === 'alib' ? '/api/alib/stocks' : '/api/stocks'
+    const baseUrl = '/api/stocks'
     let url = `${baseUrl}?page=${currentPage.value}&pageSize=${pageSize.value}`
     if (searchQuery.value) {
       url += `&search=${encodeURIComponent(searchQuery.value)}`

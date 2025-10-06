@@ -1,20 +1,11 @@
 <template>
-  <div class="p-2 bg-gray-50 rounded">
-    <UTable 
+  <div class="bg-gray-50 rounded">
+    <UTable
+      ref="table"
       :data="stocksResult" 
       :columns="columns"
+      :column-visibility="columnVisibility"
       class="w-full"
-      :ui="{
-        wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
-        td: {
-          base: 'p-2 border-b border-gray-100 text-sm',
-          padding: 'px-3 py-2'
-        },
-        th: {
-          base: 'text-left p-2 border-b border-gray-200 bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider',
-          padding: 'px-3 py-2'
-        }
-      }"
     >
       
       <template #stock-cell="{ row }">
@@ -30,18 +21,33 @@
       </template>
       
         <!-- 数据开始 -->
+        <template #dailyChangeDiff-cell="{ row }">
+          <span v-if="row.original.dailyChangeDiff !== undefined" 
+                :class="row.original.dailyChangeDiff > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.dailyChangeDiff.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
+        <template #dayLineDailyChange-cell="{ row }">
+          <span v-if="row.original.dayLineDailyChange !== undefined" 
+                :class="row.original.dayLineDailyChange > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ row.original.dayLineDailyChange.toFixed(2) }}%
+          </span>
+          <span v-else>-</span>
+        </template>
+        
         <template #totalTrades-cell="{ row }">
           {{ row.original.totalTrades !== undefined ? row.original.totalTrades.toFixed(2) : '-' }}
         </template>
         <template #profitTrades-cell="{ row }">
-          {{ row.original.profitTrades !== undefined ? row.original.profitTrades.toFixed(2) : '-' }}
-        </template>
-        <template #lossTrades-cell="{ row }">
-          {{ row.original.lossTrades !== undefined ? row.original.lossTrades.toFixed(2) : '-' }}
+          <span class='text-green-600'>{{ row.original.profitTrades !== undefined ? row.original.profitTrades : '-' }}</span>
+          /
+          <span class='text-red-600'>{{ row.original.lossTrades !== undefined ? row.original.lossTrades : '-' }}</span>
         </template>
         <template #winRate-cell="{ row }">
           <span v-if="row.original.winRate !== undefined" 
-                :class="row.original.winRate >= 0.5 ? 'text-green-600' : 'text-red-600'">
+                :class="row.original.winRate >= 50 ? 'text-green-600' : 'text-red-600'">
             {{ (row.original.winRate).toFixed(2) }}%
           </span>
           <span v-else>-</span>
@@ -85,26 +91,10 @@
           <span v-else>-</span>
         </template>
         
-        <template #dayLineDailyChange-cell="{ row }">
-          <span v-if="row.original.dayLineDailyChange !== undefined" 
-                :class="row.original.dayLineDailyChange > 0 ? 'text-green-600' : 'text-red-600'">
-            {{ row.original.dayLineDailyChange.toFixed(2) }}%
-          </span>
-          <span v-else>-</span>
-        </template>
-        
         <template #priceChangeDiff-cell="{ row }">
           <span v-if="row.original.priceChangeDiff !== undefined" 
                 :class="row.original.priceChangeDiff > 0 ? 'text-green-600' : 'text-red-600'">
             {{ row.original.priceChangeDiff.toFixed(2) }}%
-          </span>
-          <span v-else>-</span>
-        </template>
-        
-        <template #dailyChangeDiff-cell="{ row }">
-          <span v-if="row.original.dailyChangeDiff !== undefined" 
-                :class="row.original.dailyChangeDiff > 0 ? 'text-green-600' : 'text-red-600'">
-            {{ row.original.dailyChangeDiff.toFixed(2) }}%
           </span>
           <span v-else>-</span>
         </template>
@@ -120,14 +110,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const props = defineProps({
   stocksResult: {
     type: Array,
     default: () => []
+  },
+  panelState: {
+    type: String,
+    default: 'normal'
   }
 })
+
+const emit = defineEmits(['changeViewStock'])
+
+// 根据胜率和交易日均设置行背景色
+const getRowClass = (row) => {
+  console.log(row)
+  const winRate = row.winRate || 0
+  const dailyChange = row.dailyChange || 0
+  
+  if (winRate > 0.5 && dailyChange > 0.001) { // 胜率大于50%且交易日均大于0.1%
+    return 'bg-green-50'
+  } else {
+    return 'bg-red-50'
+  }
+}
 
 // 表格列定义
 const columns = ref([
@@ -163,13 +172,8 @@ const columns = ref([
   },
   {
     accessorKey: 'profitTrades',
-    header: '盈利笔数',
+    header: '盈/亏',
     id: 'profitTrades'
-  },
-  {
-    accessorKey: 'lossTrades',
-    header: '亏损笔数',
-    id: 'lossTrades'
   },
   {
     accessorKey: 'daysDuration',
@@ -202,6 +206,45 @@ const columns = ref([
     id: 'priceChangeDiff'
   }
 ])
+
+// 根据panelState计算列的可见性
+const columnVisibility = computed(() => {
+  if (props.panelState === 'expanded') {
+    // 展开状态显示所有列
+    return {
+      stock: true,
+      winRate: true,
+      dailyChange: true,
+      dailyChangeDiff: true,
+      dayLineDailyChange: true,
+      totalTrades: true,
+      profitTrades: true,
+      daysDuration: true,
+      priceChange: true,
+      maxDrawdown: true,
+      dayLineCount: true,
+      dayLinePriceChange: true,
+      priceChangeDiff: true
+    }
+  } else {
+    // 非展开状态只显示前三列：股票代码、胜率、交易日均
+    return {
+      stock: true,
+      winRate: true,
+      dailyChange: true,
+      dailyChangeDiff: false,
+      dayLineDailyChange: false,
+      totalTrades: false,
+      profitTrades: false,
+      daysDuration: false,
+      priceChange: false,
+      maxDrawdown: false,
+      dayLineCount: false,
+      dayLinePriceChange: false,
+      priceChangeDiff: false
+    }
+  }
+})
 </script>
 
 <style scoped>
