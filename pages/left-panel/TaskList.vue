@@ -1,29 +1,7 @@
 <template>
-  <div>
-    <div class="flex justify-between items-center p-2">
-      <h4 class="font-medium text-gray-700">任务列表</h4>
-      <div class="flex gap-2">
-        <UButton
-          @click="refresh" 
-          label="刷新"
-          :icon="loading ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
-          :loading="loading"
-          color="info"
-          size="sm"
-          class="flex items-center"
-        />
-        <UButton
-          @click="changePanelState" 
-          :label="props.panelState === 'expanded' ? '恢复' : '展开'"
-          :icon="props.panelState === 'expanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
-          color="success"
-          size="sm"
-        />
-      </div>
-    </div>
-    
+  <div class="h-full flex flex-col">
     <!-- 搜索和过滤 -->
-    <div class="p-2 flex gap-3">
+    <div class="p-2 flex gap-3 flex-shrink-0">
       <div class="relative flex-1">
         <input
           v-model="searchQuery"
@@ -53,6 +31,26 @@
           <option value="failed">失败</option>
         </select>
       </div>
+      
+      <!-- 按钮组 -->
+      <div class="flex gap-2">
+        <UButton
+          @click="refresh" 
+          label="刷新"
+          :icon="loading ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
+          :loading="loading"
+          color="info"
+          size="sm"
+          class="flex items-center"
+        />
+        <UButton
+          @click="changePanelState" 
+          :label="props.panelState === 'expanded' ? '恢复' : '展开'"
+          :icon="props.panelState === 'expanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
+          color="success"
+          size="sm"
+        />
+      </div>
     </div>
     
     <!-- 加载状态 -->
@@ -73,27 +71,28 @@
     </div>
     
     <!-- Nuxt UI Table 任务列表 -->
-    <div v-else>
-      <UTable 
-        :data="tasks" 
-        :columns="columns"
-        :loading="loading"
-        :column-visibility="columnVisibility"
-        class="w-full"
-        :ui="{
-          wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
-          td: {
-            base: 'p-3 border-b border-gray-100',
-            padding: 'px-4 py-3'
-          },
-          th: {
-            base: 'text-left p-3 border-b border-gray-200 bg-gray-50',
-            padding: 'px-4 py-3',
-            color: 'text-gray-700 font-medium'
-          }
-        }"
-        :column-pinning="{left: ['name'], right: ['actions','params','stockCount']}"
-      >
+    <div v-else class="flex-grow flex flex-col min-h-0">
+      <div class="flex-grow overflow-auto">
+        <UTable 
+          :data="tasks" 
+          :columns="columns"
+          :loading="loading"
+          :column-visibility="columnVisibility"
+          class="w-full"
+          :ui="{
+            wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
+            td: {
+              base: 'p-3 border-b border-gray-100',
+              padding: 'px-4 py-3'
+            },
+            th: {
+              base: 'text-left p-3 border-b border-gray-200 bg-gray-50',
+              padding: 'px-4 py-3',
+              color: 'text-gray-700 font-medium'
+            }
+          }"
+          :column-pinning="{left: ['name'], right: ['actions','params','stockCount']}"
+        >
         <template #params-cell="{ row }">
           <div class="flex gap-2">
             <UButton
@@ -271,9 +270,10 @@
           />
         </template>
       </UTable>
+      </div>
       
       <!-- 分页控件 -->
-      <div v-if="totalPages > 1" class="p-2 border-t flex items-center justify-between" style="border-color: var(--border-light);">
+      <div v-if="totalPages > 1" class="p-2 border-t flex items-center justify-between flex-shrink-0" style="border-color: var(--border-light);">
         <div class="text-sm text-gray-500">
           第 {{ currentPage }} 页，共 {{ totalPages }} 页
         </div>

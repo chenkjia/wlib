@@ -42,7 +42,7 @@
         <template #winRate-cell="{ row }">
           <span v-if="row.original.winRate !== undefined" 
                 :class="row.original.winRate >= 0.5 ? 'text-green-600' : 'text-red-600'">
-            {{ (row.original.winRate * 100).toFixed(2) }}%
+            {{ (row.original.winRate).toFixed(2) }}%
           </span>
           <span v-else>-</span>
         </template>

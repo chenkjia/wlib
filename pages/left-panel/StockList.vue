@@ -1,9 +1,9 @@
 <template>
-  <div class="h-full flex flex-col p-3">
+  <div class="h-full flex flex-col">
     <!-- 搜索框 -->
     <div class="relative mb-3">
-      <div class="flex gap-2">
-        <div class="relative flex-1">
+      <div class="flex gap-2 p-3">
+        <div class="relative flex-2">
           <input
             v-model="searchQuery"
             type="text"
@@ -19,6 +19,16 @@
             </svg>
           </div>
         </div>
+
+        <select
+          v-model="starFilter"
+          @change="currentPage = 1; fetchStocks()"
+          class="finance-input flex-1 text-sm w-1/4"
+        >
+          <option value="all">全部</option>
+          <option value="starred">已星标</option>
+          <option value="unstarred">未星标</option>
+        </select>
         <!-- 搜索按钮 -->
         <button
           @click="handleSearch"
@@ -27,21 +37,6 @@
         >
           搜索
         </button>
-      </div>
-    </div>
-    
-    <!-- 过滤器 -->
-    <div class="mb-3">
-      <div class="flex gap-2 mb-2">
-        <select
-          v-model="starFilter"
-          @change="currentPage = 1; fetchStocks()"
-          class="finance-input flex-1 text-sm"
-        >
-          <option value="all">全部</option>
-          <option value="starred">已星标</option>
-          <option value="unstarred">未星标</option>
-        </select>
       </div>
     </div>
     
@@ -63,23 +58,24 @@
     </div>
     
     <!-- 股票列表 UTable -->
-    <div v-else class="flex-grow">
-      <UTable 
-        :data="displayedStocks" 
-        :columns="columns"
-        class="w-full"
-        :ui="{
-          wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
-          td: {
-            base: 'p-2 border-b border-gray-100 text-sm',
-            padding: 'px-3 py-2'
-          },
-          th: {
-            base: 'text-left p-2 border-b border-gray-200 bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200',
-            padding: 'px-3 py-2'
-          }
-        }"
-      >
+    <div v-else class="flex-grow flex flex-col min-h-0">
+      <div class="flex-grow overflow-auto">
+        <UTable 
+          :data="displayedStocks" 
+          :columns="columns"
+          class="w-full"
+          :ui="{
+            wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
+            td: {
+              base: 'p-2 border-b border-gray-100 text-sm',
+              padding: 'px-3 py-2'
+            },
+            th: {
+              base: 'text-left p-2 border-b border-gray-200 bg-gray-100 text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200',
+              padding: 'px-3 py-2'
+            }
+          }"
+        >
         <!-- 股票代码列 -->
         <template #code-cell="{ row }">
           <div 
@@ -147,30 +143,31 @@
           </div>
         </template>
       </UTable>
-    </div>
-    
-    <!-- 分页控件 -->
-    <div v-if="totalPages > 1" class="mt-4 pt-4 border-t flex items-center justify-between" style="border-color: var(--border-light);">
-      <div class="text-sm" style="color: var(--text-muted);">
-        第 {{ currentPage }} 页，共 {{ totalPages }} 页 ({{ totalStocks }} 条记录)
       </div>
-      <div class="flex gap-3">
-        <button 
-          @click="changePage(currentPage - 1)" 
-          :disabled="currentPage <= 1"
-          :class="currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
-          class="px-4 py-2 text-sm rounded-lg transition-all"
-        >
-          上一页
-        </button>
-        <button 
-          @click="changePage(currentPage + 1)" 
-          :disabled="currentPage >= totalPages"
-          :class="currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
-          class="px-4 py-2 text-sm rounded-lg transition-all"
-        >
-          下一页
-        </button>
+      
+      <!-- 分页控件 -->
+      <div v-if="totalPages > 1" class="mt-4 pt-4 border-t flex items-center justify-between flex-shrink-0" style="border-color: var(--border-light);">
+        <div class="text-sm" style="color: var(--text-muted);">
+          第 {{ currentPage }} 页，共 {{ totalPages }} 页 ({{ totalStocks }} 条记录)
+        </div>
+        <div class="flex gap-3">
+          <button 
+            @click="changePage(currentPage - 1)" 
+            :disabled="currentPage <= 1"
+            :class="currentPage <= 1 ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
+            class="px-4 py-2 text-sm rounded-lg transition-all"
+          >
+            上一页
+          </button>
+          <button 
+            @click="changePage(currentPage + 1)" 
+            :disabled="currentPage >= totalPages"
+            :class="currentPage >= totalPages ? 'opacity-50 cursor-not-allowed' : 'finance-btn-primary'"
+            class="px-4 py-2 text-sm rounded-lg transition-all"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </div>
   </div>
