@@ -56,9 +56,9 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { calculateStock } from '~/utils/chartUtils.js'
-import LeftPanel from './components/LeftPanel.vue'
-import ChartPanel from './components/ChartPanel.vue'
-import RightPanel from './components/RightPanel.vue'
+import LeftPanel from './left-panel/LeftPanel.vue'
+import ChartPanel from './center-panel/ChartPanel.vue'
+import RightPanel from './right-panel/RightPanel.vue'
 
 const route = useRoute()
 
