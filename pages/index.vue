@@ -29,6 +29,7 @@
           :ma="ma"
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
+          :focusData="chartFocusData"
           @error="handleError"
         />
       </div>
@@ -46,6 +47,7 @@
           @calculation="handleCalculation"
           @useTaskParams="handleUseTaskParams"
           @changeViewStock="handleChangeViewStock"
+          @focusChart="handleFocusChart"
         />
       </div>
     </div>
@@ -59,6 +61,7 @@ import { calculateStock } from '~/utils/chartUtils.js'
 import LeftPanel from './left-panel/LeftPanel.vue'
 import ChartPanel from './center-panel/ChartPanel.vue'
 import RightPanel from './right-panel/RightPanel.vue'
+import { tr } from '@nuxt/ui/runtime/locale/index.js'
 
 const route = useRoute()
 
@@ -70,6 +73,7 @@ const selectedDataSource = ref({
 }) // 数据源状态
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
+const chartFocusData = ref(null) // 图表聚焦数据
 
 // 从本地存储读取配置或使用默认值
 const getLocalConfig = (key, defaultValue) => {
@@ -168,6 +172,12 @@ async function handleRemoteCalculation(params) {
   } catch (error) {
     console.error('创建计算任务失败:', error)
   }
+}
+
+// 处理聚焦图表事件
+function handleFocusChart(focusData) {
+  // 将聚焦数据传递给图表组件
+  chartFocusData.value = focusData
 }
 
 // 处理使用任务参数

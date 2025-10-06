@@ -190,6 +190,7 @@
         <TransactionList 
           :transactions="transactions"
           :loading="calculationLoading"
+          @focusChart="handleFocusChart"
         />
       </div>
     </div>
@@ -244,7 +245,8 @@ const emit = defineEmits([
   'update:buyConditions',
   'update:sellConditions',
   'calculation',
-  'changePanelState'
+  'changePanelState',
+  'focusChart'
 ])
 
 // 本地响应式状态
@@ -346,6 +348,11 @@ const syncedMacd = computed(() => ({
   l: macdL.value,
   d: macdD.value
 }))
+
+// 处理聚焦图表事件
+function handleFocusChart(focusData) {
+  emit('focusChart', focusData)
+}
 
 
 

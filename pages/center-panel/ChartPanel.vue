@@ -42,6 +42,10 @@ const props = defineProps({
   sellConditions: {
     type: Array,
     required: true
+  },
+  focusData: {
+    type: Object,
+    default: null
   }
 })
 
@@ -110,9 +114,57 @@ function handleError(message, err) {
   emit('error', err.message)
 }
 
+// 聚焦图表到指定范围
+function focusChartToRange(focusData) {
+  try {
+    if (!myChart || !props.dayLineWithMetric?.data) return
+    
+    const { buyIndex, sellIndex } = focusData
+    const dataLength = props.dayLineWithMetric.data.length
+    
+    // 计算显示范围，前后各200条数据
+    const bufferSize = 200
+    const startIndex = Math.max(0, buyIndex - bufferSize)
+    const endIndex = Math.min(dataLength - 1, sellIndex + bufferSize)
+    
+    // 计算百分比
+    const startPercent = (startIndex / dataLength) * 100
+    const endPercent = ((endIndex + 1) / dataLength) * 100
+    
+    // 更新图表的dataZoom
+    myChart.setOption({
+      dataZoom: [
+        {
+          type: 'inside',
+          xAxisIndex: [0, 1],
+          start: startPercent,
+          end: endPercent
+        },
+        {
+          type: 'slider',
+          xAxisIndex: [0, 1],
+          start: startPercent,
+          end: endPercent
+        }
+      ]
+    })
+    
+    console.log(`聚焦图表: 买入索引${buyIndex}, 卖出索引${sellIndex}, 显示范围${startIndex}-${endIndex} (${startPercent.toFixed(1)}%-${endPercent.toFixed(1)}%)`)
+  } catch (err) {
+    handleError('聚焦图表失败', err)
+  }
+}
+
 // 监听数据变化，重新渲染图表
 watch([() => props.dayLineWithMetric, () => props.transactions, () => props.ma], async () => {
   await refreshChart()
+}, { deep: true })
+
+// 监听聚焦数据变化，调整图表显示范围
+watch(() => props.focusData, (newFocusData) => {
+  if (newFocusData && myChart) {
+    focusChartToRange(newFocusData)
+  }
 }, { deep: true })
 
 // 窗口大小调整处理

@@ -17,7 +17,7 @@
         :ui="{
           wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
           td: {
-            base: 'p-2 border-b border-gray-100 text-sm',
+            base: 'p-2 border-b border-gray-100 text-sm cursor-pointer hover:bg-gray-50',
             padding: 'px-3 py-2'
           },
           th: {
@@ -44,7 +44,10 @@
         </template>
         
         <template #duration-cell="{ row }">
-          {{ row.original.duration || '-' }}
+          <span
+            @click="handleRowClick(row.original)"
+          >{{ row.original.duration || '-' }}</span>
+          
         </template>
         
         <template #duration-header="{ column }">
@@ -158,8 +161,22 @@ const columns = ref([
     accessorKey: 'sellPrice',
     header: '卖出价格',
     id: 'sellPrice'
+  },
+  {
+    accessorKey:'buyIndex',
+    header:'买入索引',
+    id:'buyIndex',
+    visible:false
+  },
+  {
+    accessorKey:'sellIndex',
+    header:'卖出索引',
+    id:'sellIndex',
+    visible:false
   }
 ])
+
+const emit = defineEmits(['focusChart'])
 
 const sorting = ref([
   {
@@ -196,6 +213,23 @@ function formatProfit(profit) {
 function getColorClass(profit) {
   if (profit === undefined || profit === null) return 'text-gray-400'
   return profit > 0 ? 'text-green-600' : profit < 0 ? 'text-red-600' : 'text-gray-600'
+}
+
+// 处理行点击事件
+function handleRowClick(row) {
+  const transaction = row
+  // 检查是否有买入和卖出索引
+  if (transaction.buyIndex !== undefined && transaction.sellIndex !== undefined) {
+    emit('focusChart', {
+      buyIndex: transaction.buyIndex,
+      sellIndex: transaction.sellIndex,
+      buyTime: transaction.buyTime,
+      sellTime: transaction.sellTime,
+      buyPrice: transaction.buyPrice,
+      sellPrice: transaction.sellPrice,
+      profit: transaction.profit
+    })
+  }
 }
 </script>
 

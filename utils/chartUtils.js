@@ -358,8 +358,10 @@ export const calculateTransactions = (props) => {
       // 计算持续天数
       const tradeDays = Math.ceil((new Date(signal.time).getTime() - new Date(lastBuySignal.time).getTime()) / (1000 * 3600 * 24)) || 1 // 至少为1天
       transactions.push({
+        buyIndex: lastBuySignal.index,
         buyTime: lastBuySignal.time,
         buyPrice: lastBuySignal.price,
+        sellIndex: signal.index,
         sellTime: signal.time,
         sellPrice: signal.price,
         profit,
@@ -405,6 +407,7 @@ const calculateSignals = (props) => {
         hold = true
         buyStep = 0
         prev.push({
+          index,
           time: cur.time,
           type: 'buy',
           price: cur.close
@@ -422,6 +425,7 @@ const calculateSignals = (props) => {
         sellStep = 0
         hold = false
         prev.push({
+          index,
           time: cur.time,
           type: 'sell',
           price: cur.close
