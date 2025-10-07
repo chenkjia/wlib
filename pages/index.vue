@@ -134,13 +134,14 @@ function changePanelState(state) {
   panelState.value = state
 }
 
-// 计算处理函数
+// 处理计算事件
 function handleCalculation(params) {
   // 保存配置到本地存储
   saveConfigToLocalStorage()
   
   if (params.type === 'page') {
-    // 页内计算不需要特殊处理，组件会自动更新
+    // 页内计算：手动触发重新计算交易数据
+    calculateTransactions()
   } else {
     handleRemoteCalculation(params)
   }
@@ -263,10 +264,10 @@ watch(() => selectedDataSource.value, async (newDataSource, oldDataSource) => {
   }
 })
 
-// 监听 MA、MACD 和条件变化
-watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
-  calculateTransactions()
-}, { deep: true })
+// 注释掉自动监听配置参数变化，改为手动触发计算
+// watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
+//   calculateTransactions()
+// }, { deep: true })
 
 onMounted(() => {
   // 检查URL中是否有股票代码参数

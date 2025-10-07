@@ -65,6 +65,38 @@ const algorithmMap = {
     MACD_TOP_DEVIATION: (i, {dif, line}) => {
       return (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
     },
+    // 短期均线向上
+    MAS_UP: (i, {maS}) => {
+      return maS[i-2] < maS[i-1] && maS[i-1] < maS[i]
+    },
+    // 短期均线向下
+    MAS_DOWN: (i, {maS}) => {
+      return maS[i-2] > maS[i-1] && maS[i-1] > maS[i]
+    },
+    // 中期均线向上
+    MAM_UP: (i, {maM}) => {
+      return maM[i-2] < maM[i-1] && maM[i-1] < maM[i]
+    },
+    // 中期均线向下
+    MAM_DOWN: (i, {maM}) => {
+      return maM[i-2] > maM[i-1] && maM[i-1] > maM[i]
+    },
+    // 长期均线向上
+    MAL_UP: (i, {maL}) => {
+      return maL[i-2] < maL[i-1] && maL[i-1] < maL[i]
+    },
+    // 长期均线向下
+    MAL_DOWN: (i, {maL}) => {
+      return maL[i-2] > maL[i-1] && maL[i-1] > maL[i]
+    },
+    // 远期均线向上
+    MAX_UP: (i, {maX}) => {
+      return maX[i-2] < maX[i-1] && maX[i-1] < maX[i]
+    },
+    // 远期均线向下
+    MAX_DOWN: (i, {maX}) => {
+      return maX[i-2] > maX[i-1] && maX[i-1] > maX[i]
+    },
     // 短期均线从向下趋势变为向上趋势
     MAS_UPTREND: (i, {maS}) => {
       return maS[i-2] > maS[i-1] && maS[i] > maS[i-1]

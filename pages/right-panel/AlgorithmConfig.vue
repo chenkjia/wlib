@@ -110,6 +110,14 @@ const availableConditions = [
 
   // 其他指标
   { value: 'SIGN1', label: 'sign1小于50' },
+  { value: 'MAS_UP', label: '短期均线向上' },
+  { value: 'MAS_DOWN', label: '短期均线向下' },
+  { value: 'MAM_UP', label: '中期均线向上' },
+  { value: 'MAM_DOWN', label: '中期均线向下' },
+  { value: 'MAL_UP', label: '长期均线向上' },
+  { value: 'MAL_DOWN', label: '长期均线向下' },
+  { value: 'MAX_UP', label: '远期均线向上' },
+  { value: 'MAX_DOWN', label: '远期均线向下' },
   { value: 'MAS_UPTREND', label: '短期均线拐头向上' },
   { value: 'MAS_DOWNTREND', label: '短期均线拐头向下' },
   { value: 'MAM_UPTREND', label: '中期均线拐头向上' },
