@@ -346,16 +346,40 @@ function handleSearch() {
 }
 
 // 监听数据源变化
-watch(() => props.selectedDataSource, (newDataSource) => {
-  if (newDataSource) {
-    currentPage.value = 1
-    searchQuery.value = ''
-    if (newDataSource.value === 'flib') {
-      selectedStockCode.value = 'ETH'
-    } else {
-      selectedStockCode.value = 'sh.600000'
+watch(() => props.selectedDataSource, async (newDataSource, oldDataSource) => {
+  if (newDataSource && newDataSource !== oldDataSource) {
+    try {
+      // 调用数据源切换API
+      const response = await fetch('/api/datasource/switch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          dataSource: newDataSource.value
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error(`切换数据源失败: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      console.log('数据源切换成功:', result.message)
+      
+      // 切换成功后重置页面状态并重新获取数据
+      currentPage.value = 1
+      searchQuery.value = ''
+      if (newDataSource.value === 'flib') {
+        selectedStockCode.value = 'ETH'
+      } else {
+        selectedStockCode.value = 'sh.600000'
+      }
+      fetchStocks()
+    } catch (error) {
+      console.error('数据源切换失败:', error)
+      // 可以在这里添加用户提示
     }
-    fetchStocks()
   }
 }, { deep: true })
 

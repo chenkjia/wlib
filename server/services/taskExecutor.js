@@ -22,7 +22,7 @@ class TaskExecutor {
       // 执行回测
       const executor = new BacktestExecutor();
       const result = await executor.backtestAll(task);
-      
+      console.log(result)
       // 更新任务状态为已完成
       await TaskDB.updateTaskStatus(task._id, 'completed', result);
       

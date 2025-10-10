@@ -48,7 +48,6 @@ class BacktestExecutor {
 
     // const stocks = ['AAVE', 'ETH', 'AE', 'SFL', 'BAT', 'CET', 'CMT'];
     // const stockList = stocks.map(symbol => ({ code: symbol }));
-    console.log(stockList);
     const backtestResults = [];
     // 对每个股票执行回测策略
     for (let i = 0; i < stockList.length; i++) {

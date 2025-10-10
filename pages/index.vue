@@ -208,7 +208,7 @@ async function loadStockData() {
   
   try {
     // 根据数据源选择API端点
-    const apiEndpoint = selectedDataSource.value === 'alib' ? '/api/alib/dayLine' : '/api/dayLine'
+    const apiEndpoint = '/api/dayLine'
     
     // 获取日线数据
     const response = await fetch(`${apiEndpoint}?code=${encodeURIComponent(selectedStockCode.value)}`)
@@ -258,16 +258,12 @@ watch(() => selectedStockCode.value, async (newCode, oldCode) => {
 }, { immediate: true })
 
 // 监听数据源变化，重新加载数据
-watch(() => selectedDataSource.value, async (newDataSource, oldDataSource) => {
-  if (newDataSource !== oldDataSource && selectedStockCode.value) {
-    await loadStockData()
-  }
-})
+
 
 // 注释掉自动监听配置参数变化，改为手动触发计算
-// watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
-//   calculateTransactions()
-// }, { deep: true })
+watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
+  calculateTransactions()
+}, { deep: true })
 
 onMounted(() => {
   // 检查URL中是否有股票代码参数
