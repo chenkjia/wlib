@@ -34,6 +34,7 @@
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
           :focusData="chartFocusData"
+          :enabledIndicators="enabledIndicators"
           @error="handleError"
         />
       </div>
@@ -47,6 +48,7 @@
           v-model:macd="macd"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
+          v-model:enabledIndicators="enabledIndicators"
           :transactions="transactions"
           @calculation="handleCalculation"
           @useTaskParams="handleUseTaskParams"
@@ -78,6 +80,7 @@ const selectedDataSource = ref({
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 const chartFocusData = ref(null) // 图表聚焦数据
+const enabledIndicators = ref(['ma', 'macd']) // 启用的指标
 
 // 从本地存储读取配置或使用默认值
 const getLocalConfig = (key, defaultValue) => {
@@ -161,7 +164,8 @@ async function handleRemoteCalculation(params) {
       ma: params.ma,
       macd: params.macd,
       buyConditions: params.buyConditions,
-      sellConditions: params.sellConditions
+      sellConditions: params.sellConditions,
+      enabledIndicators: params.enabledIndicators
     }
   }
   
@@ -240,7 +244,8 @@ function calculateTransactions() {
     ma: ma.value,
     macd: macd.value,
     buyConditions: buyConditions.value,
-    sellConditions: sellConditions.value
+    sellConditions: sellConditions.value,
+    enabledIndicators: enabledIndicators.value
   })
   
   // 更新交易数据和回测数据

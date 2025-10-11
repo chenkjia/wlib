@@ -46,6 +46,10 @@ const props = defineProps({
   focusData: {
     type: Object,
     default: null
+  },
+  enabledIndicators: {
+    type: Array,
+    default: () => ['ma', 'macd']
   }
 })
 
@@ -103,7 +107,8 @@ function renderChart(data, dayLineWithMetric) {
     data, 
     dayLineWithMetric,
     formatDateYYYYMMDD, 
-    formatDateMMDD
+    formatDateMMDD,
+    props.enabledIndicators
   )
   myChart.setOption(option)
 }

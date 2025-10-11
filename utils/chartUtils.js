@@ -186,53 +186,73 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
 /**
  * 计算技术指标
  * @param {Array<Object>} data - 数据
+ * @param {Object} config - 配置对象，包含ma、macd和enabledIndicators
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateMetric(data, {ma, macd}) {
+export function calculateMetric(data, {ma, macd, enabledIndicators = ['ma', 'macd']}) {
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
-  const maS = calculateMA(close, ma.s);
-  const maM = calculateMA(close, ma.m);
-  const maL = calculateMA(close, ma.l);
-  const maX = calculateMA(close, ma.x);
-  const position = calculatePosition({maS, maM, maL})
-  const sign1 = calculateSign1({position})
-  const sign2 = calculateSign2({maS, maM, maL})
-  const trendAlignment = calculateTrendAlignment({maS, maM, maL, maX})
-  const volumeMaS = calculateMA(volume, ma.s);
-  const volumeMaM = calculateMA(volume, ma.m);
-  const volumeMaL = calculateMA(volume, ma.l);
-  const volumeMaX = calculateMA(volume, ma.x);
-  const emaS = calculateEMA(close, macd.s);
-  const emaL = calculateEMA(close, macd.l);
-  const dif = emaS.map((ema, index) => ema - emaL[index])
-  const dea = calculateEMA(dif, macd.d)
-  const bar = dif.map((line, index) => line - dea[index])
-  return {
+  
+  let result = {
     line: data,
-    data,
-    maS,
-    maM,
-    maL,
-    maX,
-    position,
-    sign1,
-    sign2,
-    trendAlignment,
-    volumeMaS,
-    volumeMaM,
-    volumeMaL,
-    volumeMaX,
-    dif,
-    dea,
-    bar
+    data
+  };
+  
+  // 只有启用MA时才计算MA相关指标
+  if (enabledIndicators.includes('ma')) {
+    const maS = calculateMA(close, ma.s);
+    const maM = calculateMA(close, ma.m);
+    const maL = calculateMA(close, ma.l);
+    const maX = calculateMA(close, ma.x);
+    const position = calculatePosition({maS, maM, maL})
+    const sign1 = calculateSign1({position})
+    const sign2 = calculateSign2({maS, maM, maL})
+    const trendAlignment = calculateTrendAlignment({maS, maM, maL, maX})
+    const volumeMaS = calculateMA(volume, ma.s);
+    const volumeMaM = calculateMA(volume, ma.m);
+    const volumeMaL = calculateMA(volume, ma.l);
+    const volumeMaX = calculateMA(volume, ma.x);
+    
+    result = {
+      ...result,
+      maS,
+      maM,
+      maL,
+      maX,
+      position,
+      sign1,
+      sign2,
+      trendAlignment,
+      volumeMaS,
+      volumeMaM,
+      volumeMaL,
+      volumeMaX
+    };
   }
+  
+  // 只有启用MACD时才计算MACD相关指标
+  if (enabledIndicators.includes('macd')) {
+    const emaS = calculateEMA(close, macd.s);
+    const emaL = calculateEMA(close, macd.l);
+    const dif = emaS.map((ema, index) => ema - emaL[index])
+    const dea = calculateEMA(dif, macd.d)
+    const bar = dif.map((line, index) => line - dea[index])
+    
+    result = {
+      ...result,
+      dif,
+      dea,
+      bar
+    };
+  }
+  
+  return result;
 }
 
 export const calculateStock = (props) => {
-  const { dayLine, hourLine, ma, macd, buyConditions, sellConditions } = props
-  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd })
-  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd })
+  const { dayLine, hourLine, ma, macd, buyConditions, sellConditions, enabledIndicators } = props
+  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, enabledIndicators })
+  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, enabledIndicators })
   const transactions =  calculateTransactions({
     dayLineWithMetric,
     hourLineWithMetric,

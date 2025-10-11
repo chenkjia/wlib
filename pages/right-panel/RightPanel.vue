@@ -30,10 +30,21 @@
     <div class="tab-content overflow-y-auto flex-grow">
       <!-- 配置规则 Tab -->
       <div v-show="activeTab === 'config'" class="tab-pane bg-white">
-        <div class="space-y-4">
+        <div class="space-y-2 pt-3">
+          <div class="pl-3 pr-3">
+            <label class="flex items-center">
+              <input 
+                type="checkbox" 
+                v-model="enabledIndicators" 
+                value="ma"
+                class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <span class="text-sm font-medium text-gray-700">MA均线</span>
+            </label>
+          </div>
           <!-- MA配置 -->
-          <div class="bg-gray-50 p-3 rounded-md">
-            <h4 class="font-medium text-gray-700 mb-2">MA均线配置</h4>
+          <div v-show="enabledIndicators.includes('ma')" class="bg-gray-50 p-3 rounded-md">
+            
             <div class="grid grid-cols-2 gap-3">
               <!-- 短期MA -->
               <div>
@@ -89,9 +100,19 @@
               </div>
             </div>
           </div>
-          
+          <div class="pl-3 pr-3">
+              <label class="flex items-center">
+                <input 
+                  type="checkbox" 
+                  v-model="enabledIndicators" 
+                  value="macd"
+                  class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span class="text-sm font-medium text-gray-700">MACD</span>
+              </label>
+          </div>
           <!-- MACD配置 -->
-          <div class="bg-gray-50 p-3 rounded-md">
+          <div v-show="enabledIndicators.includes('macd')" class="bg-gray-50 p-3 rounded-md">
             <h4 class="font-medium text-gray-700 mb-2">MACD配置</h4>
             <div class="grid grid-cols-3 gap-3">
               <!-- 快线 -->
@@ -142,6 +163,7 @@
             <AlgorithmConfig 
               type="buy" 
               :initialValue="props.buyConditions"
+              :enabledIndicators="enabledIndicators"
               @update:value="updateBuyConditions"
             />
           </div>
@@ -152,6 +174,7 @@
             <AlgorithmConfig 
               type="sell" 
               :initialValue="props.sellConditions"
+              :enabledIndicators="enabledIndicators"
               @update:value="updateSellConditions"
             />
           </div>
@@ -244,6 +267,7 @@ const emit = defineEmits([
   'update:macd',
   'update:buyConditions',
   'update:sellConditions',
+  'update:enabledIndicators',
   'calculation',
   'changePanelState',
   'focusChart'
@@ -254,6 +278,7 @@ const activeTab = ref('config') // 当前激活的标签页，默认为配置规
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
 const calculationLoading = ref(false) // 计算加载状态
+const enabledIndicators = ref(['ma', 'macd']) // 启用的指标数组
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
 }
@@ -269,7 +294,8 @@ function handleCalculation(type) {
     ma: syncedMa.value,
     macd: syncedMacd.value,
     buyConditions: props.buyConditions,
-    sellConditions: props.sellConditions
+    sellConditions: props.sellConditions,
+    enabledIndicators: enabledIndicators.value
   }
   
   // 显示计算提示消息
@@ -353,6 +379,11 @@ const syncedMacd = computed(() => ({
 function handleFocusChart(focusData) {
   emit('focusChart', focusData)
 }
+
+// 监听enabledIndicators变化并向父组件发送
+watch(enabledIndicators, (newValue) => {
+  emit('update:enabledIndicators', newValue)
+}, { deep: true })
 
 
 

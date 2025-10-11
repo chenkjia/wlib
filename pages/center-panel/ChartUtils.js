@@ -70,7 +70,7 @@ function processTrendPoints(trendData) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD) {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd']) {
   const {maS, maM, maL, maX, dif, dea, bar} = dayLineWithMetric;
   const trendPoints = processTrendPoints(data.trendData)
   return {
@@ -95,24 +95,28 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         }
         
         // 均线数据
-        params.forEach((param, index) => {
-          if (index > 0 && index < 5) { // MA线
-            res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`;
-          }
-        });
+        if (enabledIndicators.includes('ma')) {
+          params.forEach((param, index) => {
+            if (index > 0 && index < 5) { // MA线
+              res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`;
+            }
+          });
+        }
         
         // MACD数据
-        const difParam = params.find(p => p.seriesName === 'DIF');
-        const deaParam = params.find(p => p.seriesName === 'DEA');
-        const barParam = params.find(p => p.seriesName === 'BAR');
-        if (difParam && difParam.data !== undefined) {
-          res += `DIF: ${difParam.data.toFixed(4)}<br/>`;
-        }
-        if (deaParam && deaParam.data !== undefined) {
-          res += `DEA: ${deaParam.data.toFixed(4)}<br/>`;
-        }
-        if (barParam && barParam.data !== undefined) {
-          res += `BAR: ${barParam.data.toFixed(4)}<br/>`;
+        if (enabledIndicators.includes('macd')) {
+          const difParam = params.find(p => p.seriesName === 'DIF');
+          const deaParam = params.find(p => p.seriesName === 'DEA');
+          const barParam = params.find(p => p.seriesName === 'BAR');
+          if (difParam && difParam.data !== undefined) {
+            res += `DIF: ${difParam.data.toFixed(4)}<br/>`;
+          }
+          if (deaParam && deaParam.data !== undefined) {
+            res += `DEA: ${deaParam.data.toFixed(4)}<br/>`;
+          }
+          if (barParam && barParam.data !== undefined) {
+            res += `BAR: ${barParam.data.toFixed(4)}<br/>`;
+          }
         }
         
         // 成交量
@@ -137,7 +141,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         colorAlpha: 0.1
       }
     },
-    grid: [
+    grid: enabledIndicators.includes('macd') ? [
       {
         left: '10%',
         right: '10%',
@@ -155,8 +159,20 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         top: '70%',
         height: '15%'
       }
+    ] : [
+      {
+        left: '10%',
+        right: '10%',
+        height: '60%'
+      },
+      {
+        left: '10%',
+        right: '10%',
+        top: '70%',
+        height: '20%'
+      }
     ],
-    xAxis: [
+    xAxis: enabledIndicators.includes('macd') ? [
       {
         type: 'category',
         data: data.categoryData,
@@ -216,8 +232,48 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           }
         }
       }
+    ] : [
+      {
+        type: 'category',
+        data: data.categoryData,
+        boundaryGap: false,
+        axisLine: { onZero: false },
+        splitLine: { show: false },
+        min: 'dataMin',
+        max: 'dataMax',
+        axisLabel: { 
+          show: true,
+          formatter: formatDateMMDD
+        },
+        axisPointer: {
+          z: 100,
+          label: {
+            formatter: params => formatDateYYYYMMDD(params.value)
+          }
+        }
+      },
+      {
+        type: 'category',
+        gridIndex: 1,
+        data: data.categoryData,
+        boundaryGap: false,
+        axisLine: { onZero: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { 
+          show: true,
+          formatter: formatDateMMDD
+        },
+        min: 'dataMin',
+        max: 'dataMax',
+        axisPointer: {
+          label: {
+            formatter: params => formatDateYYYYMMDD(params.value)
+          }
+        }
+      }
     ],
-    yAxis: [
+    yAxis: enabledIndicators.includes('macd') ? [
       {
         scale: true,
         splitArea: { show: true }
@@ -240,19 +296,33 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         axisTick: { show: true },
         splitLine: { show: true }
       }
+    ] : [
+      {
+        scale: true,
+        splitArea: { show: true }
+      },
+      {
+        scale: true,
+        gridIndex: 1,
+        splitNumber: 2,
+        axisLabel: { show: false },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        splitLine: { show: false }
+      }
     ],
     dataZoom: [
       {
         type: 'inside',
-        xAxisIndex: [0, 1, 2],
+        xAxisIndex: enabledIndicators.includes('macd') ? [0, 1, 2] : [0, 1],
         start: 50,
         end: 100
       },
       {
         show: true,
-        xAxisIndex: [0, 1, 2],
+        xAxisIndex: enabledIndicators.includes('macd') ? [0, 1, 2] : [0, 1],
         type: 'slider',
-        top: '90%',
+        top: enabledIndicators.includes('macd') ? '90%' : '85%',
         start: 50,
         end: 100
       }
@@ -296,38 +366,41 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           animationDuration: 300
         }
       },
-      {
-        name: 'maS',
-        type: 'line',
-        data: maS,
-        smooth: true,
-        lineStyle: { opacity: 0.5 },
-        showSymbol: false
-      },
-      {
-        name: 'maM',
-        type: 'line',
-        data: maM,
-        smooth: true,
-        lineStyle: { opacity: 0.5 },
-        showSymbol: false
-      },
-      {
-        name: 'maL',
-        type: 'line',
-        data: maL,
-        smooth: true,
-        lineStyle: { opacity: 0.5 },
-        showSymbol: false
-      },
-      {
-        name: 'maX',
-        type: 'line',
-        data: maX,
-        smooth: true,
-        lineStyle: { opacity: 0.5 },
-        showSymbol: false
-      },
+      // MA线系列 - 只有启用MA时才显示
+      ...(enabledIndicators.includes('ma') ? [
+        {
+          name: 'maS',
+          type: 'line',
+          data: maS,
+          smooth: true,
+          lineStyle: { opacity: 0.5 },
+          showSymbol: false
+        },
+        {
+          name: 'maM',
+          type: 'line',
+          data: maM,
+          smooth: true,
+          lineStyle: { opacity: 0.5 },
+          showSymbol: false
+        },
+        {
+          name: 'maL',
+          type: 'line',
+          data: maL,
+          smooth: true,
+          lineStyle: { opacity: 0.5 },
+          showSymbol: false
+        },
+        {
+          name: 'maX',
+          type: 'line',
+          data: maX,
+          smooth: true,
+          lineStyle: { opacity: 0.5 },
+          showSymbol: false
+        }
+      ] : []),
       {
         name: '成交量',
         type: 'bar',
@@ -338,42 +411,45 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           color: params => params.data[2] > 0 ? upColor : downColor
         }
       },
-      {
-        name: 'DIF',
-        type: 'line',
-        xAxisIndex: 2,
-        yAxisIndex: 2,
-        data: dif,
-        smooth: true,
-        lineStyle: { 
-          color: '#da6ee8',
-          width: 1
+      // MACD系列 - 只有启用MACD时才显示
+      ...(enabledIndicators.includes('macd') ? [
+        {
+          name: 'DIF',
+          type: 'line',
+          xAxisIndex: 2,
+          yAxisIndex: 2,
+          data: dif,
+          smooth: true,
+          lineStyle: { 
+            color: '#da6ee8',
+            width: 1
+          },
+          showSymbol: false
         },
-        showSymbol: false
-      },
-      {
-        name: 'DEA',
-        type: 'line',
-        xAxisIndex: 2,
-        yAxisIndex: 2,
-        data: dea,
-        smooth: true,
-        lineStyle: { 
-          color: '#39afe6',
-          width: 1
+        {
+          name: 'DEA',
+          type: 'line',
+          xAxisIndex: 2,
+          yAxisIndex: 2,
+          data: dea,
+          smooth: true,
+          lineStyle: { 
+            color: '#39afe6',
+            width: 1
+          },
+          showSymbol: false
         },
-        showSymbol: false
-      },
-      {
-        name: 'BAR',
-        type: 'bar',
-        xAxisIndex: 2,
-        yAxisIndex: 2,
-        data: bar,
-        itemStyle: {
-          color: params => params.data > 0 ? upColor : downColor
+        {
+          name: 'BAR',
+          type: 'bar',
+          xAxisIndex: 2,
+          yAxisIndex: 2,
+          data: bar,
+          itemStyle: {
+            color: params => params.data > 0 ? upColor : downColor
+          }
         }
-      }
+      ] : [])
     ]
   }
 }

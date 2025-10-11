@@ -390,37 +390,6 @@ watch(() => props.selectedDataSource, async (newDataSource, oldDataSource) => {
 
 onMounted(async () => {
   fetchStocks()
-  
-  try {
-    const response = await fetch('/api/stocks/starred');
-    const result = await response.json();
-    
-    if (result.success && Array.isArray(result.data)) {
-      starredStocks.value = result.data;
-      localStorage.setItem('starredStocks', JSON.stringify(starredStocks.value));
-    } else {
-      const savedStarredStocks = localStorage.getItem('starredStocks');
-      if (savedStarredStocks) {
-        try {
-          starredStocks.value = JSON.parse(savedStarredStocks);
-        } catch (e) {
-          console.error('解析星标股票数据失败:', e);
-          starredStocks.value = [];
-        }
-      }
-    }
-  } catch (error) {
-    console.error('获取星标股票列表失败:', error);
-    const savedStarredStocks = localStorage.getItem('starredStocks');
-    if (savedStarredStocks) {
-      try {
-        starredStocks.value = JSON.parse(savedStarredStocks);
-      } catch (e) {
-        console.error('解析星标股票数据失败:', e);
-        starredStocks.value = [];
-      }
-    }
-  }
 })
 </script>
 

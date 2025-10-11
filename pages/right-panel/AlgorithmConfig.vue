@@ -9,7 +9,7 @@
             <div class="flex-grow overflow-hidden">
               <USelect
                 v-model="algorithmGroups[conditionIndex]"
-                :items="availableConditions"
+                :items="filteredAvailableConditions"
                 multiple
                 searchable
                 placeholder="选择条件"
@@ -71,6 +71,11 @@ const props = defineProps({
   initialValue: {
     type: Array,
     default: () => []
+  },
+  // 启用的指标
+  enabledIndicators: {
+    type: Array,
+    default: () => ['ma', 'macd']
   }
 })
 
@@ -78,6 +83,19 @@ const emit = defineEmits(['update:value'])
 
 // 标题根据类型确定
 const title = computed(() => props.type === 'buy' ? '买入' : '卖出')
+
+// 根据启用的指标过滤可用条件
+const filteredAvailableConditions = computed(() => {
+  return availableConditions.filter(condition => {
+    // 如果条件没有params属性，则始终显示
+    if (!condition.params || condition.params.length === 0) {
+      return true
+    }
+    
+    // 检查条件所需的参数是否在启用的指标中
+    return condition.params.every(param => props.enabledIndicators.includes(param))
+  })
+})
 
 
 // 算法组数据结构 - 使用props中的initialValue进行初始化
