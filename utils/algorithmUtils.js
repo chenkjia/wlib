@@ -1,153 +1,269 @@
 
 // 算法工具函数
 
-const algorithmMap = {
-    MAS_GT_MAM: (i, {maS, maM})  => {
-      return maS[i] > maM[i]
-    },
-    MAS_LT_MAM: (i, {maS, maM}) => {
-      return maS[i] < maM[i]
-    },
-    MAS_CROSS_UP_MAM: (i, {maS, maM}) => {
-      return maS[i-1] < maM[i-1] && maS[i] >= maM[i]
-    },
-    MAS_CROSS_DOWN_MAM: (i, {maS, maM}) => {
-      return maS[i-1] > maM[i-1] && maS[i] <= maM[i]
-    },
-    MAM_GT_MAL: (i, {maM, maL}) => {
-      return maM[i] > maL[i]
-    },
-    MAM_LT_MAL: (i, {maM, maL}) => {
-      return maM[i] < maL[i]
-    },
-    MAM_CROSS_UP_MAL: (i, {maM, maL}) => {
-      return maM[i-1] < maL[i-1] && maM[i] >= maL[i]
-    },
-    MAM_CROSS_DOWN_MAL: (i, {maM, maL}) => {
-      return maM[i-1] > maL[i-1] && maM[i] <= maL[i]
-    },
-    MAL_GT_MAX: (i, {maL, maX}) => {
-      return maL[i] > maX[i]
-    },
-    MAL_LT_MAX: (i, {maL, maX}) => {
-      return maL[i] < maX[i]
-    },
-    MAL_CROSS_UP_MAX: (i, {maL, maX}) => {
-      return maL[i-1] < maX[i-1] && maL[i] >= maX[i]
-    },
-    MAL_CROSS_DOWN_MAX: (i, {maL, maX}) => {
-      return maL[i-1] > maX[i-1] && maL[i] <= maX[i]
-    },
-    VOLUME_HIGH: (i, {volume}) => {
-      return volume[i] > volume[i-1] * 1.1
-    },
-    VOLUME_LOW: (i, {volume}) => {
-      return volume[i] < volume[i-1] * 0.9
-    },
-    SIGN1: (i, {sign1}) => {
-      return sign1[i] < 50
-    },
-    // macd金叉
-    MACD_CROSS_UP_GOLDEN: (i, {dif, dea}) => {
-      return dif[i-1] < dea[i-1] && dif[i] >= dea[i]
-        && (dea[i-1] <= 0 || Math.abs(dea[i-1]) < 0.05)
-    },
-    // macd死叉
-    MACD_CROSS_DOWN_DEAD: (i, {dif, dea}) => {
-      return dif[i-1] > dea[i-1] && dif[i] <= dea[i]
-        && (dea[i-1] >= 0 || Math.abs(dea[i-1]) < 0.05)
-    },
-    // macd底背离
-    MACD_BOTTOM_DEVIATION: (i, {dif, line}) => {
-      return (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
-    },
-    // macd顶背离
-    MACD_TOP_DEVIATION: (i, {dif, line}) => {
-      return (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
-    },
-    // 短期均线向上
-    MAS_UP: (i, {maS}) => {
-      return maS[i-2] < maS[i-1] && maS[i-1] < maS[i]
-    },
-    // 短期均线向下
-    MAS_DOWN: (i, {maS}) => {
-      return maS[i-2] > maS[i-1] && maS[i-1] > maS[i]
-    },
-    // 中期均线向上
-    MAM_UP: (i, {maM}) => {
-      return maM[i-2] < maM[i-1] && maM[i-1] < maM[i]
-    },
-    // 中期均线向下
-    MAM_DOWN: (i, {maM}) => {
-      return maM[i-2] > maM[i-1] && maM[i-1] > maM[i]
-    },
-    // 长期均线向上
-    MAL_UP: (i, {maL}) => {
-      return maL[i-2] < maL[i-1] && maL[i-1] < maL[i]
-    },
-    // 长期均线向下
-    MAL_DOWN: (i, {maL}) => {
-      return maL[i-2] > maL[i-1] && maL[i-1] > maL[i]
-    },
-    // 远期均线向上
-    MAX_UP: (i, {maX}) => {
-      return maX[i-2] < maX[i-1] && maX[i-1] < maX[i]
-    },
-    // 远期均线向下
-    MAX_DOWN: (i, {maX}) => {
-      return maX[i-2] > maX[i-1] && maX[i-1] > maX[i]
-    },
-    // 短期均线从向下趋势变为向上趋势
-    MAS_UPTREND: (i, {maS}) => {
-      return maS[i-2] > maS[i-1] && maS[i] > maS[i-1]
-    },
-    // 短期均线从向上趋势变为向下趋势
-    MAS_DOWNTREND: (i, {maS}) => {
-      return maS[i-2] < maS[i-1] && maS[i] < maS[i-1]
-    },
-    // 中期均线从向下趋势变为向上趋势
-    MAM_UPTREND: (i, {maM}) => {
-      return maM[i-2] > maM[i-1] && maM[i] > maM[i-1]
-    },
-    // 中期均线从向上趋势变为向下趋势
-    MAM_DOWNTREND: (i, {maM}) => {
-      return maM[i-2] < maM[i-1] && maM[i] < maM[i-1]
-    },
-    // 长期均线从向下趋势变为向上趋势
-    MAL_UPTREND: (i, {maL}) => {
-      return maL[i-2] > maL[i-1] && maL[i] > maL[i-1]
-    },
-    // 长期均线从向上趋势变为向下趋势
-    MAL_DOWNTREND: (i, {maL}) => {
-      return maL[i-2] < maL[i-1] && maL[i] < maL[i-1]
-    },
-    // 远期均线从向下趋势变为向上趋势
-    MAX_UPTREND: (i, {maX}) => {
-      return maX[i-2] > maX[i-1] && maX[i] > maX[i-1]
-    },
-    // 远期均线从向上趋势变为向下趋势
-    MAX_DOWNTREND: (i, {maX}) => {
-      return maX[i-2] < maX[i-1] && maX[i] < maX[i-1]
-    },
-    MAS_EXPEND_MAM: (i, {maS, maM}) => {
-      return maS[i]-maS[i-1] > maM[i]-maM[i-1]
-    },
-    MAS_CONTRACT_MAM: (i, {maS, maM}) => {
-      return maS[i]-maS[i-1] < maM[i]-maM[i-1]
-    },
-    MAM_EXPEND_MAL: (i, {maM, maL}) => {
-      return maM[i]-maM[i-1] > maL[i]-maL[i-1]
-    },
-    MAM_CONTRACT_MAL: (i, {maM, maL}) => {
-      return maM[i]-maM[i-1] < maL[i]-maL[i-1]
-    },
-    MAL_EXPEND_MAX: (i, {maL, maX}) => {
-      return maL[i]-maL[i-1] > maX[i]-maX[i-1]
-    },
-    MAL_CONTRACT_MAX: (i, {maL, maX}) => {
-      return maL[i]-maL[i-1] < maX[i]-maX[i-1]
-    },
+// 可用条件列表
+const availableConditions = [
+  // 短期与中期均线对比
+  { 
+    value: 'MAS_GT_MAM', 
+    label: '短期均线高于中期均线', 
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i] > maM[i]
+  },
+  { 
+    value: 'MAS_LT_MAM', 
+    label: '短期均线低于中期均线',
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i] < maM[i]
+  },
+  { 
+    value: 'MAS_CROSS_UP_MAM', 
+    label: '短期均线上穿中期均线',
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i-1] < maM[i-1] && maS[i] >= maM[i]
+  },
+  { 
+    value: 'MAS_CROSS_DOWN_MAM', 
+    label: '短期均线下穿中期均线',
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i-1] > maM[i-1] && maS[i] <= maM[i]
+  },
+  
+  // 中期与长期均线对比
+  { 
+    value: 'MAM_GT_MAL', 
+    label: '中期均线高于长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i] > maL[i]
+  },
+  { 
+    value: 'MAM_LT_MAL', 
+    label: '中期均线低于长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i] < maL[i]
+  },
+  { 
+    value: 'MAM_CROSS_UP_MAL', 
+    label: '中期均线上穿长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i-1] < maL[i-1] && maM[i] >= maL[i]
+  },
+  { 
+    value: 'MAM_CROSS_DOWN_MAL', 
+    label: '中期均线下穿长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i-1] > maL[i-1] && maM[i] <= maL[i]
+  },
+  
+  // 长期与超长期均线对比
+  { 
+    value: 'MAL_GT_MAX', 
+    label: '长期均线高于超长期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i] > maX[i]
+  },
+  { 
+    value: 'MAL_LT_MAX', 
+    label: '长期均线低于超长期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i] < maX[i]
+  },
+  { 
+    value: 'MAL_CROSS_UP_MAX', 
+    label: '长期均线上穿超长期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i-1] < maX[i-1] && maL[i] >= maX[i]
+  },
+  { 
+    value: 'MAL_CROSS_DOWN_MAX', 
+    label: '长期均线下穿超长期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i-1] > maX[i-1] && maL[i] <= maX[i]
+  },
+  
+  // 成交量相关
+  { 
+    value: 'VOLUME_HIGH', 
+    label: '成交量放大',
+    func: (i, {volume}) => volume[i] > volume[i-1] * 1.1
+  },
+  { 
+    value: 'VOLUME_LOW', 
+    label: '成交量缩小',
+    func: (i, {volume}) => volume[i] < volume[i-1] * 0.9
+  },
+  
+  // macd相关
+  { 
+    value: 'MACD_CROSS_UP_GOLDEN', 
+    label: 'macd金叉',
+    params: ['macd'],
+    func: (i, {dif, dea}) => dif[i-1] < dea[i-1] && dif[i] >= dea[i] && (dea[i-1] <= 0 || Math.abs(dea[i-1]) < 0.05)
+  },
+  { 
+    value: 'MACD_CROSS_DOWN_DEAD', 
+    label: 'macd死叉',
+    params: ['macd'],
+    func: (i, {dif, dea}) => dif[i-1] > dea[i-1] && dif[i] <= dea[i] && (dea[i-1] >= 0 || Math.abs(dea[i-1]) < 0.05)
+  },
+  { 
+    value: 'MACD_BOTTOM_DEVIATION', 
+    label: 'macd底背离',
+    params: ['macd'],
+    func: (i, {dif, line}) => (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
+  },
+  { 
+    value: 'MACD_TOP_DEVIATION', 
+    label: 'macd顶背离',
+    params: ['macd'],
+    func: (i, {dif, line}) => (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
+  },
 
-  }
+  // 其他指标
+  { 
+    value: 'SIGN1', 
+    label: 'sign1小于50',
+    params: ['ma'],
+    func: (i, {sign1}) => sign1[i] < 50
+  },
+  { 
+    value: 'MAS_UP', 
+    label: '短期均线向上',
+    params: ['ma'],
+    func: (i, {maS}) => maS[i-2] < maS[i-1] && maS[i-1] < maS[i]
+  },
+  { 
+    value: 'MAS_DOWN', 
+    label: '短期均线向下',
+    params: ['ma'],
+    func: (i, {maS}) => maS[i-2] > maS[i-1] && maS[i-1] > maS[i]
+  },
+  { 
+    value: 'MAM_UP', 
+    label: '中期均线向上',
+    params: ['ma'],
+    func: (i, {maM}) => maM[i-2] < maM[i-1] && maM[i-1] < maM[i]
+  },
+  { 
+    value: 'MAM_DOWN', 
+    label: '中期均线向下',
+    params: ['ma'],
+    func: (i, {maM}) => maM[i-2] > maM[i-1] && maM[i-1] > maM[i]
+  },
+  { 
+    value: 'MAL_UP', 
+    label: '长期均线向上',
+    params: ['ma'],
+    func: (i, {maL}) => maL[i-2] < maL[i-1] && maL[i-1] < maL[i]
+  },
+  { 
+    value: 'MAL_DOWN', 
+    label: '长期均线向下',
+    params: ['ma'],
+    func: (i, {maL}) => maL[i-2] > maL[i-1] && maL[i-1] > maL[i]
+  },
+  { 
+    value: 'MAX_UP', 
+    label: '远期均线向上',
+    params: ['ma'],
+    func: (i, {maX}) => maX[i-2] < maX[i-1] && maX[i-1] < maX[i]
+  },
+  { 
+    value: 'MAX_DOWN', 
+    label: '远期均线向下',
+    params: ['ma'],
+    func: (i, {maX}) => maX[i-2] > maX[i-1] && maX[i-1] > maX[i]
+  },
+  { 
+    value: 'MAS_UPTREND', 
+    label: '短期均线拐头向上',
+    params: ['ma'],
+    func: (i, {maS}) => maS[i-2] > maS[i-1] && maS[i] > maS[i-1]
+  },
+  { 
+    value: 'MAS_DOWNTREND', 
+    label: '短期均线拐头向下',
+    params: ['ma'],
+    func: (i, {maS}) => maS[i-2] < maS[i-1] && maS[i] < maS[i-1]
+  },
+  { 
+    value: 'MAM_UPTREND', 
+    label: '中期均线拐头向上',
+    params: ['ma'],
+    func: (i, {maM}) => maM[i-2] > maM[i-1] && maM[i] > maM[i-1]
+  },
+  { 
+    value: 'MAM_DOWNTREND', 
+    label: '中期均线拐头向下',
+    params: ['ma'],
+    func: (i, {maM}) => maM[i-2] < maM[i-1] && maM[i] < maM[i-1]
+  },
+  { 
+    value: 'MAL_UPTREND', 
+    label: '长期均线拐头向上',
+    params: ['ma'],
+    func: (i, {maL}) => maL[i-2] > maL[i-1] && maL[i] > maL[i-1]
+  },
+  { 
+    value: 'MAL_DOWNTREND', 
+    label: '长期均线拐头向下',
+    params: ['ma'],
+    func: (i, {maL}) => maL[i-2] < maL[i-1] && maL[i] < maL[i-1]
+  },
+  { 
+    value: 'MAX_UPTREND', 
+    label: '远期均线拐头向上',
+    params: ['ma'],
+    func: (i, {maX}) => maX[i-2] > maX[i-1] && maX[i] > maX[i-1]
+  },
+  { 
+    value: 'MAX_DOWNTREND', 
+    label: '远期均线拐头向下',
+    params: ['ma'],
+    func: (i, {maX}) => maX[i-2] < maX[i-1] && maX[i] < maX[i-1]
+  },
+  { 
+    value: 'MAS_EXPEND_MAM', 
+    label: '短期均线扩大中期均线',
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i]-maS[i-1] > maM[i]-maM[i-1]
+  },
+  { 
+    value: 'MAS_CONTRACT_MAM', 
+    label: '短期均线缩小中期均线',
+    params: ['ma'],
+    func: (i, {maS, maM}) => maS[i]-maS[i-1] < maM[i]-maM[i-1]
+  },
+  { 
+    value: 'MAM_EXPEND_MAL', 
+    label: '中期均线扩大长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i]-maM[i-1] > maL[i]-maL[i-1]
+  },
+  { 
+    value: 'MAM_CONTRACT_MAL', 
+    label: '中期均线缩小长期均线',
+    params: ['ma'],
+    func: (i, {maM, maL}) => maM[i]-maM[i-1] < maL[i]-maL[i-1]
+  },
+  { 
+    value: 'MAL_EXPEND_MAX', 
+    label: '长期均线扩大远期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i]-maL[i-1] > maX[i]-maX[i-1]
+  },
+  { 
+    value: 'MAL_CONTRACT_MAX', 
+    label: '长期均线缩小远期均线',
+    params: ['ma'],
+    func: (i, {maL, maX}) => maL[i]-maL[i-1] < maX[i]-maX[i-1]
+  },
+]
 
-export { algorithmMap }
+// 创建algorithmMap对象，从availableConditions中提取函数
+const algorithmMap = {}
+availableConditions.forEach(condition => {
+  algorithmMap[condition.value] = condition
+})
+
+export { availableConditions, algorithmMap }

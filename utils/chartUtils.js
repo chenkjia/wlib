@@ -398,7 +398,7 @@ const calculateSignals = (props) => {
   const signals = dayLineWithMetric.data.reduce((prev, cur, index) => {
     if (buyStep < buyLength && !hold) {
       const buyResult = buyConditions[buyStep].every((conditionType) => {
-        return algorithmMap[conditionType](index, dayLineWithMetric)
+        return algorithmMap[conditionType].func(index, dayLineWithMetric)
       })
       if (buyResult) {
         buyStep++
@@ -416,7 +416,7 @@ const calculateSignals = (props) => {
     }
     if (sellStep < sellLength && hold) {
       const sellResult = sellConditions[sellStep].every((conditionType) => {
-        return algorithmMap[conditionType](index, dayLineWithMetric)
+        return algorithmMap[conditionType].func(index, dayLineWithMetric)
       })
       if (sellResult) {
         sellStep++

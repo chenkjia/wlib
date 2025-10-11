@@ -59,7 +59,7 @@
 
 <script setup>
 import { ref, computed, defineProps, defineEmits, watch } from 'vue'
-
+import { availableConditions } from '~/utils/algorithmUtils.js'
 const props = defineProps({
   // 算法类型：'buy' 或 'sell'
   type: {
@@ -79,61 +79,6 @@ const emit = defineEmits(['update:value'])
 // 标题根据类型确定
 const title = computed(() => props.type === 'buy' ? '买入' : '卖出')
 
-// 可用条件列表
-const availableConditions = [
-  // 短期与中期均线对比
-  { value: 'MAS_GT_MAM', label: '短期均线高于中期均线' },
-  { value: 'MAS_LT_MAM', label: '短期均线低于中期均线' },
-  { value: 'MAS_CROSS_UP_MAM', label: '短期均线上穿中期均线' },
-  { value: 'MAS_CROSS_DOWN_MAM', label: '短期均线下穿中期均线' },
-  
-  // 中期与长期均线对比
-  { value: 'MAM_GT_MAL', label: '中期均线高于长期均线' },
-  { value: 'MAM_LT_MAL', label: '中期均线低于长期均线' },
-  { value: 'MAM_CROSS_UP_MAL', label: '中期均线上穿长期均线' },
-  { value: 'MAM_CROSS_DOWN_MAL', label: '中期均线下穿长期均线' },
-  
-  // 长期与超长期均线对比
-  { value: 'MAL_GT_MAX', label: '长期均线高于超长期均线' },
-  { value: 'MAL_LT_MAX', label: '长期均线低于超长期均线' },
-  { value: 'MAL_CROSS_UP_MAX', label: '长期均线上穿超长期均线' },
-  { value: 'MAL_CROSS_DOWN_MAX', label: '长期均线下穿超长期均线' },
-  
-  // 成交量相关
-  { value: 'VOLUME_HIGH', label: '成交量放大' },
-  { value: 'VOLUME_LOW', label: '成交量缩小' },
-  // macd相关
-  { value: 'MACD_CROSS_UP_GOLDEN', label: 'macd金叉' },
-  { value: 'MACD_CROSS_DOWN_DEAD', label: 'macd死叉' },
-  { value: 'MACD_BOTTOM_DEVIATION', label: 'macd底背离' },
-  { value: 'MACD_TOP_DEVIATION', label: 'macd顶背离' },
-
-  // 其他指标
-  { value: 'SIGN1', label: 'sign1小于50' },
-  { value: 'MAS_UP', label: '短期均线向上' },
-  { value: 'MAS_DOWN', label: '短期均线向下' },
-  { value: 'MAM_UP', label: '中期均线向上' },
-  { value: 'MAM_DOWN', label: '中期均线向下' },
-  { value: 'MAL_UP', label: '长期均线向上' },
-  { value: 'MAL_DOWN', label: '长期均线向下' },
-  { value: 'MAX_UP', label: '远期均线向上' },
-  { value: 'MAX_DOWN', label: '远期均线向下' },
-  { value: 'MAS_UPTREND', label: '短期均线拐头向上' },
-  { value: 'MAS_DOWNTREND', label: '短期均线拐头向下' },
-  { value: 'MAM_UPTREND', label: '中期均线拐头向上' },
-  { value: 'MAM_DOWNTREND', label: '中期均线拐头向下' },
-  { value: 'MAL_UPTREND', label: '长期均线拐头向上' },
-  { value: 'MAL_DOWNTREND', label: '长期均线拐头向下' },
-  { value: 'MAX_UPTREND', label: '远期均线拐头向上' },
-  { value: 'MAX_DOWNTREND', label: '远期均线拐头向下' },
-  { value: 'MAS_EXPEND_MAM', label: '短期均线扩大中期均线' },
-  { value: 'MAS_CONTRACT_MAM', label: '短期均线缩小中期均线' },
-  { value: 'MAM_EXPEND_MAL', label: '中期均线扩大长期均线' },
-  { value: 'MAM_CONTRACT_MAL', label: '中期均线缩小长期均线' },
-  { value: 'MAL_EXPEND_MAX', label: '长期均线扩大远期均线' },
-  { value: 'MAL_CONTRACT_MAX', label: '长期均线缩小远期均线' },
-
-]
 
 // 算法组数据结构 - 使用props中的initialValue进行初始化
 const algorithmGroups = ref(JSON.parse(JSON.stringify(props.initialValue && props.initialValue.length > 0 ? props.initialValue : [[]])))
