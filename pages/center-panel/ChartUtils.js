@@ -65,15 +65,13 @@ function processTrendPoints(trendData) {
 /**
  * 创建图表选项
  * @param {Object} data - 图表数据
- * @param {Array} maS - 短期移动平均线数据
- * @param {Array} maM - 中期移动平均线数据
- * @param {Array} maL - 长期移动平均线数据
- * @param {Array} maX - 超长期移动平均线数据
+ * @param {Object} dayLineWithMetric - 包含所有指标的日线数据
  * @param {Function} formatDateYYYYMMDD - 日期格式化函数
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD, formatDateMMDD) {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD) {
+  const {maS, maM, maL, maX, dif, dea, bar} = dayLineWithMetric;
   const trendPoints = processTrendPoints(data.trendData)
   return {
     animation: false,
@@ -103,6 +101,20 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
           }
         });
         
+        // MACD数据
+        const difParam = params.find(p => p.seriesName === 'DIF');
+        const deaParam = params.find(p => p.seriesName === 'DEA');
+        const barParam = params.find(p => p.seriesName === 'BAR');
+        if (difParam && difParam.data !== undefined) {
+          res += `DIF: ${difParam.data.toFixed(4)}<br/>`;
+        }
+        if (deaParam && deaParam.data !== undefined) {
+          res += `DEA: ${deaParam.data.toFixed(4)}<br/>`;
+        }
+        if (barParam && barParam.data !== undefined) {
+          res += `BAR: ${barParam.data.toFixed(4)}<br/>`;
+        }
+        
         // 成交量
         const volumeParam = params.find(p => p.seriesName === '成交量');
         if (volumeParam && volumeParam.data) {
@@ -129,12 +141,18 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
       {
         left: '10%',
         right: '10%',
-        height: '50%'
+        height: '40%'
       },
       {
         left: '10%',
         right: '10%',
-        top: '65%',
+        top: '50%',
+        height: '15%'
+      },
+      {
+        left: '10%',
+        right: '10%',
+        top: '70%',
         height: '15%'
       }
     ],
@@ -177,6 +195,26 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
             formatter: params => formatDateYYYYMMDD(params.value)
           }
         }
+      },
+      {
+        type: 'category',
+        gridIndex: 2,
+        data: data.categoryData,
+        boundaryGap: false,
+        axisLine: { onZero: false },
+        axisTick: { show: false },
+        splitLine: { show: false },
+        axisLabel: { 
+          show: true,
+          formatter: formatDateMMDD
+        },
+        min: 'dataMin',
+        max: 'dataMax',
+        axisPointer: {
+          label: {
+            formatter: params => formatDateYYYYMMDD(params.value)
+          }
+        }
       }
     ],
     yAxis: [
@@ -192,20 +230,29 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { show: false }
+      },
+      {
+        scale: true,
+        gridIndex: 2,
+        splitNumber: 2,
+        axisLabel: { show: true },
+        axisLine: { show: true },
+        axisTick: { show: true },
+        splitLine: { show: true }
       }
     ],
     dataZoom: [
       {
         type: 'inside',
-        xAxisIndex: [0, 1],
+        xAxisIndex: [0, 1, 2],
         start: 50,
         end: 100
       },
       {
         show: true,
-        xAxisIndex: [0, 1],
+        xAxisIndex: [0, 1, 2],
         type: 'slider',
-        top: '85%',
+        top: '90%',
         start: 50,
         end: 100
       }
@@ -289,6 +336,42 @@ export function createChartOption(data, {maS, maM, maL, maX}, formatDateYYYYMMDD
         data: data.volumes,
         itemStyle: {
           color: params => params.data[2] > 0 ? upColor : downColor
+        }
+      },
+      {
+        name: 'DIF',
+        type: 'line',
+        xAxisIndex: 2,
+        yAxisIndex: 2,
+        data: dif,
+        smooth: true,
+        lineStyle: { 
+          color: '#da6ee8',
+          width: 1
+        },
+        showSymbol: false
+      },
+      {
+        name: 'DEA',
+        type: 'line',
+        xAxisIndex: 2,
+        yAxisIndex: 2,
+        data: dea,
+        smooth: true,
+        lineStyle: { 
+          color: '#39afe6',
+          width: 1
+        },
+        showSymbol: false
+      },
+      {
+        name: 'BAR',
+        type: 'bar',
+        xAxisIndex: 2,
+        yAxisIndex: 2,
+        data: bar,
+        itemStyle: {
+          color: params => params.data > 0 ? upColor : downColor
         }
       }
     ]
