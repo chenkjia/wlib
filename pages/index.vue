@@ -68,8 +68,8 @@ const route = useRoute()
 // 状态变量
 const selectedStockCode = ref('')
 const selectedDataSource = ref({
-  value: 'flib',
-  label: '加密货币'
+  value: 'alib',
+  label: 'A股'
 }) // 数据源状态
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
@@ -261,9 +261,9 @@ watch(() => selectedStockCode.value, async (newCode, oldCode) => {
 
 
 // 注释掉自动监听配置参数变化，改为手动触发计算
-watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
-  calculateTransactions()
-}, { deep: true })
+// watch([() => ma.value, () => macd.value, () => buyConditions.value, () => sellConditions.value], () => {
+//   calculateTransactions()
+// }, { deep: true })
 
 onMounted(() => {
   // 检查URL中是否有股票代码参数
@@ -272,7 +272,7 @@ onMounted(() => {
     selectedStockCode.value = stockFromQuery
   } else {
     // 如果没有从URL中选择股票，根据数据源默认设置
-    selectedStockCode.value = selectedDataSource.value.value === 'flib' ? 'ETH' : 'sh.600000'
+    selectedStockCode.value = selectedDataSource.value.value === 'alib' ? 'sh.600000' : 'ETH'
   }
 })
 </script>

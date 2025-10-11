@@ -1,0 +1,164 @@
+<template>
+  <div class="h-full flex flex-col">
+    <!-- 刷新按钮 -->
+    <div class="relative mb-3">
+      <div class="flex gap-2 p-3">
+        <!-- 刷新按钮 -->
+        <button
+          @click="fetchStarredStocks"
+          class="finance-btn-primary px-4 py-2 text-sm"
+          :disabled="loading"
+        >
+          刷新
+        </button>
+      </div>
+    </div>
+    
+    <!-- 加载状态 -->
+    <div v-if="loading" class="py-4 text-center">
+      <div class="inline-block animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-500"></div>
+      <p class="mt-2">加载中...</p>
+    </div>
+    
+    <!-- 错误信息 -->
+    <div v-else-if="error" class="py-4 text-center text-red-500">
+      <p>{{ error }}</p>
+      <button @click="fetchStarredStocks" class="mt-2 finance-btn-secondary px-4 py-2 text-sm">
+        重试
+      </button>
+    </div>
+    
+    <!-- 空状态 -->
+    <div v-else-if="starredStocks.length === 0" class="py-8 text-center text-gray-500">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+      </svg>
+      <p>暂无星标股票</p>
+      <p class="text-sm mt-2">在股票列表中点击星标图标来添加星标股票</p>
+    </div>
+    
+    <!-- 股票表格 -->
+    <div v-else class="flex-1 overflow-y-auto">
+      <StockResultTable 
+        :stocks-result="formattedStocksResult"
+        :panel-state="'normal'"
+        @change-view-stock="selectStock"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import StockResultTable from './StockResultTable.vue'
+
+// 定义 props 和 emits
+const props = defineProps({
+  selectedDataSource: {
+    type: Object,
+    default: () => ({
+      value: 'alib',
+      label: 'A股'
+    })
+  }
+})
+
+const selectedStockCode = defineModel('selectedStockCode', { type: String, default: '' })
+
+// 状态变量
+const starredStocks = ref([])
+const loading = ref(false)
+const error = ref('')
+
+// 计算属性：格式化为 StockResultTable 需要的数据结构
+const formattedStocksResult = computed(() => {
+  return starredStocks.value.map(stock => ({
+    stock: stock.code,
+    // 由于星标股票数据来自数据库，没有分析结果，使用默认值
+    winRate: 0,
+    dailyChange: 0,
+    dailyChangeDiff: 0,
+    dayLineDailyChange: 0,
+    totalTrades: 0,
+    profitTrades: 0,
+    lossTrades: 0,
+    daysDuration: 0,
+    priceChange: 0,
+    maxDrawdown: 0,
+    dayLineCount: stock.dayLine ? stock.dayLine.length : 0,
+    dayLinePriceChange: 0,
+    priceChangeDiff: 0
+  }))
+})
+
+// 选择股票
+const selectStock = (code) => {
+  selectedStockCode.value = code
+}
+
+// 切换星标状态
+const toggleStarStock = async (code) => {
+  try {
+    const response = await fetch('/api/stocks/star', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        code,
+        isStar: false // 取消星标
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`取消星标失败: ${response.status}`)
+    }
+
+    // 从星标列表中移除
+    const index = starredStocks.value.findIndex(stock => stock.code === code)
+    if (index !== -1) {
+      starredStocks.value.splice(index, 1)
+    }
+
+  } catch (error) {
+    console.error('切换星标状态失败:', error)
+  }
+}
+
+// 获取星标股票列表
+const fetchStarredStocks = async () => {
+  loading.value = true
+  error.value = ''
+  
+  try {
+    const response = await fetch('/api/stocks/starred')
+    
+    if (!response.ok) {
+      throw new Error(`获取星标股票失败: ${response.status}`)
+    }
+    
+    const result = await response.json()
+    starredStocks.value = result.data || []
+    
+  } catch (err) {
+    console.error('获取星标股票失败:', err)
+    error.value = err.message || '获取星标股票失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+// 监听数据源变化
+watch(() => props.selectedDataSource, () => {
+  fetchStarredStocks()
+}, { immediate: false })
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchStarredStocks()
+})
+</script>
+
+<style scoped>
+/* 继承全局样式 */
+</style>

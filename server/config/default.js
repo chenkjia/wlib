@@ -494,7 +494,7 @@ export default {
   mongodb: {
     // 保持向后兼容的默认URI
     uri: {
-      default:'mongodb://localhost:27017/flib',
+      default:'mongodb://localhost:27017/alib',
       flib: 'mongodb://localhost:27017/flib',
       alib: 'mongodb://localhost:27017/alib'
     },

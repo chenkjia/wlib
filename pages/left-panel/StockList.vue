@@ -181,8 +181,8 @@ const props = defineProps({
   selectedDataSource: {
     type: Object,
     default: () => ({
-      value: 'flib',
-      label: '加密货币'
+      value: 'alib',
+      label: 'A股'
     })
   }
 })
@@ -267,9 +267,14 @@ async function toggleStarStock(code) {
       localStorage.setItem('starredStocks', JSON.stringify(starredStocks.value))
     } else {
       console.error('更新星标状态失败:', result.message);
+      // 如果后端返回错误信息，显示给用户
+      if (result.message) {
+        alert(result.message);
+      }
     }
   } catch (error) {
     console.error('更新星标状态出错:', error);
+    alert('更新星标状态失败，请重试');
   }
 }
 
@@ -328,7 +333,7 @@ async function fetchStocks() {
     if (stocks.value.length > 0 && !selectedStockCode.value) {
       selectedStockCode.value = stocks.value[0].code
     } else if (!selectedStockCode.value) {
-      selectedStockCode.value = props.selectedDataSource.value === 'flib' ? 'ETH' : 'sh.600000'
+      selectedStockCode.value = props.selectedDataSource.value === 'alib' ? 'sh.600000' : 'ETH'
     }
     
     loading.value = false
@@ -370,10 +375,10 @@ watch(() => props.selectedDataSource, async (newDataSource, oldDataSource) => {
       // 切换成功后重置页面状态并重新获取数据
       currentPage.value = 1
       searchQuery.value = ''
-      if (newDataSource.value === 'flib') {
-        selectedStockCode.value = 'ETH'
-      } else {
+      if (newDataSource.value === 'alib') {
         selectedStockCode.value = 'sh.600000'
+      } else {
+        selectedStockCode.value = 'ETH'
       }
       fetchStocks()
     } catch (error) {

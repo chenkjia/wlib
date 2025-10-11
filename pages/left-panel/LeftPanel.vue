@@ -17,7 +17,7 @@
       <button
         @click="activeTab = 'stocks'"
         :class="[
-          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          'flex-1 px-3 py-3 text-sm font-medium transition-colors',
           activeTab === 'stocks' 
             ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
             : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
@@ -26,9 +26,20 @@
         股票列表
       </button>
       <button
+        @click="activeTab = 'starred'"
+        :class="[
+          'flex-1 px-3 py-3 text-sm font-medium transition-colors',
+          activeTab === 'starred' 
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        星标列表
+      </button>
+      <button
         @click="activeTab = 'tasks'"
         :class="[
-          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          'flex-1 px-3 py-3 text-sm font-medium transition-colors',
           activeTab === 'tasks' 
             ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
             : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
@@ -43,6 +54,14 @@
       <!-- 股票列表标签页 -->
       <div v-show="activeTab === 'stocks'" class="h-full">
         <StockList
+          v-model:selectedStockCode="selectedStockCode"
+          :selectedDataSource="selectedDataSource"
+        />
+      </div>
+
+      <!-- 星标列表标签页 -->
+      <div v-show="activeTab === 'starred'" class="h-full">
+        <StarredStockList
           v-model:selectedStockCode="selectedStockCode"
           :selectedDataSource="selectedDataSource"
         />
@@ -65,13 +84,14 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import TaskList from './TaskList.vue'
 import StockList from './StockList.vue'
+import StarredStockList from './StarredStockList.vue'
 
 // 定义 props 和 emits
 const selectedStockCode = defineModel('selectedStockCode', { type: String, default: '' })
 const panelState = defineModel('panelState', { type: String, default: 'normal' })
 const selectedDataSource = defineModel('selectedDataSource', { type: Object, default: {
-  value: 'flib',
-  label: '加密货币'
+  value: 'alib',
+  label: 'A股'
 } })
 
 const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'])

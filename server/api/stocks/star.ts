@@ -26,6 +26,17 @@ export default defineEventHandler(async (event) => {
     // 确保MongoDB已连接
     await MongoDB.connect();
     
+    // 如果要添加星标，检查数量限制
+    if (isStar) {
+      const starredStocks = await MongoDB.getStarredStocks();
+      if (starredStocks.length >= 10) {
+        return {
+          success: false,
+          message: '最多只能添加10个星标股票！'
+        };
+      }
+    }
+    
     // 更新股票星标状态
     const result = await MongoDB.updateStockStar(code, isStar);
     

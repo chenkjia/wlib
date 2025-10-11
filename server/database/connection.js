@@ -3,7 +3,7 @@ import config from '../config/default.js';
 import logger from '~/utils/logger.js';
 
 // 全局数据源变量
-let currentDataSource = 'flib';
+let currentDataSource = 'alib';
 
 /**
  * MongoDB 数据库连接类
@@ -15,7 +15,7 @@ class MongoConnection {
      * 设置当前数据源
      * @param {string} dataSource - 数据源标识 ('flib' 或 'alib')
      */
-    static async setDataSource(dataSource = 'flib') {
+    static async setDataSource(dataSource = 'alib') {
         if (!['flib', 'alib'].includes(dataSource)) {
             throw new Error(`Invalid dataSource: ${dataSource}. Must be 'flib' or 'alib'`);
         }
