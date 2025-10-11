@@ -64,6 +64,10 @@
         <StarredStockList
           v-model:selectedStockCode="selectedStockCode"
           :selectedDataSource="selectedDataSource"
+          :ma="props.ma"
+          :macd="props.macd"
+          :buyConditions="props.buyConditions"
+          :sellConditions="props.sellConditions"
         />
       </div>
 
@@ -93,6 +97,35 @@ const selectedDataSource = defineModel('selectedDataSource', { type: Object, def
   value: 'alib',
   label: 'A股'
 } })
+
+// 新增算法参数props
+const props = defineProps({
+  ma: {
+    type: Object,
+    default: () => ({
+      s: 5,
+      m: 10,
+      l: 20,
+      x: 60
+    })
+  },
+  macd: {
+    type: Object,
+    default: () => ({
+      s: 12,
+      l: 26,
+      d: 9
+    })
+  },
+  buyConditions: {
+    type: Array,
+    default: () => [['PRICE_GT_MAS']]
+  },
+  sellConditions: {
+    type: Array,
+    default: () => [['PRICE_LT_MAS']]
+  }
+})
 
 const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'])
 

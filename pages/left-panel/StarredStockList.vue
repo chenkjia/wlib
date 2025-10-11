@@ -1,6 +1,6 @@
 <template>
   <div class="h-full flex flex-col">
-    <!-- 刷新按钮 -->
+    <!-- 操作按钮 -->
     <div class="relative mb-3">
       <div class="flex gap-2 p-3">
         <!-- 刷新按钮 -->
@@ -10,6 +10,22 @@
           :disabled="loading"
         >
           刷新
+        </button>
+        <!-- 拉取数据按钮 -->
+        <button
+          @click="fetchStockData"
+          class="finance-btn-secondary px-4 py-2 text-sm"
+          :disabled="loading || fetchingData"
+        >
+          {{ fetchingData ? '拉取中...' : '拉取数据' }}
+        </button>
+        <!-- 计算按钮 -->
+        <button
+          @click="calculateBacktest"
+          class="finance-btn-secondary px-4 py-2 text-sm"
+          :disabled="loading || calculating || !hasStockData"
+        >
+          {{ calculating ? '计算中...' : '计算' }}
         </button>
       </div>
     </div>
@@ -51,6 +67,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import StockResultTable from './StockResultTable.vue'
+import { calculateStock } from '~/utils/chartUtils.js'
 
 // 定义 props 和 emits
 const props = defineProps({
@@ -60,6 +77,32 @@ const props = defineProps({
       value: 'alib',
       label: 'A股'
     })
+  },
+  // 算法参数
+  ma: {
+    type: Object,
+    default: () => ({
+      s: 5,
+      m: 10,
+      l: 20,
+      x: 60
+    })
+  },
+  macd: {
+    type: Object,
+    default: () => ({
+      s: 12,
+      l: 26,
+      d: 9
+    })
+  },
+  buyConditions: {
+    type: Array,
+    default: () => [['PRICE_GT_MAS']]
+  },
+  sellConditions: {
+    type: Array,
+    default: () => [['PRICE_LT_MAS']]
   }
 })
 
@@ -69,27 +112,173 @@ const selectedStockCode = defineModel('selectedStockCode', { type: String, defau
 const starredStocks = ref([])
 const loading = ref(false)
 const error = ref('')
+const fetchingData = ref(false)
+const calculating = ref(false)
+const stockDataCache = ref({}) // 缓存股票日线数据
+const backtestResults = ref({}) // 缓存回测结果
+
+// 计算属性：是否有股票数据
+const hasStockData = computed(() => {
+  return Object.keys(stockDataCache.value).length > 0
+})
 
 // 计算属性：格式化为 StockResultTable 需要的数据结构
 const formattedStocksResult = computed(() => {
-  return starredStocks.value.map(stock => ({
-    stock: stock.code,
-    // 由于星标股票数据来自数据库，没有分析结果，使用默认值
-    winRate: 0,
-    dailyChange: 0,
-    dailyChangeDiff: 0,
-    dayLineDailyChange: 0,
-    totalTrades: 0,
-    profitTrades: 0,
-    lossTrades: 0,
-    daysDuration: 0,
-    priceChange: 0,
-    maxDrawdown: 0,
-    dayLineCount: stock.dayLine ? stock.dayLine.length : 0,
-    dayLinePriceChange: 0,
-    priceChangeDiff: 0
-  }))
+  return starredStocks.value.map(stock => {
+    const backtestResult = backtestResults.value[stock.code]
+    
+    if (backtestResult) {
+      // 如果有回测结果，使用计算出的数据
+      return {
+        stock: stock.code,
+        winRate: backtestResult.winRate || 0,
+        dailyChange: backtestResult.dailyChange || 0,
+        dailyChangeDiff: backtestResult.dailyChangeDiff || 0,
+        dayLineDailyChange: backtestResult.dayLineDailyChange || 0,
+        totalTrades: backtestResult.totalTrades || 0,
+        profitTrades: backtestResult.profitTrades || 0,
+        lossTrades: backtestResult.lossTrades || 0,
+        daysDuration: backtestResult.daysDuration || 0,
+        priceChange: backtestResult.priceChange || 0,
+        maxDrawdown: backtestResult.maxDrawdown || 0,
+        dayLineCount: backtestResult.dayLineCount || (stock.dayLine ? stock.dayLine.length : 0),
+        dayLinePriceChange: backtestResult.dayLinePriceChange || 0,
+        priceChangeDiff: backtestResult.priceChangeDiff || 0
+      }
+    } else {
+      // 如果没有回测结果，使用默认值
+      return {
+        stock: stock.code,
+        winRate: 0,
+        dailyChange: 0,
+        dailyChangeDiff: 0,
+        dayLineDailyChange: 0,
+        totalTrades: 0,
+        profitTrades: 0,
+        lossTrades: 0,
+        daysDuration: 0,
+        priceChange: 0,
+        maxDrawdown: 0,
+        dayLineCount: stock.dayLine ? stock.dayLine.length : 0,
+        dayLinePriceChange: 0,
+        priceChangeDiff: 0
+      }
+    }
+  })
 })
+
+// 拉取股票数据
+const fetchStockData = async () => {
+  if (starredStocks.value.length === 0) {
+    alert('请先添加星标股票')
+    return
+  }
+  
+  fetchingData.value = true
+  error.value = ''
+  
+  try {
+    const promises = starredStocks.value.map(async (stock) => {
+      try {
+        const response = await $fetch(`/api/dayLine?code=${stock.code}`)
+        return { code: stock.code, data: response }
+      } catch (err) {
+        console.error(`获取股票 ${stock.code} 数据失败:`, err)
+        return { code: stock.code, data: null, error: err.message }
+      }
+    })
+    
+    const results = await Promise.all(promises)
+    
+    // 更新缓存
+    const newCache = {}
+    let successCount = 0
+    let errorCount = 0
+    
+    results.forEach(result => {
+      if (result.data && result.data.length > 0) {
+        newCache[result.code] = result.data
+        successCount++
+      } else {
+        errorCount++
+      }
+    })
+    
+    stockDataCache.value = newCache
+    
+    if (successCount > 0) {
+      alert(`成功拉取 ${successCount} 个股票的数据${errorCount > 0 ? `，${errorCount} 个失败` : ''}`)
+    } else {
+      alert('所有股票数据拉取失败')
+    }
+  } catch (err) {
+    console.error('拉取股票数据失败:', err)
+    error.value = '拉取股票数据失败'
+    alert('拉取股票数据失败: ' + err.message)
+  } finally {
+    fetchingData.value = false
+  }
+}
+
+// 计算回测数据
+const calculateBacktest = async () => {
+  if (Object.keys(stockDataCache.value).length === 0) {
+    alert('请先拉取股票数据')
+    return
+  }
+  
+  calculating.value = true
+  error.value = ''
+  
+  try {
+    
+    // 获取算法参数 - 使用从props传入的参数
+    const algorithmParams = {
+      ma: props.ma,
+      macd: props.macd,
+      buyConditions: props.buyConditions,
+      sellConditions: props.sellConditions
+    }
+    
+    const newResults = {}
+    let successCount = 0
+    
+    // 对每个有数据的股票进行回测计算
+    for (const [stockCode, dayLineData] of Object.entries(stockDataCache.value)) {
+      try {
+        if (!dayLineData || dayLineData.length === 0) {
+          continue
+        }
+        
+        // 执行回测计算
+        const result = calculateStock({
+          dayLine: dayLineData,
+          hourLine: [], // 暂时不使用小时线数据
+          ...algorithmParams
+        })
+        
+        newResults[stockCode] = result.backtestData
+        successCount++
+      } catch (err) {
+        console.error(`计算股票 ${stockCode} 回测失败:`, err)
+      }
+    }
+    
+    backtestResults.value = newResults
+    
+    if (successCount > 0) {
+      alert(`成功计算 ${successCount} 个股票的回测数据`)
+    } else {
+      alert('所有股票回测计算失败')
+    }
+  } catch (err) {
+    console.error('计算回测数据失败:', err)
+    error.value = '计算回测数据失败'
+    alert('计算回测数据失败: ' + err.message)
+  } finally {
+    calculating.value = false
+  }
+}
 
 // 选择股票
 const selectStock = (code) => {
@@ -106,15 +295,18 @@ const toggleStarStock = async (code) => {
       },
       body: JSON.stringify({
         code,
-        isStar: false // 取消星标
+        isStar: false // 星标列表中只能取消星标
       })
     })
-
-    if (!response.ok) {
-      throw new Error(`取消星标失败: ${response.status}`)
+    
+    const result = await response.json()
+    
+    if (!result.success) {
+      alert(result.message || '操作失败')
+      return
     }
-
-    // 从星标列表中移除
+    
+    // 从列表中移除该股票
     const index = starredStocks.value.findIndex(stock => stock.code === code)
     if (index !== -1) {
       starredStocks.value.splice(index, 1)
