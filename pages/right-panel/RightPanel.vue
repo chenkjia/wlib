@@ -245,6 +245,11 @@ const props = defineProps({
       d: 9
     })
   },
+  // 启用的指标
+  enabledIndicators: {
+    type: Array,
+    default: () => ['ma', 'macd']
+  },
   // 交易数据
   transactions: {
     type: Array,
@@ -278,7 +283,11 @@ const activeTab = ref('config') // 当前激活的标签页，默认为配置规
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
 const calculationLoading = ref(false) // 计算加载状态
-const enabledIndicators = ref(['ma', 'macd']) // 启用的指标数组
+// const enabledIndicators = ref(['ma', 'macd']) // 启用的指标数组
+const enabledIndicators = computed({
+  get: () => props.enabledIndicators ?? ['ma', 'macd'],
+  set: (val) => emit('update:enabledIndicators', Array.isArray(val) ? val : [])
+})
 function updateBuyConditions(newValue) {
   emit('update:buyConditions', newValue)
 }
@@ -382,9 +391,11 @@ function handleFocusChart(focusData) {
 
 // 监听enabledIndicators变化并向父组件发送
 watch(enabledIndicators, (newValue) => {
-  emit('update:enabledIndicators', newValue)
+  // 保存到localStorage
+  if (process.client) {
+    localStorage.setItem('stock_config_enabledIndicators', JSON.stringify(newValue))
+  }
 }, { deep: true })
-
 
 
 

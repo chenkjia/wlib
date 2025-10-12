@@ -254,6 +254,7 @@ const calculateBacktest = async () => {
         const result = calculateStock({
           dayLine: dayLineData,
           hourLine: [], // 暂时不使用小时线数据
+          enabledIndicators: algorithmParams.enabledIndicators || ['ma', 'macd'], // 添加enabledIndicators参数
           ...algorithmParams
         })
         

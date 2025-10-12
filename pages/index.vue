@@ -80,7 +80,6 @@ const selectedDataSource = ref({
 const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 const chartFocusData = ref(null) // 图表聚焦数据
-const enabledIndicators = ref(['ma', 'macd']) // 启用的指标
 
 // 从本地存储读取配置或使用默认值
 const getLocalConfig = (key, defaultValue) => {
@@ -91,6 +90,8 @@ const getLocalConfig = (key, defaultValue) => {
   return defaultValue
 }
 
+const enabledIndicators = ref(getLocalConfig('enabledIndicators', ['ma', 'macd'])) // 启用的指标
+
 // 保存配置到本地存储
 const saveConfigToLocalStorage = () => {
   if (process.client) {
@@ -98,6 +99,7 @@ const saveConfigToLocalStorage = () => {
     localStorage.setItem(`stock_config_macd`, JSON.stringify(macd.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
+    localStorage.setItem(`stock_config_enabledIndicators`, JSON.stringify(enabledIndicators.value))
   }
 }
 
@@ -196,6 +198,11 @@ function handleUseTaskParams(params) {
     ma.value = { ...params.ma }
   }
   
+  // 更新MACD参数
+  if (params.macd) {
+    macd.value = { ...params.macd }
+  }
+  
   // 更新买入条件
   if (params.buyConditions) {
     buyConditions.value = [...params.buyConditions]
@@ -204,6 +211,11 @@ function handleUseTaskParams(params) {
   // 更新卖出条件
   if (params.sellConditions) {
     sellConditions.value = [...params.sellConditions]
+  }
+  console.log(params.enabledIndicators)
+  // 更新启用的指标
+  if (params.enabledIndicators) {
+    enabledIndicators.value = [...params.enabledIndicators]
   }
   
   // 保存到本地存储

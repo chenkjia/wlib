@@ -15,6 +15,7 @@ class BacktestExecutor {
       const { backtestData } = calculateStock({
         dayLine: stock.dayLine,
         hourLine: stock.hourLine,
+        enabledIndicators: strategy.enabledIndicators || ['ma', 'macd'], // 添加enabledIndicators参数
         ...strategy
       });
       return backtestData;
