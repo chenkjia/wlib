@@ -266,4 +266,27 @@ availableConditions.forEach(condition => {
   algorithmMap[condition.value] = condition
 })
 
-export { availableConditions, algorithmMap }
+// 条件树执行函数 - 使用algorithmMap优化性能
+function evaluateConditionTree(node, data, index) {
+  if (node.type === 'condition') {
+    const condition = algorithmMap[node.value]
+    return condition?.func(index, data) || false
+  }
+  
+  if (node.type === 'group') {
+    const results = node.children.map(child => 
+      evaluateConditionTree(child, data, index)
+    )
+    
+    switch (node.op) {
+      case 'AND': return results.every(Boolean)
+      case 'OR': return results.some(Boolean) 
+      case 'NOT': return !results[0]
+      default: return false
+    }
+  }
+  
+  return false
+}
+
+export { availableConditions, algorithmMap, evaluateConditionTree }

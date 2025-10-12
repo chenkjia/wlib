@@ -3,7 +3,7 @@
  * 用于前端和服务器端共享的图表数据计算函数
  */
 import Decimal from 'decimal.js'
-import { algorithmMap } from './algorithmUtils.js'
+import { algorithmMap, evaluateConditionTree } from './algorithmUtils.js'
 import logger from './logger.js'
 
 /**
@@ -408,18 +408,50 @@ const calculateSignals = (props) => {
   } = props
   const buyLength = buyConditions.length
   const sellLength = sellConditions.length
-  // 如果买入或卖出条件长度为0，或者其中包含空数组，则直接返回空数组
-  if (buyLength === 0 || sellLength === 0 || buyConditions.some((item) => item.length === 0) || sellConditions.some((item) => item.length === 0)) {
+  // 如果买入或卖出条件长度为0，或者其中包含空数组/空树组，则直接返回空数组
+  const hasInvalidGroup = (groups) => groups.some((group) => {
+    if (Array.isArray(group)) {
+      return group.length === 0
+    }
+    // 兼容树结构：{ type: 'group' | 'condition', op?, children? }
+    if (group && typeof group === 'object') {
+      if (group.type === 'group') {
+        return !Array.isArray(group.children) || group.children.length === 0
+      }
+      // 单条件节点不视为空
+      if (group.type === 'condition') {
+        return !group.value
+      }
+    }
+    return false
+  })
+  if (buyLength === 0 || sellLength === 0 || hasInvalidGroup(buyConditions) || hasInvalidGroup(sellConditions)) {
     return []
   }
+
   let buyStep = 0,
     sellStep = 0,
     hold = false
+
+  // 统一的组评估函数：支持旧数组结构和新树结构
+  const evalGroup = (group, index) => {
+    if (Array.isArray(group)) {
+      // 旧结构：数组 ['COND_A','COND_B'] -> 全部满足
+      return group.every((conditionType) => {
+        const cond = algorithmMap[conditionType]
+        return cond ? cond.func(index, dayLineWithMetric) : false
+      })
+    }
+    // 新结构（树）：根节点可能是group或condition
+    if (group && typeof group === 'object') {
+      return evaluateConditionTree(group, dayLineWithMetric, index)
+    }
+    return false
+  }
+
   const signals = dayLineWithMetric.data.reduce((prev, cur, index) => {
     if (buyStep < buyLength && !hold) {
-      const buyResult = buyConditions[buyStep].every((conditionType) => {
-        return algorithmMap[conditionType].func(index, dayLineWithMetric)
-      })
+      const buyResult = evalGroup(buyConditions[buyStep], index)
       if (buyResult) {
         buyStep++
       }
@@ -435,9 +467,7 @@ const calculateSignals = (props) => {
       }
     }
     if (sellStep < sellLength && hold) {
-      const sellResult = sellConditions[sellStep].every((conditionType) => {
-        return algorithmMap[conditionType].func(index, dayLineWithMetric)
-      })
+      const sellResult = evalGroup(sellConditions[sellStep], index)
       if (sellResult) {
         sellStep++
       }
