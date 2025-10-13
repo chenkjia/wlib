@@ -6,6 +6,7 @@ import TransactionDB from './transaction.js';
 import SignalDB from './signal.js';
 import GoalDB from './goal.js';
 import TaskDB from './task.js';
+import IndicatorDB from './indicator.js';
 
 /**
  * MongoDB 数据库连接和基础操作类
@@ -46,6 +47,13 @@ class MongoDB {
     static getGoal = GoalDB.getGoal;
     static getGoalsByStock = GoalDB.getGoalsByStock;
     static saveGoal = GoalDB.saveGoal;
+
+    // Indicators CRUD
+    static getIndicators = IndicatorDB.getList;
+    static getIndicatorByCode = IndicatorDB.getIndicatorByCode;
+    static createIndicator = IndicatorDB.createIndicator;
+    static updateIndicator = IndicatorDB.updateIndicator;
+    static deleteIndicator = IndicatorDB.deleteIndicator;
     static updateGoal = GoalDB.updateGoal;
     static clearGoal = GoalDB.clearGoal;
 

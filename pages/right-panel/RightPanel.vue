@@ -3,6 +3,17 @@
     <!-- 标签页头部 -->
     <div class="flex border-b" style="border-color: var(--border-light);">
       <button
+        @click="activeTab = 'indicators'"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'indicators' 
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50' 
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        指标管理
+      </button>
+      <button
         @click="activeTab = 'config'"
         :class="[
           'flex-1 px-4 py-3 text-sm font-medium transition-colors',
@@ -28,9 +39,12 @@
     
     <!-- Tab内容 - 可滚动区域 -->
     <div class="tab-content overflow-y-auto flex-grow">
-      <!-- 配置规则 Tab -->
-      <div v-show="activeTab === 'config'" class="tab-pane bg-white">
-        <div class="space-y-2 pt-3">
+      <!-- 参数管理 Tab（空内容） -->
+      <div v-show="activeTab === 'indicators'" class="tab-pane bg-white">
+        <!-- 替换为独立组件 -->
+        <IndicatorList :panelState="props.panelState" @changePanelState="handleExpandPanel" />
+      </div>
+      <div v-show="activeTab === 'config'" class="space-y-2 pt-3">
           <div class="pl-3 pr-3">
             <label class="flex items-center">
               <input 
@@ -132,14 +146,14 @@
               <div>
                 <label class="block text-sm font-medium text-gray-600 mb-1">慢线 (EMA26)</label>
                 <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="macdL" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="15"
-                    max="50"
-                  />
-                </div>
+                   <input 
+                     type="number" 
+                     v-model="macdL" 
+                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                     min="15"
+                     max="50"
+                   />
+                 </div>
               </div>
               <!-- 信号线 -->
               <div>
@@ -206,24 +220,23 @@
             {{ calculationMessage }}
           </div>
         </div>
-      </div>
-      
-      <!-- 计算结果 Tab -->
-      <div v-show="activeTab === 'results'" class="tab-pane bg-white">
-        <TransactionList 
-          :transactions="transactions"
-          :loading="calculationLoading"
-          @focusChart="handleFocusChart"
-        />
-      </div>
+        <!-- 计算结果 Tab -->
+        <div v-show="activeTab === 'results'" class="tab-pane bg-white">
+          <TransactionList 
+            :transactions="transactions"
+            :loading="calculationLoading"
+            @focusChart="handleFocusChart"
+          />
+        </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, computed, watch } from 'vue'
+import { ref, defineProps, defineEmits, computed, watch, onMounted } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 import TransactionList from './TransactionList.vue'
+import IndicatorList from './IndicatorList.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -279,7 +292,7 @@ const emit = defineEmits([
 ])
 
 // 本地响应式状态
-const activeTab = ref('config') // 当前激活的标签页，默认为配置规则
+const activeTab = ref('indicators') // 默认显示参数管理（第一个Tab）
 const calculationMessage = ref('') // 计算提示消息
 const messageClass = ref('text-gray-600') // 消息样式类
 const calculationLoading = ref(false) // 计算加载状态
@@ -397,8 +410,7 @@ watch(enabledIndicators, (newValue) => {
   }
 }, { deep: true })
 
-
-
+// 指标管理逻辑已迁移至子组件 IndicatorList，父组件不再持有相关状态与方法，以避免直接显示表单和重复逻辑。
 
 </script>
 

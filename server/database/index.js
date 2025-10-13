@@ -5,6 +5,7 @@ import HourLineDB from './hourLine.js';
 import TransactionDB from './transaction.js';
 import SignalDB from './signal.js';
 import TaskDB from './task.js';
+import IndicatorDB from './indicator.js';
 
 export {
     MongoConnection,
@@ -13,5 +14,6 @@ export {
     HourLineDB,
     TransactionDB,
     SignalDB,
-    TaskDB
+    TaskDB,
+    IndicatorDB
 };
