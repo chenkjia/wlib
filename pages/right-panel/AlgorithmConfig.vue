@@ -1,67 +1,61 @@
 <template>
   <div class="algorithm-config">
     <div class="mb-4">
-      <!-- 条件组列表 -->
+      <!-- 条件组列表（使用 Nuxt UI 的 UCard 和 UButton） -->
       <div class="space-y-3">
-        <div v-for="(group, groupIndex) in algorithmGroups" :key="groupIndex" class="border rounded-md p-3 bg-gray-50">
+        <UCard v-for="(group, groupIndex) in algorithmGroups" :key="groupIndex">
           <div class="flex items-center justify-between">
             <div class="text-sm text-gray-700 truncate">条件组 {{ groupIndex + 1 }}：{{ summarizeNode(group) }}</div>
-            <div class="flex items-center space-x-2">
-              <button 
+            <div class="flex items-center gap-2">
+              <UButton 
+                size="sm" 
+                color="primary" 
+                variant="solid" 
                 @click="openEditor(groupIndex)" 
-                class="px-3 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                编辑条件
-              </button>
-              <button 
+                label="编辑条件" 
+              />
+              <UButton 
+                size="sm" 
+                color="danger" 
+                variant="soft" 
                 @click="removeGroup(groupIndex)" 
-                class="px-3 py-1 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors focus:outline-none focus:ring-1 focus:ring-red-500"
-              >
-                删除组
-              </button>
+                label="删除组" 
+              />
             </div>
           </div>
-          <div v-if="isGroupEmpty(group)" class="text-xs text-red-500 mt-2">请至少在该条件组中添加一个条件</div>
-        </div>
+          <div v-if="isGroupEmpty(group)" class="mt-2">
+            <p class="text-xs text-red-500">请至少在该条件组中添加一个条件</p>
+          </div>
+        </UCard>
       </div>
       
-      <!-- 添加条件组按钮 -->
-      <button 
-        @click="addGroup" 
-        class="mt-4 w-full px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
-      >
-        添加条件组
-      </button>
-    </div>
-
-    <!-- 条件编辑器弹窗 -->
-    <div v-if="showEditor" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-      <div class="bg-white rounded-md shadow-lg w-[90%] max-w-2xl">
-        <div class="px-4 py-3 border-b">
-          <h3 class="text-base font-medium text-gray-800">编辑条件组</h3>
-        </div>
-        <div class="p-4 space-y-3">
-          <div class="text-sm text-gray-600">使用与(AND) / 或(OR) / 非(NOT) 组合条件，可无限嵌套。</div>
-          <TreeNodeEditor :node="editingNode" />
-        </div>
-        <div class="px-4 py-3 border-t flex justify-end space-x-2">
-          <button 
-            @click="cancelEditor"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors focus:outline-none focus:ring-1 focus:ring-gray-300"
-          >取消</button>
-          <button 
-            @click="saveEditor"
-            class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >保存</button>
-        </div>
+      <!-- 添加条件组按钮（Nuxt UI 风格） -->
+      <div class="mt-4">
+        <UButton 
+          class="w-full" 
+          color="primary" 
+          variant="soft" 
+          @click="addGroup" 
+          label="添加条件组" 
+        />
       </div>
     </div>
+
+    <!-- 使用独立的条件编辑器弹窗组件 -->
+    <ConditionEditor 
+      :show="showEditor" 
+      :node="editingNode" 
+      :enabledIndicators="enabledIndicators"
+      @cancel="cancelEditor" 
+      @save="saveEditorWithPayload"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, defineProps, defineEmits, watch, defineComponent, h } from 'vue'
 import { availableConditions, algorithmMap } from '~/utils/algorithmUtils.js'
+import ConditionEditor from '~/components/ConditionEditor.vue'
 
 const props = defineProps({
   // 算法类型：'buy' 或 'sell'
@@ -161,9 +155,9 @@ function cancelEditor() {
   activeGroupIndex.value = -1
 }
 
-function saveEditor() {
-  if (activeGroupIndex.value >= 0) {
-    algorithmGroups.value[activeGroupIndex.value] = deepClone(editingNode.value)
+function saveEditorWithPayload(payload) {
+  if (activeGroupIndex.value >= 0 && payload) {
+    algorithmGroups.value[activeGroupIndex.value] = deepClone(payload)
   }
   cancelEditor()
 }
