@@ -45,8 +45,8 @@
         />
         <UButton
           @click="changePanelState" 
-          :label="props.panelState === 'expanded' ? '恢复' : '展开'"
-          :icon="props.panelState === 'expanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
+          :label="props.panelState === 'leftExpanded' ? '恢复' : '展开'"
+          :icon="props.panelState === 'leftExpanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
           color="success"
           size="sm"
         />
@@ -103,7 +103,7 @@
               title="使用此任务参数"
             />
             <UButton
-              v-show="props.panelState === 'expanded'"
+              v-show="props.panelState === 'leftExpanded'"
               @click="watchParams(row.original)" 
               icon="i-lucide-eye"
               color="info"
@@ -128,9 +128,6 @@
               />
             </div>
           </div>
-        </template>
-        <template #createdAt-cell="{ row }">
-          {{ formatDate(row.original.createdAt) }}
         </template>
         <!-- 数据开始 -->
         <template #totalTrades-cell="{ row }">
@@ -332,13 +329,10 @@ const displayedTasks = computed(() => tasks.value)
 
 // 根据面板状态控制列的可见性
 const columnVisibility = computed(() => {
-  if (props.panelState === 'expanded') {
-    // 扩展状态下显示所有列
+  if (props.panelState === 'leftExpanded') {
     return {
       name: true,
       status: true,
-      createdAt: true,
-      updatedAt: true,
       params: true,
       totalTrades: true,
       profitTrades: true,
@@ -355,26 +349,23 @@ const columnVisibility = computed(() => {
       actions: true
     }
   } else {
-    // 默认状态下只显示名称和状态列
     return {
       name: true,
-      status: false,
-      createdAt: false,
-      updatedAt: false,
-      params: true,
+      status: true,
+      params: false,
       totalTrades: false,
       profitTrades: false,
-      winRate: true,
+      winRate: false,
       daysDuration: false,
       priceChange: false,
-      dailyChange: true,
+      dailyChange: false,
       maxDrawdown: false,
       dayLineCount: false,
       dayLinePriceChange: false,
       dayLineDailyChange: false,
       priceChangeDiff: false,
       dailyChangeDiff: false,
-      actions: false
+      actions: true
     }
   }
 })
@@ -646,7 +637,7 @@ function getStatusText(status) {
   return statusMap[status]?.text || status
 }
 function changePanelState() {
-  const newState = props.panelState === 'expanded' ? 'normal' : 'expanded'
+  const newState = props.panelState === 'leftExpanded' ? 'normal' : 'leftExpanded'
   emit('changePanelState', newState)
 }
 

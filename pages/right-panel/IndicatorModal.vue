@@ -1,10 +1,9 @@
 <template>
-  <UModal v-model:open="open" :ui="{ overlay: 'backdrop-blur-sm' }" title="指标编辑">
+  <UModal v-model:open="open" :ui="{ overlay: 'backdrop-blur-sm' }" :title="isEdit?'编辑指标':'新增指标'">
     <!-- 触发按钮放在 UModal 内部 -->
-    <UButton :label="triggerLabel" icon="i-lucide-plus" color="primary" size="sm" v-if="showTrigger" />
+    <UButton :label="triggerLabel" icon="i-lucide-plus" color="info" size="sm" v-if="showTrigger" />
     <template #body>
       <div class="p-4 space-y-4">
-        <h3 class="text-lg font-medium">{{ isEdit ? '编辑指标' : '新增指标' }}</h3>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm text-gray-600 mb-1">指标名称</label>

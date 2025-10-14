@@ -209,8 +209,8 @@ const columns = ref([
 
 // 根据panelState计算列的可见性
 const columnVisibility = computed(() => {
-  if (props.panelState === 'expanded') {
-    // 展开状态显示所有列
+  if (props.panelState === 'leftExpanded') {
+    // 左侧展开状态显示所有列
     return {
       stock: true,
       winRate: true,
@@ -227,7 +227,7 @@ const columnVisibility = computed(() => {
       priceChangeDiff: true
     }
   } else {
-    // 非展开状态只显示前三列：股票代码、胜率、交易日均
+    // 默认状态只显示关键列
     return {
       stock: true,
       winRate: true,

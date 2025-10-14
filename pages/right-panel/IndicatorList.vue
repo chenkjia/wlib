@@ -18,19 +18,19 @@
 
       <!-- 按钮组 -->
       <div class="flex gap-2">
-        <UButton
-          @click="refresh"
-          label="刷新"
-          :icon="loading ? 'i-lucide-loader-2' : 'i-lucide-refresh-cw'"
-          :loading="loading"
-          color="info"
-          size="sm"
-          class="flex items-center"
+        <IndicatorModal
+          v-model:open="indicatorModalOpen"
+          :indicator="editingIndicator"
+          :availableIndicatorOptions="availableIndicatorOptions"
+          :calcMethodOptions="calcMethodOptions"
+          triggerLabel="新增指标"
+          @submit="onModalSubmit"
+          @cancel="onModalCancel"
         />
         <UButton
           @click="changePanelState"
-          :label="props.panelState === 'expanded' ? '恢复' : '展开'"
-          :icon="props.panelState === 'expanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
+          :label="props.panelState === 'rightExpanded' ? '恢复' : '展开'"
+          :icon="props.panelState === 'rightExpanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
           color="success"
           size="sm"
         />
@@ -84,12 +84,7 @@
           <template #calcMethod-cell="{ row }">
             <UBadge :label="row.original.calcMethod || '-'" color="primary" size="xs" />
           </template>
-          <template #createdAt-cell="{ row }">
-            {{ formatDate(row.original.createdAt) }}
-          </template>
-          <template #updatedAt-cell="{ row }">
-            {{ formatDate(row.original.updatedAt) }}
-          </template>
+          
           <template #actions-cell="{ row }">
             <div class="flex gap-2">
               <UButton @click="openEditModal(row.original)" icon="i-lucide-edit" color="info" size="xs" title="编辑" />
@@ -101,15 +96,7 @@
     </div>
 
     <!-- 新增/编辑弹窗 -->
-    <IndicatorModal
-      v-model:open="indicatorModalOpen"
-      :indicator="editingIndicator"
-      :availableIndicatorOptions="availableIndicatorOptions"
-      :calcMethodOptions="calcMethodOptions"
-      triggerLabel="新增指标"
-      @submit="onModalSubmit"
-      @cancel="onModalCancel"
-    />
+
   </div>
 </template>
 
@@ -135,8 +122,6 @@ const columns = ref([
   { accessorKey: 'code', header: '代码', id: 'code' },
   { accessorKey: 'usedIndicators', header: '使用指标', id: 'usedIndicators' },
   { accessorKey: 'calcMethod', header: '计算方法', id: 'calcMethod' },
-  { accessorKey: 'createdAt', header: '创建时间', id: 'createdAt' },
-  { accessorKey: 'updatedAt', header: '更新时间', id: 'updatedAt' },
   { id: 'actions', header: '操作', cell: (row) => row.id }
 ])
 
@@ -155,7 +140,7 @@ watch(searchQuery, () => {
 })
 
 function changePanelState() {
-  const newState = props.panelState === 'expanded' ? 'normal' : 'expanded'
+  const newState = props.panelState === 'rightExpanded' ? 'normal' : 'rightExpanded'
   emit('changePanelState', newState)
 }
 
@@ -216,10 +201,6 @@ async function deleteIndicator(code) {
     console.error('删除指标错误:', err)
     error.value = err.message
   }
-}
-
-function refresh() {
-  fetchIndicators()
 }
 
 onMounted(() => {

@@ -157,7 +157,7 @@
               </div>
               <!-- 信号线 -->
               <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">信号线 (EMA9)</label>
+                <label class="block textsm font-medium text-gray-600 mb-1">信号线 (EMA9)</label>
                 <div class="flex items-center">
                   <input 
                     type="number" 
@@ -277,6 +277,11 @@ const props = defineProps({
   sellConditions: {
     type: Array,
     default: () => []
+  },
+  // 面板状态（用于右栏展开/恢复按钮）
+  panelState: {
+    type: String,
+    default: 'normal'
   }
 })
 
@@ -292,126 +297,94 @@ const emit = defineEmits([
 ])
 
 // 本地响应式状态
-const activeTab = ref('indicators') // 默认显示参数管理（第一个Tab）
-const calculationMessage = ref('') // 计算提示消息
-const messageClass = ref('text-gray-600') // 消息样式类
-const calculationLoading = ref(false) // 计算加载状态
-// const enabledIndicators = ref(['ma', 'macd']) // 启用的指标数组
-const enabledIndicators = computed({
-  get: () => props.enabledIndicators ?? ['ma', 'macd'],
-  set: (val) => emit('update:enabledIndicators', Array.isArray(val) ? val : [])
-})
-function updateBuyConditions(newValue) {
-  emit('update:buyConditions', newValue)
-}
+const activeTab = ref('indicators')
 
-function updateSellConditions(newValue) {
-  emit('update:sellConditions', newValue)
-}
-
-// 计算按钮处理函数
-function handleCalculation(type) {
-  const params = {
-    type: type, // 添加类型参数
-    ma: syncedMa.value,
-    macd: syncedMacd.value,
-    buyConditions: props.buyConditions,
-    sellConditions: props.sellConditions,
-    enabledIndicators: enabledIndicators.value
-  }
-  
-  // 显示计算提示消息
-  let message = '';
-  if (type === 'page') {
-    message = '页内计算中...';
-    calculationLoading.value = true;
-    // 页内计算完成后需要重置loading状态
-    setTimeout(() => {
-      calculationLoading.value = false;
-    }, 1000);
-  } else if (type === 'star') {
-    message = '星标计算任务已提交';
-  } else if (type === 'global') {
-    message = '全局计算任务已提交';
-  }
-  
-  calculationMessage.value = message;
-  messageClass.value = 'text-green-600';
-  
-  // 2秒后自动清除消息
-  setTimeout(() => {
-    calculationMessage.value = '';
-  }, 2000);
-  
-  emit('calculation', params)
-}
-
-// 使用计算属性实现双向绑定
+// 计算属性（与父组件双向绑定）
 const maS = computed({
-  get: () => props.ma?.s ?? 5,
+  get: () => props.ma.s,
   set: (val) => emit('update:ma', { ...props.ma, s: Number(val) })
 })
-
 const maM = computed({
-  get: () => props.ma?.m ?? 10,
+  get: () => props.ma.m,
   set: (val) => emit('update:ma', { ...props.ma, m: Number(val) })
 })
-
 const maL = computed({
-  get: () => props.ma?.l ?? 20,
+  get: () => props.ma.l,
   set: (val) => emit('update:ma', { ...props.ma, l: Number(val) })
 })
-
 const maX = computed({
-  get: () => props.ma?.x ?? 60,
+  get: () => props.ma.x,
   set: (val) => emit('update:ma', { ...props.ma, x: Number(val) })
 })
 
-// MACD 配置的响应式数据
 const macdS = computed({
-  get: () => props.macd?.s ?? 12,
+  get: () => props.macd.s,
   set: (val) => emit('update:macd', { ...props.macd, s: Number(val) })
 })
-
 const macdL = computed({
-  get: () => props.macd?.l ?? 26,
+  get: () => props.macd.l,
   set: (val) => emit('update:macd', { ...props.macd, l: Number(val) })
 })
-
 const macdD = computed({
-  get: () => props.macd?.d ?? 9,
+  get: () => props.macd.d,
   set: (val) => emit('update:macd', { ...props.macd, d: Number(val) })
 })
 
-// 同步后的MA对象
-const syncedMa = computed(() => ({
-  s: maS.value,
-  m: maM.value,
-  l: maL.value,
-  x: maX.value
+const enabledIndicators = computed({
+  get: () => props.enabledIndicators,
+  set: (val) => emit('update:enabledIndicators', val)
+})
+
+// 同步对象（供子组件使用）
+const syncSettings = computed(() => ({
+  ma: { s: maS.value, m: maM.value, l: maL.value, x: maX.value },
+  macd: { s: macdS.value, l: macdL.value, d: macdD.value },
+  buyConditions: props.buyConditions,
+  sellConditions: props.sellConditions,
+  enabledIndicators: enabledIndicators.value
 }))
 
-const syncedMacd = computed(() => ({
-  s: macdS.value,
-  l: macdL.value,
-  d: macdD.value
-}))
-
-// 处理聚焦图表事件
-function handleFocusChart(focusData) {
-  emit('focusChart', focusData)
+// 计算事件处理
+function handleCalculation(type) {
+  emit('calculation', {
+    type,
+    ...syncSettings.value
+  })
 }
 
-// 监听enabledIndicators变化并向父组件发送
-watch(enabledIndicators, (newValue) => {
-  // 保存到localStorage
-  if (process.client) {
-    localStorage.setItem('stock_config_enabledIndicators', JSON.stringify(newValue))
-  }
+// 更新算法配置
+function updateBuyConditions(value) {
+  emit('update:buyConditions', value)
+}
+function updateSellConditions(value) {
+  emit('update:sellConditions', value)
+}
+
+// 聚焦图表事件
+function handleFocusChart(item) {
+  emit('focusChart', item)
+}
+
+// 右栏展开/恢复按钮处理
+function handleExpandPanel(newState) {
+  // 兼容旧值 'expanded'，统一转换为右栏专用 'rightExpanded'，否则直接透传
+  const mappedState = newState === 'expanded' ? 'rightExpanded' : newState
+  emit('changePanelState', mappedState)
+}
+
+// 监听启用的指标变化（用于动态显示配置）
+watch(enabledIndicators, (newVal) => {
+  // 可添加需要的副作用处理
 }, { deep: true })
 
-// 指标管理逻辑已迁移至子组件 IndicatorList，父组件不再持有相关状态与方法，以避免直接显示表单和重复逻辑。
+// 计算提示信息（示例）
+const calculationMessage = ref('')
+const calculationLoading = ref(false)
+const messageClass = computed(() => calculationLoading.value ? 'text-yellow-600' : 'text-green-600')
 
+onMounted(() => {
+  // 初始化逻辑
+})
 </script>
 
 <style scoped>

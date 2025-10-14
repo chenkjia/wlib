@@ -5,7 +5,8 @@
       <div
         v-show="panelState!=='collapsed'"
         class="w-1/4 h-full"
-        :class="[{'w-3/4': panelState === 'expanded'}]">
+        :class="[{ 'w-3/4': panelState === 'leftExpanded' }]"
+      >
         <LeftPanel
           v-model:selectedStockCode="selectedStockCode"
           v-model:panelState="panelState"
@@ -21,9 +22,9 @@
       </div>
               <!-- 中间K线图 -->
       <div
-        v-show="panelState!=='expanded'"
+        v-show="panelState!=='leftExpanded' && panelState!=='rightExpanded'"
         class="w-1/2 h-full"
-        :class="[{'w-full': panelState === 'collapsed'}]"
+        :class="[{ 'w-full': panelState === 'collapsed' }]"
       >
         <ChartPanel
           :stockCode="selectedStockCode"
@@ -42,14 +43,17 @@
       <!-- 右侧分析面板 -->
       <div
         class="w-1/4 h-full"
+        :class="[{ 'w-3/4': panelState === 'rightExpanded' }]"
       >
         <RightPanel
+          :panelState="panelState"
           v-model:ma="ma"
           v-model:macd="macd"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           v-model:enabledIndicators="enabledIndicators"
           :transactions="transactions"
+          @changePanelState="changePanelState"
           @calculation="handleCalculation"
           @useTaskParams="handleUseTaskParams"
           @changeViewStock="handleChangeViewStock"
@@ -77,7 +81,7 @@ const selectedDataSource = ref({
   value: 'alib',
   label: 'A股'
 }) // 数据源状态
-const panelState = ref('normal') // 面板状态：normal, expanded, collapsed
+const panelState = ref('normal') // 面板状态：normal, leftExpanded, rightExpanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 const chartFocusData = ref(null) // 图表聚焦数据
 
