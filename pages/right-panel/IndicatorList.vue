@@ -111,7 +111,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import IndicatorModal from './IndicatorModal.vue'
-import { calculateIndicator } from '~/utils/chartUtils.js'
+import { calculateIndicator, indicatorFunc } from '~/utils/chartUtils.js'
 
 const props = defineProps({
   panelState: { type: String, default: 'normal' },
@@ -141,11 +141,7 @@ const availableIndicatorOptions = [
   { label: 'MA 均线', value: 'ma' },
   { label: 'MACD', value: 'macd' }
 ]
-const calcMethodOptions = [
-  { label: '简单移动平均 (SMA)', value: 'sma' },
-  { label: '指数移动平均 (EMA)', value: 'ema' },
-  { label: 'MACD 默认', value: 'macd_default' }
-]
+const calcMethodOptions = computed(() => indicatorFunc)
 
 watch(searchQuery, () => {
   fetchIndicators()

@@ -15,11 +15,11 @@
           </div>
           <div>
             <label class="block text-sm text-gray-600 mb-1">使用的基础指标</label>
-            <USelectMenu v-model="form.usedIndicators" :options="availableIndicatorOptions" multiple placeholder="选择所用基础指标" />
+            <USelectMenu v-model="form.usedIndicators" :items="availableIndicatorOptions" multiple placeholder="选择所用基础指标" />
           </div>
           <div>
             <label class="block text-sm text-gray-600 mb-1">计算方法</label>
-            <USelectMenu v-model="form.calcMethod" :options="calcMethodOptions" placeholder="选择计算方法" />
+            <USelectMenu v-model="form.calcMethod" :items="calcMethodOptions" placeholder="选择计算方法" />
           </div>
           <div class="col-span-2">
             <label class="block text-sm text-gray-600 mb-1">计算参数（JSON）</label>
@@ -53,9 +53,6 @@ const props = defineProps({
   calcMethodOptions: {
     type: Array,
     default: () => [
-      { label: '简单移动平均 (SMA)', value: 'sma' },
-      { label: '指数移动平均 (EMA)', value: 'ema' },
-      { label: 'MACD 默认', value: 'macd_default' }
     ]
   }
 })
@@ -71,6 +68,17 @@ const isEdit = computed(() => !!props.indicator)
 const form = ref({ name: '', code: '', usedIndicators: [], calcMethod: '', calcParams: {} })
 const formParamsText = ref('')
 
+function mapLegacyMethod(method) {
+  switch (method) {
+    case 'sma':
+      return 'calculateMA'
+    case 'ema':
+      return 'calculateEMA'
+    default:
+      return method
+  }
+}
+
 watch(
   () => props.indicator,
   (ind) => {
@@ -79,7 +87,7 @@ watch(
         name: ind.name || '',
         code: ind.code || '',
         usedIndicators: Array.isArray(ind.usedIndicators) ? [...ind.usedIndicators] : [],
-        calcMethod: ind.calcMethod || '',
+        calcMethod: mapLegacyMethod(ind.calcMethod || ''),
         calcParams: ind.calcParams || {}
       }
       formParamsText.value = JSON.stringify(form.value.calcParams || {}, null, 2)
