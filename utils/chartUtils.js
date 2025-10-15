@@ -489,12 +489,52 @@ export function calculateForwardAdjusted(dayLineData = [], adjustFactorData = []
   for (let rIndex = 0; rIndex < resultData.length; rIndex++) {
     adjustedIndex = adjustFactorData.findIndex(item => item.time > resultData[rIndex].time)
     if (adjustedIndex !== -1) {
-      resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
-      resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
-      resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)
-      resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor)  
+      resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
+      resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
+      resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
+      resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
     }
   }
   
   return resultData
 }
+
+export function calculateIndicator(dayLineData = [], indicatorSettings = []) {
+  let result = {
+    line: dayLineData,
+    data: dayLineData
+  }
+  if (!dayLineData || dayLineData.length === 0) {
+    return result
+  }
+  indicatorSettings.forEach((setting) => {
+    const { name, funcName, params } = setting
+    if (indicatorMap[funcName]) {
+      result[name] = indicatorMap[funcName].func(result, params)
+    }
+  })
+  return result
+}
+export const indicatorFunc = [{
+  name: 'getData',
+  label: '获取数据',
+  func: ({line}, {name}) => {
+    return line.map((item) => item[name])
+  }
+}, {
+  name: 'calculateMA',
+  label: '计算平均数',
+  func: (indicator, {name, days}) => {
+    return calculateMA(indicator[name], days)
+  }
+}, {
+  name: 'calculateEMA',
+  label: '计算移动平均数',
+  func: (indicator, {name, days}) => {
+    return calculateEMA(indicator[name], days)
+  }
+}]
+export const indicatorMap = indicatorFunc.reduce((prev, cur) => {
+  prev[cur.name] = cur
+  return prev
+}, {})

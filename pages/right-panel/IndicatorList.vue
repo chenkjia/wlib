@@ -28,6 +28,14 @@
           @cancel="onModalCancel"
         />
         <UButton
+          v-if="props.panelState === 'rightExpanded'"
+          @click="testCalculateMetric"
+          label="测试计算指标"
+          icon="i-lucide-flask-conical"
+          color="primary"
+          size="sm"
+        />
+        <UButton
           @click="changePanelState"
           :label="props.panelState === 'rightExpanded' ? '恢复' : '展开'"
           :icon="props.panelState === 'rightExpanded' ? 'i-lucide-minimize-2' : 'i-lucide-maximize-2'"
@@ -103,9 +111,13 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import IndicatorModal from './IndicatorModal.vue'
+import { calculateIndicator } from '~/utils/chartUtils.js'
 
 const props = defineProps({
-  panelState: { type: String, default: 'normal' }
+  panelState: { type: String, default: 'normal' },
+  ma: { type: Object, default: () => ({ s: 5, m: 10, l: 20, x: 60 }) },
+  macd: { type: Object, default: () => ({ s: 12, l: 26, d: 9 }) },
+  enabledIndicators: { type: Array, default: () => ['ma', 'macd'] }
 })
 const emit = defineEmits(['changePanelState'])
 
@@ -200,6 +212,34 @@ async function deleteIndicator(code) {
   } catch (err) {
     console.error('删除指标错误:', err)
     error.value = err.message
+  }
+}
+
+// 测试计算指标：获取 sh.600000 两年内的日线数据并计算指标
+async function testCalculateMetric() {
+  try {
+    const end = new Date()
+    const start = new Date()
+    start.setFullYear(end.getFullYear() - 2)
+    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+    const params = new URLSearchParams()
+    params.append('code', 'sh.600000')
+    params.append('startTime', fmt(start))
+    params.append('endTime', fmt(end))
+
+    loading.value = true
+    const dayLine = await $fetch(`/api/dayLine?${params.toString()}`)
+    const metrics = calculateIndicator(dayLine || [], [
+      { name: 'close', funcName: 'getData', params: { name: 'close' } },
+      { name: 'maS', funcName: 'calculateMA', params: { name: 'close', days: 5 } },
+    ])
+    console.log('测试指标计算结果(sh.600000 两年):', metrics)
+  } catch (err) {
+    console.error('测试计算指标错误:', err)
+    error.value = err.message
+  } finally {
+    loading.value = false
   }
 }
 

@@ -42,7 +42,13 @@
       <!-- 参数管理 Tab（空内容） -->
       <div v-show="activeTab === 'indicators'" class="tab-pane bg-white">
         <!-- 替换为独立组件 -->
-        <IndicatorList :panelState="props.panelState" @changePanelState="handleExpandPanel" />
+        <IndicatorList 
+          :panelState="props.panelState" 
+          :ma="syncSettings.ma" 
+          :macd="syncSettings.macd" 
+          :enabledIndicators="syncSettings.enabledIndicators"
+          @changePanelState="handleExpandPanel" 
+        />
       </div>
       <div v-show="activeTab === 'config'" class="space-y-2 pt-3">
           <div class="pl-3 pr-3">
