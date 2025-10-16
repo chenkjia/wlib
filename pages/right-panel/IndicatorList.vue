@@ -227,8 +227,8 @@ async function testCalculateMetric() {
     loading.value = true
     const dayLine = await $fetch(`/api/dayLine?${params.toString()}`)
     const metrics = calculateIndicator(dayLine || [], [
-      { name: 'close', funcName: 'getData', params: { name: 'close' } },
-      { name: 'maS', funcName: 'calculateMA', params: { name: 'close', days: 5 } },
+      { name: 'close', calcMethod: 'getData', calcParams: { name: 'close' } },
+      { name: 'maS', calcMethod: 'calculateMA', calcParams: { name: 'close', days: 5 } },
     ])
     console.log('测试指标计算结果(sh.600000 两年):', metrics)
   } catch (err) {

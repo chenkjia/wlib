@@ -508,9 +508,9 @@ export function calculateIndicator(dayLineData = [], indicatorSettings = []) {
     return result
   }
   indicatorSettings.forEach((setting) => {
-    const { name, funcName, params } = setting
-    if (indicatorMap[funcName]) {
-      result[name] = indicatorMap[funcName].func(result, params)
+    const { name, calcMethod, calcParams } = setting
+    if (indicatorMap[calcMethod]) {
+      result[name] = indicatorMap[calcMethod].func(result, calcParams)
     }
   })
   return result

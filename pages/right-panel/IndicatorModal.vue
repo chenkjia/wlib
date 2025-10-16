@@ -113,7 +113,8 @@ function parseParamsText() {
 function handleSubmit() {
   try {
     const payload = { ...form.value, calcParams: parseParamsText() }
-    emit('submit', { payload, isEdit: isEdit.value })
+    console.log(payload)
+    // emit('submit', { payload, isEdit: isEdit.value })
     open.value = false
   } catch (e) {
     // 简单提示即可，保持统一风格
