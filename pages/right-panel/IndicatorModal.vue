@@ -14,16 +14,16 @@
             <UInput v-model="form.code" placeholder="如：my_indicator_a" />
           </div>
           <div>
-            <label class="block text-sm text-gray-600 mb-1">使用的基础指标</label>
-            <USelectMenu v-model="form.usedIndicators" :items="availableIndicatorOptions" multiple placeholder="选择所用基础指标" />
-          </div>
-          <div>
             <label class="block text-sm text-gray-600 mb-1">计算方法</label>
-            <USelectMenu v-model="form.calcMethod" :items="calcMethodOptions" placeholder="选择计算方法" />
+            <USelect value-key="name" v-model="form.calcMethod" :items="calcMethodOptions" placeholder="选择计算方法" />
           </div>
-          <div class="col-span-2">
-            <label class="block text-sm text-gray-600 mb-1">计算参数（JSON）</label>
-            <UTextarea v-model="formParamsText" :rows="6" placeholder='{"window": 14}' />
+          <div v-if="form.calcMethod!==''" class="col-span-2">
+            <label class="block text-sm text-gray-600 mb-1">计算参数</label>
+            <IndicatorParamEditor
+              v-model="paramEditorValue"
+              :indicatorOptions="indicatorExternalOptions"
+              :calcMethod="form.calcMethod"
+            />
           </div>
         </div>
         <div class="flex justify-end gap-2 pt-2">
@@ -36,7 +36,8 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, toRaw } from 'vue'
+import IndicatorParamEditor from './IndicatorParamEditor.vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -65,19 +66,15 @@ const open = computed({
 })
 
 const isEdit = computed(() => !!props.indicator)
-const form = ref({ name: '', code: '', usedIndicators: [], calcMethod: '', calcParams: {} })
-const formParamsText = ref('')
-
-function mapLegacyMethod(method) {
-  switch (method) {
-    case 'sma':
-      return 'calculateMA'
-    case 'ema':
-      return 'calculateEMA'
-    default:
-      return method
-  }
-}
+const form = ref({ name: '', code: '', calcMethod: '', calcParams: {} })
+// getData 参数的选择逻辑已移至 IndicatorParamEditor 内部
+// 使用 form.calcParams 作为参数编辑器的 v-model 来源
+const paramEditorValue = computed({
+  get: () => form.value.calcParams,
+  set: (val) => { form.value.calcParams = val || {} }
+})
+// 从外部传入的指标列表，供参数编辑器使用（第二和第五个下拉）
+const indicatorExternalOptions = computed(() => props.availableIndicatorOptions || [])
 
 watch(
   () => props.indicator,
@@ -86,35 +83,25 @@ watch(
       form.value = {
         name: ind.name || '',
         code: ind.code || '',
-        usedIndicators: Array.isArray(ind.usedIndicators) ? [...ind.usedIndicators] : [],
-        calcMethod: mapLegacyMethod(ind.calcMethod || ''),
+        calcMethod: ind.calcMethod || '',
         calcParams: ind.calcParams || {}
       }
-      formParamsText.value = JSON.stringify(form.value.calcParams || {}, null, 2)
+      // 初始化参数：直接回填 calcParams，具体渲染逻辑在参数编辑器中处理
+      form.value.calcParams = form.value.calcParams || {}
       open.value = true
     } else {
       // 创建模式
-      form.value = { name: '', code: '', usedIndicators: [], calcMethod: '', calcParams: {} }
-      formParamsText.value = ''
+      form.value = { name: '', code: '', calcMethod: '', calcParams: {} }
+      form.value.calcParams = {}
     }
   },
   { immediate: true }
 )
 
-function parseParamsText() {
-  try {
-    const obj = formParamsText.value ? JSON.parse(formParamsText.value) : {}
-    return obj
-  } catch (e) {
-    throw new Error('计算参数必须是合法 JSON')
-  }
-}
-
 function handleSubmit() {
   try {
-    const payload = { ...form.value, calcParams: parseParamsText() }
-    console.log(payload)
-    // emit('submit', { payload, isEdit: isEdit.value })
+    const payload = { ...form.value, calcParams: toRaw(form.value.calcParams)}
+    emit('submit', { payload, isEdit: isEdit.value })
     open.value = false
   } catch (e) {
     // 简单提示即可，保持统一风格

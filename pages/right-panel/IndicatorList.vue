@@ -226,10 +226,8 @@ async function testCalculateMetric() {
 
     loading.value = true
     const dayLine = await $fetch(`/api/dayLine?${params.toString()}`)
-    const metrics = calculateIndicator(dayLine || [], [
-      { name: 'close', calcMethod: 'getData', calcParams: { name: 'close' } },
-      { name: 'maS', calcMethod: 'calculateMA', calcParams: { name: 'close', days: 5 } },
-    ])
+    // 直接使用当前表格中的指标配置进行计算
+    const metrics = calculateIndicator(dayLine || [], indicators.value)
     console.log('测试指标计算结果(sh.600000 两年):', metrics)
   } catch (err) {
     console.error('测试计算指标错误:', err)

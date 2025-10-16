@@ -508,9 +508,9 @@ export function calculateIndicator(dayLineData = [], indicatorSettings = []) {
     return result
   }
   indicatorSettings.forEach((setting) => {
-    const { name, calcMethod, calcParams } = setting
+    const { code, calcMethod, calcParams } = setting
     if (indicatorMap[calcMethod]) {
-      result[name] = indicatorMap[calcMethod].func(result, calcParams)
+      result[code] = indicatorMap[calcMethod].func(result, calcParams)
     }
   })
   return result
@@ -518,8 +518,17 @@ export function calculateIndicator(dayLineData = [], indicatorSettings = []) {
 export const indicatorFunc = [{
   name: 'getData',
   label: '获取数据',
-  func: ({line}, {name}) => {
-    return line.map((item) => item[name])
+  func: ({line}, {dataField}) => {
+    return line.map((item) => item[dataField])
+  }
+}, {
+  // 对比计算
+  name: 'compare',
+  label: '对比计算',
+  func: (indicator, {timeA, indicatorA, operator, timeB, indicatorB}) => {
+    return indicator[indicatorA].map((item, i) => {
+      return new Decimal(indicator[indicatorA][i-timeA])[operator](indicator[indicatorB][i-timeB])
+    })
   }
 }, {
   name: 'calculateMA',
