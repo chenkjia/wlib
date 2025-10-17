@@ -21,7 +21,7 @@
         <IndicatorModal
           v-model:open="indicatorModalOpen"
           :indicator="editingIndicator"
-          :availableIndicatorOptions="availableIndicatorOptions"
+          :availableIndicatorOptions="indicators"
           :calcMethodOptions="calcMethodOptions"
           triggerLabel="新增指标"
           @submit="onModalSubmit"
@@ -137,10 +137,6 @@ const columns = ref([
   { id: 'actions', header: '操作', cell: (row) => row.id }
 ])
 
-const availableIndicatorOptions = [
-  { label: 'MA 均线', value: 'ma' },
-  { label: 'MACD', value: 'macd' }
-]
 const calcMethodOptions = computed(() => indicatorFunc)
 
 watch(searchQuery, () => {
@@ -152,11 +148,6 @@ function changePanelState() {
   emit('changePanelState', newState)
 }
 
-function formatDate(dateString) {
-  if (!dateString) return '-'
-  const date = new Date(dateString)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
 
 async function fetchIndicators() {
   loading.value = true
@@ -174,10 +165,6 @@ async function fetchIndicators() {
   }
 }
 
-function openCreateModal() {
-  editingIndicator.value = null
-  indicatorModalOpen.value = true
-}
 
 function openEditModal(indicator) {
   editingIndicator.value = indicator

@@ -4,6 +4,11 @@
       <!-- getData: 数据字段选择 -->
       <USelect value-key="value" v-model="dataField" :items="getDataFieldOptions" />
     </template>
+    <template v-else-if="calcMethod === 'calculateMA' || calcMethod === 'calculateEMA'">
+      <USelect value-key="value" v-model="indicatorField" :items="indicatorOptions" />
+      <!-- calculateMA: 移动平均线参数 -->
+      <UInput v-model="days" type="number" placeholder="移动平均线天数" />
+    </template>
     <template v-else-if="calcMethod === 'compare'">
       <!-- 通用：五个下拉选择器 -->
       <!-- 第一个：时间选择（当天、前一天、前2天） -->
@@ -66,6 +71,8 @@ const operator = ref('eq')
 const timeB = ref(0)
 const indicatorB = ref('')
 const dataField = ref('close')
+const indicatorField = ref('')
+const days = ref(0)
 
 const localValue = computed(() => ({
   timeA: timeA.value,
@@ -73,7 +80,9 @@ const localValue = computed(() => ({
   operator: operator.value,
   timeB: timeB.value,
   indicatorB: indicatorB.value,
-  dataField: dataField.value
+  dataField: dataField.value,
+  indicatorField: indicatorField.value,
+  days: days.value
 }))
 
 // 将本地变更同步到父组件 v-model
@@ -94,6 +103,9 @@ watch(
     operator.value = val.operator ?? 'eq'
     timeB.value = val.timeB ?? 0
     indicatorB.value = val.indicatorB ?? ''
+    // 移动平均线参数初始化
+    indicatorField.value = val.indicatorField ?? ''
+    days.value = val.days ?? 0
   },
   { immediate: true, deep: true }
 )
@@ -107,6 +119,8 @@ watch(
 function update() {
   if (props.calcMethod === 'getData') {
     emit('update:modelValue', { dataField: dataField.value })
+  } else if (props.calcMethod === 'calculateMA' || props.calcMethod === 'calculateEMA') {
+    emit('update:modelValue', { indicatorField: indicatorField.value, days: days.value })
   } else if (props.calcMethod === 'compare') {
     emit('update:modelValue', {
       timeA: timeA.value,

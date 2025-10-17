@@ -17,6 +17,10 @@
             <label class="block text-sm text-gray-600 mb-1">计算方法</label>
             <USelect value-key="name" v-model="form.calcMethod" :items="calcMethodOptions" placeholder="选择计算方法" />
           </div>
+          <div>
+            <label class="block text-sm text-gray-600 mb-1">指标组</label>
+            <USelect value-key="value" v-model="form.group" :items="groupOptions" placeholder="选择指标组" />
+          </div>
           <div v-if="form.calcMethod!==''" class="col-span-2">
             <label class="block text-sm text-gray-600 mb-1">计算参数</label>
             <IndicatorParamEditor
@@ -46,10 +50,7 @@ const props = defineProps({
   triggerLabel: { type: String, default: '新增指标' },
   availableIndicatorOptions: {
     type: Array,
-    default: () => [
-      { label: 'MA 均线', value: 'ma' },
-      { label: 'MACD', value: 'macd' }
-    ]
+    default: () => []
   },
   calcMethodOptions: {
     type: Array,
@@ -66,7 +67,15 @@ const open = computed({
 })
 
 const isEdit = computed(() => !!props.indicator)
-const form = ref({ name: '', code: '', calcMethod: '', calcParams: {} })
+const form = ref({ name: '', code: '', calcMethod: '', calcParams: {}, group: 'default' })
+
+// 分组选项
+const groupOptions = [
+  { label: '默认', value: 'default' },
+  { label: '均线', value: 'ma' },
+  { label: 'MACD', value: 'macd' }
+]
+
 // getData 参数的选择逻辑已移至 IndicatorParamEditor 内部
 // 使用 form.calcParams 作为参数编辑器的 v-model 来源
 const paramEditorValue = computed({
@@ -74,7 +83,13 @@ const paramEditorValue = computed({
   set: (val) => { form.value.calcParams = val || {} }
 })
 // 从外部传入的指标列表，供参数编辑器使用（第二和第五个下拉）
-const indicatorExternalOptions = computed(() => props.availableIndicatorOptions || [])
+const indicatorExternalOptions = computed(() => {
+  const a = props.availableIndicatorOptions.map(({name,code}) => {
+    return {label:name,value:code}
+  })
+  console.log(a)
+  return a
+})
 
 watch(
   () => props.indicator,
@@ -84,14 +99,15 @@ watch(
         name: ind.name || '',
         code: ind.code || '',
         calcMethod: ind.calcMethod || '',
-        calcParams: ind.calcParams || {}
+        calcParams: ind.calcParams || {},
+        group: ind.group || 'default'
       }
       // 初始化参数：直接回填 calcParams，具体渲染逻辑在参数编辑器中处理
       form.value.calcParams = form.value.calcParams || {}
       open.value = true
     } else {
       // 创建模式
-      form.value = { name: '', code: '', calcMethod: '', calcParams: {} }
+      form.value = { name: '', code: '', calcMethod: '', calcParams: {}, group: 'default' }
       form.value.calcParams = {}
     }
   },

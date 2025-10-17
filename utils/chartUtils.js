@@ -533,14 +533,14 @@ export const indicatorFunc = [{
 }, {
   name: 'calculateMA',
   label: '计算平均数',
-  func: (indicator, {name, days}) => {
-    return calculateMA(indicator[name], days)
+  func: (indicator, {indicatorField, days}) => {
+    return calculateMA(indicator[indicatorField], days)
   }
 }, {
   name: 'calculateEMA',
   label: '计算移动平均数',
-  func: (indicator, {name, days}) => {
-    return calculateEMA(indicator[name], days)
+  func: (indicator, {indicatorField, days}) => {
+    return calculateEMA(indicator[indicatorField], days)
   }
 }]
 export const indicatorMap = indicatorFunc.reduce((prev, cur) => {
