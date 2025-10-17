@@ -23,6 +23,7 @@
           :indicator="editingIndicator"
           :availableIndicatorOptions="indicators"
           :calcMethodOptions="calcMethodOptions"
+          :groupOptions="groupOptions"
           triggerLabel="新增指标"
           @submit="onModalSubmit"
           @cancel="onModalCancel"
@@ -66,31 +67,51 @@
     <div v-else class="flex-grow flex flex-col min-h-0">
       <div class="flex-grow overflow-auto">
         <UTable
+          v-model:column-visibility="columnVisibility"
           :data="indicators"
           :columns="columns"
           :loading="loading"
           class="w-full"
           :ui="{
-            wrapper: 'border border-gray-200 rounded-lg overflow-hidden',
-            td: { base: 'p-3 border-b border-gray-100', padding: 'px-4 py-3' },
-            th: { base: 'text-left p-3 border-b border-gray-200 bg-gray-50', padding: 'px-4 py-3', color: 'text-gray-700 font-medium' }
+            td: 'empty:p-0'
           }"
+          :grouping="['group']"
+          :grouping-options="groupingOptions"
+
           :column-pinning="{left: ['name','code'], right: ['actions']}"
         >
           <template #name-cell="{ row }">
-            {{ row.original.name }}
+            <div v-if="row.getIsGrouped()" class="flex items-center">
+              <span class="inline-block" :style="{ width: `calc(${row.depth} * 1rem)` }" />
+
+              <UButton
+                variant="outline"
+                color="neutral"
+                class="mr-2"
+                size="xs"
+                :icon="row.getIsExpanded() ? 'i-lucide-minus' : 'i-lucide-plus'"
+                @click="row.toggleExpanded()"
+              />
+              <strong>{{ groupLabelMap[row.original.group] || row.original.group || '默认' }}</strong>
+            </div>
+            <div v-else>{{ row.original.name }}</div>
           </template>
           <template #code-cell="{ row }">
-            <code class="text-gray-700">{{ row.original.code }}</code>
+            <code v-if="!row.getIsGrouped()" class="text-gray-700">{{ row.original.code }}</code>
           </template>
           <template #usedIndicators-cell="{ row }">
-            <div class="flex flex-wrap gap-1">
+            <div v-if="!row.getIsGrouped()"  class="flex flex-wrap gap-1">
               <UBadge v-for="(u, idx) in (row.original.usedIndicators || [])" :key="idx" :label="u" color="gray" size="xs" />
               <span v-if="!row.original.usedIndicators || row.original.usedIndicators.length === 0" class="text-gray-400">-</span>
             </div>
           </template>
           <template #calcMethod-cell="{ row }">
             <UBadge :label="row.original.calcMethod || '-'" color="primary" size="xs" />
+          </template>
+          <template #calcParams-cell="{ row }">
+            <div v-if="!row.getIsGrouped()">
+              <pre class="text-xs text-gray-600 whitespace-pre-wrap break-words">{{ formatJSON(row.original.calcParams) }}</pre>
+            </div>
           </template>
           
           <template #actions-cell="{ row }">
@@ -112,6 +133,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import IndicatorModal from './IndicatorModal.vue'
 import { calculateIndicator, indicatorFunc } from '~/utils/chartUtils.js'
+import { getGroupedRowModel } from '@tanstack/vue-table'
 
 const props = defineProps({
   panelState: { type: String, default: 'normal' },
@@ -128,15 +150,53 @@ const error = ref(null)
 const indicators = ref([])
 const indicatorModalOpen = ref(false)
 const editingIndicator = ref(null)
+const groupOptions = [
+  { label: '默认', value: 'default' },
+  { label: '均线', value: 'ma' },
+  { label: 'MACD', value: 'macd' }
+]
+const groupLabelMap = groupOptions.reduce((result,{value,label}) => {
+  return {
+    ...result,
+    [value]: label
+  }
+},{})
+const groupingOptions = ref({
+  groupedColumnMode: 'remove',
+  getGroupedRowModel: getGroupedRowModel()
+})
 
 const columns = ref([
-  { accessorKey: 'name', header: '名称', id: 'name' },
+  { id: 'title', header: '组' },
+  { accessorKey: 'group', header: '指标组', id: 'group' },
+  { accessorKey: 'name', header: '名称', id: 'name', 
+    cell: ({ row }) =>
+      row.getIsGrouped() ? `${row.getValue('name')} 指标` : row.getValue('name')
+  },
   { accessorKey: 'code', header: '代码', id: 'code' },
   { accessorKey: 'usedIndicators', header: '使用指标', id: 'usedIndicators' },
   { accessorKey: 'calcMethod', header: '计算方法', id: 'calcMethod' },
+  { accessorKey: 'calcParams', header: '计算参数', id: 'calcParams' },
   { id: 'actions', header: '操作', cell: (row) => row.id }
 ])
-
+const columnVisibility = ref({
+  title: false,
+  group: false
+})
+// 根据右栏展开状态控制列显示：不展开只显示 name、code、actions；展开显示所有（除 title、group 仍隐藏）
+function applyColumnVisibilityByPanel(state) {
+  const isExpanded = state === 'rightExpanded'
+  columnVisibility.value = {
+    // 始终隐藏分组辅助列
+    title: false,
+    group: false,
+    // 展开时显示，收起时隐藏
+    usedIndicators: isExpanded,
+    calcMethod: isExpanded,
+    calcParams: isExpanded
+  }
+}
+watch(() => props.panelState, (state) => applyColumnVisibilityByPanel(state), { immediate: true })
 const calcMethodOptions = computed(() => indicatorFunc)
 
 watch(searchQuery, () => {
@@ -221,6 +281,14 @@ async function testCalculateMetric() {
     error.value = err.message
   } finally {
     loading.value = false
+  }
+}
+
+function formatJSON(val) {
+  try {
+    return JSON.stringify(val ?? {}, null, 2)
+  } catch (e) {
+    return String(val ?? '')
   }
 }
 

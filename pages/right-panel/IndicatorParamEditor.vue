@@ -5,22 +5,22 @@
       <USelect value-key="value" v-model="dataField" :items="getDataFieldOptions" />
     </template>
     <template v-else-if="calcMethod === 'calculateMA' || calcMethod === 'calculateEMA'">
-      <USelect value-key="value" v-model="indicatorField" :items="indicatorOptions" />
+      <USelect class="w-120" value-key="value" v-model="indicatorField" :items="indicatorOptions" />
       <!-- calculateMA: 移动平均线参数 -->
       <UInput v-model="days" type="number" placeholder="移动平均线天数" />
     </template>
     <template v-else-if="calcMethod === 'compare'">
       <!-- 通用：五个下拉选择器 -->
       <!-- 第一个：时间选择（当天、前一天、前2天） -->
-      <USelect value-key="value" v-model="timeA" :items="timeOptions" />
+      <USelect class="w-120" value-key="value" v-model="timeA" :items="timeOptions" />
       <!-- 第二个：指标选择（从外部传入列表） -->
-      <USelect value-key="value" v-model="indicatorA" :items="indicatorOptions" />
+      <USelect class="w-120" value-key="value" v-model="indicatorA" :items="indicatorOptions" />
       <!-- 第三个：操作符（相等、大于、小于、与、或者） -->
-      <USelect value-key="value" v-model="operator" :items="operatorOptions" />
+      <USelect class="w-120" value-key="value" v-model="operator" :items="operatorOptions" />
       <!-- 第四个：时间选择（当天、前一天、前2天） -->
-      <USelect value-key="value" v-model="timeB" :items="timeOptions" />
+      <USelect class="w-120" value-key="value" v-model="timeB" :items="timeOptions" />
       <!-- 第五个：指标选择（从外部传入列表） -->
-      <USelect value-key="value" v-model="indicatorB" :items="indicatorOptions" />
+      <USelect class="w-120" value-key="value" v-model="indicatorB" :items="indicatorOptions" />
     </template>
   </div>
 

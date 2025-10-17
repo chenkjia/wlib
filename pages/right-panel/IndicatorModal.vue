@@ -19,7 +19,7 @@
           </div>
           <div>
             <label class="block text-sm text-gray-600 mb-1">指标组</label>
-            <USelect value-key="value" v-model="form.group" :items="groupOptions" placeholder="选择指标组" />
+            <USelect value-key="value" v-model="form.group" :items="props.groupOptions" placeholder="选择指标组" />
           </div>
           <div v-if="form.calcMethod!==''" class="col-span-2">
             <label class="block text-sm text-gray-600 mb-1">计算参数</label>
@@ -48,6 +48,10 @@ const props = defineProps({
   indicator: { type: Object, default: null },
   showTrigger: { type: Boolean, default: true },
   triggerLabel: { type: String, default: '新增指标' },
+  groupOptions: {
+    type: Array,
+    default: () => []
+  },
   availableIndicatorOptions: {
     type: Array,
     default: () => []
@@ -69,13 +73,6 @@ const open = computed({
 const isEdit = computed(() => !!props.indicator)
 const form = ref({ name: '', code: '', calcMethod: '', calcParams: {}, group: 'default' })
 
-// 分组选项
-const groupOptions = [
-  { label: '默认', value: 'default' },
-  { label: '均线', value: 'ma' },
-  { label: 'MACD', value: 'macd' }
-]
-
 // getData 参数的选择逻辑已移至 IndicatorParamEditor 内部
 // 使用 form.calcParams 作为参数编辑器的 v-model 来源
 const paramEditorValue = computed({
@@ -94,6 +91,7 @@ const indicatorExternalOptions = computed(() => {
 watch(
   () => props.indicator,
   (ind) => {
+    console.log(ind)
     if (ind) {
       form.value = {
         name: ind.name || '',
