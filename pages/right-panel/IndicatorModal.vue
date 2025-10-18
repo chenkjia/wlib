@@ -1,5 +1,5 @@
 <template>
-  <UModal v-model:open="open" :ui="{ overlay: 'backdrop-blur-sm' }" :title="isEdit?'编辑指标':'新增指标'">
+  <UModal v-model:open="open" :ui="{ overlay: 'backdrop-blur-sm', width: 'w-full sm:max-w-4xl' }" :title="isEdit?'编辑指标':'新增指标'">
     <!-- 触发按钮放在 UModal 内部 -->
     <UButton :label="triggerLabel" icon="i-lucide-plus" color="info" size="sm" v-if="showTrigger" />
     <template #body>

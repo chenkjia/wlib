@@ -47,11 +47,9 @@ const timeOptions = [
 
 // 操作符选项（第三个选择）
 const operatorOptions = [
-  { label: '相等', value: 'eq' },
+  { label: '相等', value: 'equals' },
   { label: '大于', value: 'gt' },
   { label: '小于', value: 'lt' },
-  { label: '与', value: 'and' },
-  { label: '或者', value: 'or' }
 ]
 
 // getData 的数据字段选项

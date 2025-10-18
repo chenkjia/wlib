@@ -115,7 +115,7 @@
           </template>
           
           <template #actions-cell="{ row }">
-            <div class="flex gap-2">
+            <div  v-if="!row.getIsGrouped()" class="flex gap-2">
               <UButton @click="openEditModal(row.original)" icon="i-lucide-edit" color="info" size="xs" title="编辑" />
               <UButton @click="deleteIndicator(row.original.code)" icon="i-lucide-trash" color="error" size="xs" title="删除" />
             </div>

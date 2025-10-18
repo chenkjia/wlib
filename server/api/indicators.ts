@@ -21,7 +21,8 @@ export default defineEventHandler(async (event) => {
         code: String(body.code),
         usedIndicators: Array.isArray(body.usedIndicators) ? body.usedIndicators.map(String) : [],
         calcMethod: body.calcMethod ? String(body.calcMethod) : '',
-        calcParams: body.calcParams ?? {}
+        calcParams: body.calcParams ?? {},
+        group: body.group ? String(body.group) : '',
       }
       const created = await MongoDB.createIndicator(payload)
       return created
@@ -38,7 +39,7 @@ export default defineEventHandler(async (event) => {
       if (body.usedIndicators !== undefined) updateData.usedIndicators = Array.isArray(body.usedIndicators) ? body.usedIndicators.map(String) : []
       if (body.calcMethod !== undefined) updateData.calcMethod = String(body.calcMethod)
       if (body.calcParams !== undefined) updateData.calcParams = body.calcParams
-
+      if (body.group !== undefined) updateData.group = String(body.group)
       const updated = await MongoDB.updateIndicator(String(code), updateData)
       return updated
     }
