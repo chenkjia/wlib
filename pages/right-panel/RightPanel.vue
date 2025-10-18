@@ -3,6 +3,7 @@
     <!-- 标签页头部 -->
     <div class="flex border-b" style="border-color: var(--border-light);">
       <button
+        v-if="showIndicatorsTab"
         @click="activeTab = 'indicators'"
         :class="[
           'flex-1 px-4 py-3 text-sm font-medium transition-colors',
@@ -40,7 +41,7 @@
     <!-- Tab内容 - 可滚动区域 -->
     <div class="tab-content overflow-y-auto flex-grow">
       <!-- 参数管理 Tab（空内容） -->
-      <div v-show="activeTab === 'indicators'" class="tab-pane bg-white">
+      <div v-if="showIndicatorsTab && activeTab === 'indicators'" class="tab-pane bg-white">
         <!-- 替换为独立组件 -->
         <IndicatorList 
           :panelState="props.panelState" 
@@ -303,7 +304,8 @@ const emit = defineEmits([
 ])
 
 // 本地响应式状态
-const activeTab = ref('indicators')
+const showIndicatorsTab = false
+const activeTab = ref('config')
 
 // 计算属性（与父组件双向绑定）
 const maS = computed({
