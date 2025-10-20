@@ -70,9 +70,12 @@ function processTrendPoints(trendData) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd']) {
-  const hasMACD = enabledIndicators.includes('macd')
-  const hasKDJ = enabledIndicators.includes('kdj')
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], activeSubChart = 'volume') {
+  const macdEnabled = enabledIndicators.includes('macd')
+  const kdjEnabled = enabledIndicators.includes('kdj')
+  // 仅保留一个副图显示：macd 或 kdj 或 none（成交量始终显示）
+  const hasMACD = activeSubChart === 'macd' ? macdEnabled : false
+  const hasKDJ = activeSubChart === 'kdj' ? kdjEnabled : false
   
   const maS = dayLineWithMetric.maS || []
   const maM = dayLineWithMetric.maM || []
@@ -87,39 +90,16 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   const trendPoints = processTrendPoints(data.trendData)
   
-  // 动态网格布局（主图 + 成交量 + 可选的 MACD + 可选的 KDJ）
-  const grid = (() => {
-    if (hasMACD && hasKDJ) {
-      return [
-        { left: '10%', right: '10%', height: '35%' },
-        { left: '10%', right: '10%', top: '40%', height: '15%' },
-        { left: '10%', right: '10%', top: '60%', height: '15%' },
-        { left: '10%', right: '10%', top: '80%', height: '15%' }
-      ]
-    } else if (hasMACD) {
-      return [
-        { left: '10%', right: '10%', height: '40%' },
-        { left: '10%', right: '10%', top: '50%', height: '15%' },
-        { left: '10%', right: '10%', top: '70%', height: '15%' }
-      ]
-    } else if (hasKDJ) {
-      return [
-        { left: '10%', right: '10%', height: '50%' },
-        { left: '10%', right: '10%', top: '55%', height: '20%' },
-        { left: '10%', right: '10%', top: '80%', height: '15%' }
-      ]
-    }
-    return [
-      { left: '10%', right: '10%', height: '60%' },
-      { left: '10%', right: '10%', top: '70%', height: '20%' }
-    ]
-  })()
+  // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
+  const grid = [
+    { left: '10%', right: '10%', height: '65%' },
+    { left: '10%', right: '10%', top: '72%', height: '22%' }
+  ]
   
-  // 计算各子图的索引（主图=0，成交量=1，MACD/KDJ的索引随是否启用而变化）
-  const macdGridIndex = hasMACD ? (hasKDJ ? 2 : 2) : -1
-  const kdjGridIndex = hasKDJ ? (hasMACD ? 3 : 2) : -1
+  // 副图网格索引统一为 1
+  const subGridIndex = 1
   
-  // X轴
+  // X轴（主图 + 单一副图）
   const xAxis = [
     {
       type: 'category',
@@ -142,7 +122,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     },
     {
       type: 'category',
-      gridIndex: 1,
+      gridIndex: subGridIndex,
       data: data.categoryData,
       boundaryGap: false,
       axisLine: { onZero: false },
@@ -161,68 +141,16 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       }
     }
   ]
-  if (hasMACD) {
-    xAxis.push({
-      type: 'category',
-      gridIndex: macdGridIndex,
-      data: data.categoryData,
-      boundaryGap: false,
-      axisLine: { onZero: false },
-      axisTick: { show: false },
-      splitLine: { show: false },
-      axisLabel: { 
-        show: true,
-        formatter: formatDateMMDD
-      },
-      min: 'dataMin',
-      max: 'dataMax',
-      axisPointer: {
-        label: {
-          formatter: params => formatDateYYYYMMDD(params.value)
-        }
-      }
-    })
-  }
-  if (hasKDJ) {
-    xAxis.push({
-      type: 'category',
-      gridIndex: kdjGridIndex,
-      data: data.categoryData,
-      boundaryGap: false,
-      axisLine: { onZero: false },
-      axisTick: { show: false },
-      splitLine: { show: false },
-      axisLabel: { 
-        show: true,
-        formatter: formatDateMMDD
-      },
-      min: 'dataMin',
-      max: 'dataMax',
-      axisPointer: {
-        label: {
-          formatter: params => formatDateYYYYMMDD(params.value)
-        }
-      }
-    })
-  }
   
-  // Y轴
+  // Y轴（主图 + 单一副图）
   const yAxis = [
     { scale: true, splitArea: { show: true } },
-    { scale: true, gridIndex: 1, splitNumber: 2, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false } }
+    { scale: true, gridIndex: subGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }
   ]
-  if (hasMACD) {
-    yAxis.push({ scale: true, gridIndex: macdGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } })
-  }
-  if (hasKDJ) {
-    yAxis.push({ scale: true, gridIndex: kdjGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } })
-  }
   
-  // DataZoom
-  const zoomAxisIndex = [0, 1]
-  if (hasMACD) zoomAxisIndex.push(macdGridIndex)
-  if (hasKDJ) zoomAxisIndex.push(kdjGridIndex)
-  const sliderTop = hasMACD && hasKDJ ? '95%' : ((hasMACD || hasKDJ) ? '90%' : '85%')
+  // DataZoom 仅联动两个轴
+  const zoomAxisIndex = [0, subGridIndex]
+  const sliderTop = '90%'
   
   // 系列
   const series = [
@@ -271,27 +199,28 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       { name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
       { name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }
     ] : []),
-    {
-      name: '成交量',
-      type: 'bar',
-      xAxisIndex: 1,
-      yAxisIndex: 1,
-      data: data.volumes,
-      itemStyle: {
-        color: params => params.data[2] > 0 ? upColor : downColor
+    // 单一副图：成交量/MACD/KDJ 之一
+    ...(activeSubChart === 'volume' ? [
+      {
+        name: '成交量',
+        type: 'bar',
+        xAxisIndex: subGridIndex,
+        yAxisIndex: subGridIndex,
+        data: data.volumes,
+        itemStyle: {
+          color: params => params.data[2] > 0 ? upColor : downColor
+        }
       }
-    },
-    // MACD系列 - 只有启用MACD时才显示
-    ...(hasMACD ? [
-      { name: 'DIF', type: 'line', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
-      { name: 'DEA', type: 'line', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
-      { name: 'BAR', type: 'bar', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } }
     ] : []),
-    // KDJ系列 - 只有启用KDJ时才显示
-    ...(hasKDJ ? [
-      { name: 'KDJ-K', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
-      { name: 'KDJ-D', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
-      { name: 'KDJ-J', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
+    ...(activeSubChart === 'macd' && macdEnabled ? [
+      { name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
+      { name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
+      { name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } }
+    ] : []),
+    ...(activeSubChart === 'kdj' && kdjEnabled ? [
+      { name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
+      { name: 'KDJ-D', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
+      { name: 'KDJ-J', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
     ] : [])
   ]
   
@@ -303,16 +232,18 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         type: 'cross'
       },
       formatter: function(params) {
-        const date = formatDateYYYYMMDD(params[0].axisValue)
+        const klineParam = params.find(p => p.seriesType === 'candlestick' || p.seriesName === 'K线')
+        const dateAxisVal = klineParam ? klineParam.axisValue : (params[0] ? params[0].axisValue : '')
+        const date = formatDateYYYYMMDD(dateAxisVal)
         let res = date + '<br/>'
         
         // K线数据
-        if (params[0]) {
+        if (klineParam && Array.isArray(klineParam.data)) {
           res += `
-            开盘: ${params[0].data[1]}<br/>
-            收盘: ${params[0].data[2]}<br/>
-            最低: ${params[0].data[3]}<br/>
-            最高: ${params[0].data[4]}<br/>
+            开盘: ${klineParam.data[0]}<br/>
+            收盘: ${klineParam.data[1]}<br/>
+            最低: ${klineParam.data[2]}<br/>
+            最高: ${klineParam.data[3]}<br/>
           `
         }
         

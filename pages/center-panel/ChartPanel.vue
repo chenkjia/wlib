@@ -5,11 +5,24 @@
     
     <!-- 图表容器 -->
     <div class="chart-container flex-grow" ref="chartContainer"></div>
+    
+    <!-- 底部副图切换标签（使用 Nuxt UI 的 UButton） -->
+    <div class="chart-tabs px-3 py-2 border-t" style="border-color: var(--border-light);">
+      <UButton
+        v-for="t in availableTabs"
+        :key="t.key"
+        :label="t.label"
+        :color="activeSubChart === t.key ? 'primary' : 'neutral'"
+        :variant="activeSubChart === t.key ? 'solid' : 'soft'"
+        size="xs"
+        @click="activeSubChart = t.key"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import TradeStats from '~/components/TradeStats.vue'
 import { splitData, createChartOption } from './ChartUtils.js'
@@ -58,6 +71,15 @@ const emit = defineEmits(['error'])
 // 响应式状态
 const chartContainer = ref(null)
 let myChart = null
+
+// 新增：副图切换状态
+const activeSubChart = ref('volume') // volume | macd | kdj
+const availableTabs = computed(() => {
+  const tabs = [{ key: 'volume', label: '成交量' }]
+  if (props.enabledIndicators.includes('macd')) tabs.push({ key: 'macd', label: 'MACD' })
+  if (props.enabledIndicators.includes('kdj')) tabs.push({ key: 'kdj', label: 'KDJ' })
+  return tabs
+})
 
 // 日期格式化函数
 function formatDateYYYYMMDD(value) {
@@ -108,7 +130,8 @@ function renderChart(data, dayLineWithMetric) {
     dayLineWithMetric,
     formatDateYYYYMMDD, 
     formatDateMMDD,
-    props.enabledIndicators
+    props.enabledIndicators,
+    activeSubChart.value
   )
   myChart.setOption(option)
 }
@@ -172,6 +195,20 @@ watch(() => props.focusData, (newFocusData) => {
   }
 }, { deep: true })
 
+// 监听副图切换
+watch(() => activeSubChart.value, async () => {
+  await refreshChart()
+})
+
+// 监听指标开关变化，校准可用标签与当前选择
+watch(() => props.enabledIndicators, async () => {
+  const tabs = availableTabs.value
+  if (!tabs.find(t => t.key === activeSubChart.value)) {
+    activeSubChart.value = tabs[0]?.key || 'volume'
+  }
+  await refreshChart()
+}, { deep: true })
+
 // 窗口大小调整处理
 const handleResize = () => {
   try {
@@ -223,6 +260,27 @@ watch(
   min-height: 400px;
   z-index: 10;
   position: relative;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.tab-btn {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  background-color: var(--primary-900);
+  color: var(--primary-50);
+  border: 1px solid var(--border-light);
+}
+
+.tab-btn.active {
+  background-color: var(--primary-600);
+  color: #fff;
+  border-color: var(--primary-500);
 }
 
 @media (max-width: 768px) {
