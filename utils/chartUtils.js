@@ -48,6 +48,80 @@ export function calculateEMA(data, period) {
 }
 
 /**
+ * 计算 RSV (Raw Stochastic Value)
+ * RSV = (收盘价 - N日最低价) / (N日最高价 - N日最低价) * 100
+ * @param {Array<Object>} dayLineData - K线数据，包含 high/low/close
+ * @param {number} period - N 周期，默认 9
+ * @returns {Array<number>} RSV 数组（0-100）
+ */
+export function calculateRSV(dayLineData = [], period = 9) {
+  if (!Array.isArray(dayLineData) || dayLineData.length === 0) {
+    return [];
+  }
+  const rsv = new Array(dayLineData.length).fill(null);
+  for (let i = 0; i < dayLineData.length; i++) {
+    const start = Math.max(0, i - (period - 1));
+    let highestHigh = -Infinity;
+    let lowestLow = Infinity;
+    for (let j = start; j <= i; j++) {
+      const h = Number(dayLineData[j]?.high ?? dayLineData[j]?.close ?? 0);
+      const l = Number(dayLineData[j]?.low ?? dayLineData[j]?.close ?? 0);
+      if (h > highestHigh) highestHigh = h;
+      if (l < lowestLow) lowestLow = l;
+    }
+    const closeVal = Number(dayLineData[i]?.close ?? 0);
+    const denom = new Decimal(highestHigh).minus(lowestLow);
+    if (denom.eq(0)) {
+      rsv[i] = i > 0 ? (rsv[i - 1] ?? 0) : 0;
+      continue;
+    }
+    const numerator = new Decimal(closeVal).minus(lowestLow);
+    rsv[i] = numerator.div(denom).mul(100).toNumber();
+  }
+  return rsv;
+}
+
+/**
+ * 计算 KDJ 指标
+ * K_t = ((K-1)/K) * K_{t-1} + (1/K) * RSV_t
+ * D_t = ((D-1)/D) * D_{t-1} + (1/D) * K_t
+ * J_t = 3*K_t - 2*D_t
+ * 初始值通常设为 K_0 = D_0 = 50
+ * @param {Array<Object>} dayLineData - K线数据，包含 high/low/close
+ * @param {Object} options - { n: RSV周期, k: K平滑参数, d: D平滑参数 }
+ * @returns {{k:Array<number>, d:Array<number>, j:Array<number>, rsv:Array<number>}}
+ */
+export function calculateKDJ(dayLineData = [], { n = 9, k = 3, d = 3 } = {}) {
+  const rsv = calculateRSV(dayLineData, n);
+  if (rsv.length === 0) {
+    return { k: [], d: [], j: [], rsv: [] };
+  }
+  const kArr = new Array(rsv.length).fill(null);
+  const dArr = new Array(rsv.length).fill(null);
+  const jArr = new Array(rsv.length).fill(null);
+  const alphaK = new Decimal(1).div(k);
+  const alphaD = new Decimal(1).div(d);
+
+  // 初始值
+  kArr[0] = 50;
+  dArr[0] = 50;
+  jArr[0] = new Decimal(3).mul(kArr[0]).minus(new Decimal(2).mul(dArr[0])).toNumber();
+
+  for (let i = 1; i < rsv.length; i++) {
+    const prevK = new Decimal(kArr[i - 1]);
+    const prevD = new Decimal(dArr[i - 1]);
+    const rsvVal = new Decimal(rsv[i] ?? rsv[i - 1] ?? 0);
+    const kVal = prevK.mul(new Decimal(1).minus(alphaK)).plus(rsvVal.mul(alphaK)).toNumber();
+    const dVal = prevD.mul(new Decimal(1).minus(alphaD)).plus(new Decimal(kVal).mul(alphaD)).toNumber();
+    const jVal = new Decimal(3).mul(kVal).minus(new Decimal(2).mul(dVal)).toNumber();
+    kArr[i] = kVal;
+    dArr[i] = dVal;
+    jArr[i] = jVal;
+  }
+  return { k: kArr, d: dArr, j: jArr, rsv };
+}
+
+/**
  * 计算持仓方向
  * @param {Object} params - 输入参数对象
  * @param {Array<number>} params.maS - 短期移动平均线数据
@@ -161,13 +235,20 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
  * @param {Object} config - 配置对象，包含ma、macd和enabledIndicators
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateMetric(data, {ma, macd, enabledIndicators = ['ma', 'macd']}) {
+export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, enabledIndicators = ['ma', 'macd']}) {
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
+  const high = data.map(item => item.high);
+  const low = data.map(item => item.low);
   
   let result = {
     line: data,
-    data
+    data,
+    close,
+    volume,
+    high,
+    low
+    
   };
   
   // 只有启用MA时才计算MA相关指标
@@ -180,10 +261,10 @@ export function calculateMetric(data, {ma, macd, enabledIndicators = ['ma', 'mac
     const sign1 = calculateSign1({position})
     const sign2 = calculateSign2({maS, maM, maL})
     const trendAlignment = calculateTrendAlignment({maS, maM, maL, maX})
-    const volumeMaS = calculateMA(volume, ma.s);
-    const volumeMaM = calculateMA(volume, ma.m);
-    const volumeMaL = calculateMA(volume, ma.l);
-    const volumeMaX = calculateMA(volume, ma.x);
+    // const volumeMaS = calculateMA(volume, ma.s);
+    // const volumeMaM = calculateMA(volume, ma.m);
+    // const volumeMaL = calculateMA(volume, ma.l);
+    // const volumeMaX = calculateMA(volume, ma.x);
     
     result = {
       ...result,
@@ -195,10 +276,10 @@ export function calculateMetric(data, {ma, macd, enabledIndicators = ['ma', 'mac
       sign1,
       sign2,
       trendAlignment,
-      volumeMaS,
-      volumeMaM,
-      volumeMaL,
-      volumeMaX
+      // volumeMaS,
+      // volumeMaM,
+      // volumeMaL,
+      // volumeMaX
     };
   }
   
@@ -218,13 +299,27 @@ export function calculateMetric(data, {ma, macd, enabledIndicators = ['ma', 'mac
     };
   }
   
+  // 启用KDJ时计算KDJ相关指标
+  if (enabledIndicators.includes('kdj')) {
+    const { k, d, j, rsv } = calculateKDJ(data, { n: kdj.n, k: kdj.k, d: kdj.d });
+    result = {
+      ...result,
+      kdjK: k,
+      kdjD: d,
+      kdjJ: j,
+      kdjRSV: rsv
+    };
+  }
+  
   return result;
 }
 
 export const calculateStock = (props) => {
-  const { dayLine, hourLine, ma, macd, buyConditions, sellConditions, enabledIndicators } = props
-  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, enabledIndicators })
-  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, enabledIndicators })
+  const { dayLine, hourLine, ma, macd, kdj, buyConditions, sellConditions, enabledIndicators } = props
+  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, enabledIndicators })
+  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, enabledIndicators })
+  
+  console.log(dayLineWithMetric)
   const transactions =  calculateTransactions({
     dayLineWithMetric,
     hourLineWithMetric,

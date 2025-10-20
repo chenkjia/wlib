@@ -13,8 +13,10 @@
           v-model:selectedDataSource="selectedDataSource"
           :ma="ma"
           :macd="macd"
+          :kdj="kdj"
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
+          :enabledIndicators="enabledIndicators"
           @useTaskParams="handleUseTaskParams"
           @changeViewStock="handleChangeViewStock"
           @changePanelState="changePanelState"
@@ -49,6 +51,7 @@
           :panelState="panelState"
           v-model:ma="ma"
           v-model:macd="macd"
+          v-model:kdj="kdj"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           v-model:enabledIndicators="enabledIndicators"
@@ -101,6 +104,7 @@ const saveConfigToLocalStorage = () => {
   if (process.client) {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
     localStorage.setItem(`stock_config_macd`, JSON.stringify(macd.value))
+    localStorage.setItem(`stock_config_kdj`, JSON.stringify(kdj.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
     localStorage.setItem(`stock_config_enabledIndicators`, JSON.stringify(enabledIndicators.value))
@@ -121,6 +125,9 @@ const macd = ref(getLocalConfig('macd', {
   l: 26, // 慢线
   d: 9 // 信号线
 }))
+
+// KDJ配置参数
+const kdj = ref(getLocalConfig('kdj', { n: 9, k: 3, d: 3 }))
 
 // 买入和卖出条件配置
 const buyConditions = ref(getLocalConfig('buyConditions', [
@@ -164,11 +171,12 @@ function handleCalculation(params) {
 async function handleRemoteCalculation(params) {
   // 创建计算任务
   const task = {
-    name: params.type === 'star' ? '星标计算任务' : '全局计算任务',
+    name: `回测_${selectedStockCode.value || ''}_${Date.now()}`,
     params: {
       type: params.type,
       ma: params.ma,
       macd: params.macd,
+      kdj: params.kdj,
       buyConditions: params.buyConditions,
       sellConditions: params.sellConditions,
       enabledIndicators: params.enabledIndicators
@@ -207,6 +215,11 @@ function handleUseTaskParams(params) {
     macd.value = { ...params.macd }
   }
   
+  // 更新KDJ参数
+  if (params.kdj) {
+    kdj.value = { ...params.kdj }
+  }
+  
   // 更新买入条件
   if (params.buyConditions) {
     buyConditions.value = [...params.buyConditions]
@@ -216,7 +229,7 @@ function handleUseTaskParams(params) {
   if (params.sellConditions) {
     sellConditions.value = [...params.sellConditions]
   }
-  console.log(params.enabledIndicators)
+  
   // 更新启用的指标
   if (params.enabledIndicators) {
     enabledIndicators.value = [...params.enabledIndicators]
@@ -246,28 +259,26 @@ async function loadStockData() {
 }
 
 // 计算交易数据
-function calculateTransactions() {
-  if (!dayLine.value.length) return
-  
-  // 计算交易点（买入卖出点）
-  const { dayLineWithMetric: calculatedDayLineWithMetric,
-    hourLineWithMetric,
-    transactions: calculatedTransactions,
-    backtestData: calculatedBacktestData
+function calculateTransactions(type = 'page') {
+  const {
+    dayLineWithMetric: dlwm,
+    transactions: calcedTransactions,
+    backtestData: backtestDataResult
   } = calculateStock({
     dayLine: dayLine.value,
     hourLine: dayLine.value,
     ma: ma.value,
     macd: macd.value,
+    kdj: kdj.value,
     buyConditions: buyConditions.value,
     sellConditions: sellConditions.value,
     enabledIndicators: enabledIndicators.value
   })
   
   // 更新交易数据和回测数据
-  dayLineWithMetric.value = calculatedDayLineWithMetric
-  transactions.value = calculatedTransactions
-  backtestData.value = calculatedBacktestData
+  dayLineWithMetric.value = dlwm
+  transactions.value = calcedTransactions
+  backtestData.value = backtestDataResult
 }
 
 // 处理查看股票

@@ -52,181 +52,24 @@
         />
       </div>
       <div v-show="activeTab === 'config'" class="space-y-2 pt-3">
-          <div class="pl-3 pr-3">
-            <label class="flex items-center">
-              <input 
-                type="checkbox" 
-                v-model="enabledIndicators" 
-                value="ma"
-                class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <span class="text-sm font-medium text-gray-700">MA均线</span>
-            </label>
-          </div>
-          <!-- MA配置 -->
-          <div v-show="enabledIndicators.includes('ma')" class="bg-gray-50 p-3 rounded-md">
-            
-            <div class="grid grid-cols-2 gap-3">
-              <!-- 短期MA -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">短期MA (maS)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="maS" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="1"
-                    max="30"
-                  />
-                </div>
-              </div>
-              <!-- 中期MA -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">中期MA (maM)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="maM" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="5"
-                    max="60"
-                  />
-                </div>
-              </div>
-              <!-- 长期MA -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">长期MA (maL)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="maL" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="10"
-                    max="120"
-                  />
-                </div>
-              </div>
-              <!-- 超长期MA -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">超长期MA (maX)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="maX" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="30"
-                    max="250"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="pl-3 pr-3">
-              <label class="flex items-center">
-                <input 
-                  type="checkbox" 
-                  v-model="enabledIndicators" 
-                  value="macd"
-                  class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span class="text-sm font-medium text-gray-700">MACD</span>
-              </label>
-          </div>
-          <!-- MACD配置 -->
-          <div v-show="enabledIndicators.includes('macd')" class="bg-gray-50 p-3 rounded-md">
-            <h4 class="font-medium text-gray-700 mb-2">MACD配置</h4>
-            <div class="grid grid-cols-3 gap-3">
-              <!-- 快线 -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">快线 (EMA12)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="macdS" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="5"
-                    max="30"
-                  />
-                </div>
-              </div>
-              <!-- 慢线 -->
-              <div>
-                <label class="block text-sm font-medium text-gray-600 mb-1">慢线 (EMA26)</label>
-                <div class="flex items-center">
-                   <input 
-                     type="number" 
-                     v-model="macdL" 
-                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                     min="15"
-                     max="50"
-                   />
-                 </div>
-              </div>
-              <!-- 信号线 -->
-              <div>
-                <label class="block textsm font-medium text-gray-600 mb-1">信号线 (EMA9)</label>
-                <div class="flex items-center">
-                  <input 
-                    type="number" 
-                    v-model="macdD" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    min="3"
-                    max="20"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- 买入算法 -->
-          <div class="bg-gray-50 p-3 rounded-md">
-            <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
-            <AlgorithmConfig 
-              type="buy" 
-              :initialValue="props.buyConditions"
-              :enabledIndicators="enabledIndicators"
-              @update:value="updateBuyConditions"
-            />
-          </div>
-          
-          <!-- 卖出算法 -->
-          <div class="bg-gray-50 p-3 rounded-md">
-            <h4 class="font-medium text-gray-700 mb-2">卖出算法</h4>
-            <AlgorithmConfig 
-              type="sell" 
-              :initialValue="props.sellConditions"
-              :enabledIndicators="enabledIndicators"
-              @update:value="updateSellConditions"
-            />
-          </div>
-          
-          <!-- 计算按钮 -->
-          <div class="flex justify-center space-x-4 mt-4">
-            <button 
-              class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              @click="handleCalculation('page')"
-            >
-              页内计算
-            </button>
-            <button 
-              class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50"
-              @click="handleCalculation('star')"
-            >
-              星标计算
-            </button>
-            <button 
-              class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
-              @click="handleCalculation('global')"
-            >
-              全局计算
-            </button>
-          </div>
-          
-          <!-- 计算提示信息 -->
-          <div v-if="calculationMessage" class="text-center mt-2 text-sm" :class="messageClass">
-            {{ calculationMessage }}
-          </div>
-        </div>
+        <ConfigRules
+          :ma="props.ma"
+          :macd="props.macd"
+          :kdj="props.kdj"
+          :enabledIndicators="enabledIndicators"
+          :buyConditions="props.buyConditions"
+          :sellConditions="props.sellConditions"
+          :calculationLoading="calculationLoading"
+          :calculationMessage="calculationMessage"
+          @update:ma="val => emit('update:ma', val)"
+          @update:macd="val => emit('update:macd', val)"
+          @update:kdj="val => emit('update:kdj', val)"
+          @update:buyConditions="updateBuyConditions"
+          @update:sellConditions="updateSellConditions"
+          @update:enabledIndicators="val => emit('update:enabledIndicators', val)"
+          @calculation="handleCalculation"
+        />
+      </div>
         <!-- 计算结果 Tab -->
         <div v-show="activeTab === 'results'" class="tab-pane bg-white">
           <TransactionList 
@@ -244,6 +87,7 @@ import { ref, defineProps, defineEmits, computed, watch, onMounted } from 'vue'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 import TransactionList from './TransactionList.vue'
 import IndicatorList from './IndicatorList.vue'
+import ConfigRules from './ConfigRules.vue'
 
 const props = defineProps({
   // MA配置参数
@@ -263,6 +107,15 @@ const props = defineProps({
       s: 12,
       l: 26,
       d: 9
+    })
+  },
+  // KDJ配置参数
+  kdj: {
+    type: Object,
+    default: () => ({
+      n: 9,
+      k: 3,
+      d: 3
     })
   },
   // 启用的指标
@@ -295,6 +148,7 @@ const props = defineProps({
 const emit = defineEmits([
   'update:ma',
   'update:macd',
+  'update:kdj',
   'update:buyConditions',
   'update:sellConditions',
   'update:enabledIndicators',
@@ -306,6 +160,12 @@ const emit = defineEmits([
 // 本地响应式状态
 const showIndicatorsTab = false
 const activeTab = ref('config')
+
+// 用于“配置规则”里指标开关的双向绑定
+const enabledIndicators = computed({
+  get: () => props.enabledIndicators,
+  set: (val) => emit('update:enabledIndicators', val)
+})
 
 // 计算属性（与父组件双向绑定）
 const maS = computed({
@@ -338,15 +198,25 @@ const macdD = computed({
   set: (val) => emit('update:macd', { ...props.macd, d: Number(val) })
 })
 
-const enabledIndicators = computed({
-  get: () => props.enabledIndicators,
-  set: (val) => emit('update:enabledIndicators', val)
+// KDJ 参数
+const kdjN = computed({
+  get: () => props.kdj.n,
+  set: (val) => emit('update:kdj', { ...props.kdj, n: Number(val) })
+})
+const kdjK = computed({
+  get: () => props.kdj.k,
+  set: (val) => emit('update:kdj', { ...props.kdj, k: Number(val) })
+})
+const kdjD = computed({
+  get: () => props.kdj.d,
+  set: (val) => emit('update:kdj', { ...props.kdj, d: Number(val) })
 })
 
 // 同步对象（供子组件使用）
 const syncSettings = computed(() => ({
   ma: { s: maS.value, m: maM.value, l: maL.value, x: maX.value },
   macd: { s: macdS.value, l: macdL.value, d: macdD.value },
+  kdj: { n: kdjN.value, k: kdjK.value, d: kdjD.value },
   buyConditions: props.buyConditions,
   sellConditions: props.sellConditions,
   enabledIndicators: enabledIndicators.value

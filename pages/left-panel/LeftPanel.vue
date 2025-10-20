@@ -66,6 +66,8 @@
           :selectedDataSource="selectedDataSource"
           :ma="props.ma"
           :macd="props.macd"
+          :kdj="props.kdj"
+          :enabledIndicators="props.enabledIndicators"
           :buyConditions="props.buyConditions"
           :sellConditions="props.sellConditions"
         />
@@ -116,6 +118,14 @@ const props = defineProps({
       l: 26,
       d: 9
     })
+  },
+  kdj: {
+    type: Object,
+    default: () => ({ n: 9, k: 3, d: 3 })
+  },
+  enabledIndicators: {
+    type: Array,
+    default: () => ['ma', 'macd']
   },
   buyConditions: {
     type: Array,

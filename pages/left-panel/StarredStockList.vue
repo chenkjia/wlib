@@ -96,6 +96,14 @@ const props = defineProps({
       d: 9
     })
   },
+  kdj: {
+    type: Object,
+    default: () => ({ n: 9, k: 3, d: 3 })
+  },
+  enabledIndicators: {
+    type: Array,
+    default: () => ['ma', 'macd']
+  },
   buyConditions: {
     type: Array,
     default: () => [['PRICE_GT_MAS']]
@@ -236,6 +244,8 @@ const calculateBacktest = async () => {
     const algorithmParams = {
       ma: props.ma,
       macd: props.macd,
+      kdj: props.kdj,
+      enabledIndicators: props.enabledIndicators,
       buyConditions: props.buyConditions,
       sellConditions: props.sellConditions
     }
@@ -254,7 +264,7 @@ const calculateBacktest = async () => {
         const result = calculateStock({
           dayLine: dayLineData,
           hourLine: [], // 暂时不使用小时线数据
-          enabledIndicators: algorithmParams.enabledIndicators || ['ma', 'macd'], // 添加enabledIndicators参数
+          enabledIndicators: algorithmParams.enabledIndicators?.length ? algorithmParams.enabledIndicators : ['ma', 'macd'], // 添加enabledIndicators参数并保障回退
           ...algorithmParams
         })
         

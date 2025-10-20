@@ -110,13 +110,27 @@ const availableConditions = [
     value: 'MACD_BOTTOM_DEVIATION', 
     label: 'macd底背离',
     params: ['macd'],
-    func: (i, {dif, line}) => (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
+    func: (i, {dif, line}) => i > 2 && (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
   },
   { 
     value: 'MACD_TOP_DEVIATION', 
     label: 'macd顶背离',
     params: ['macd'],
-    func: (i, {dif, line}) => (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
+    func: (i, {dif, line}) => i > 2 && (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
+  },
+
+  // kdj相关
+  { 
+    value: 'KDJ_OVERBOUGHT', 
+    label: 'KDJ 超买（K、D > 80）',
+    params: ['kdj'],
+    func: (i, {kdjK, kdjD}) => kdjK[i] > 80 && kdjD[i] > 80
+  },
+  { 
+    value: 'KDJ_OVERSOLD', 
+    label: 'KDJ 超卖（K、D < 20）',
+    params: ['kdj'],
+    func: (i, {kdjK, kdjD}) => kdjK[i] < 20 && kdjD[i] < 20
   },
 
   // 其他指标

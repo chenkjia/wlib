@@ -71,8 +71,230 @@ function processTrendPoints(trendData) {
  * @returns {Object} 图表选项
  */
 export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd']) {
-  const {maS, maM, maL, maX, dif, dea, bar} = dayLineWithMetric;
+  const hasMACD = enabledIndicators.includes('macd')
+  const hasKDJ = enabledIndicators.includes('kdj')
+  
+  const maS = dayLineWithMetric.maS || []
+  const maM = dayLineWithMetric.maM || []
+  const maL = dayLineWithMetric.maL || []
+  const maX = dayLineWithMetric.maX || []
+  const dif = dayLineWithMetric.dif || []
+  const dea = dayLineWithMetric.dea || []
+  const bar = dayLineWithMetric.bar || []
+  const kdjK = dayLineWithMetric.kdjK || []
+  const kdjD = dayLineWithMetric.kdjD || []
+  const kdjJ = dayLineWithMetric.kdjJ || []
+  
   const trendPoints = processTrendPoints(data.trendData)
+  
+  // 动态网格布局（主图 + 成交量 + 可选的 MACD + 可选的 KDJ）
+  const grid = (() => {
+    if (hasMACD && hasKDJ) {
+      return [
+        { left: '10%', right: '10%', height: '35%' },
+        { left: '10%', right: '10%', top: '40%', height: '15%' },
+        { left: '10%', right: '10%', top: '60%', height: '15%' },
+        { left: '10%', right: '10%', top: '80%', height: '15%' }
+      ]
+    } else if (hasMACD) {
+      return [
+        { left: '10%', right: '10%', height: '40%' },
+        { left: '10%', right: '10%', top: '50%', height: '15%' },
+        { left: '10%', right: '10%', top: '70%', height: '15%' }
+      ]
+    } else if (hasKDJ) {
+      return [
+        { left: '10%', right: '10%', height: '50%' },
+        { left: '10%', right: '10%', top: '55%', height: '20%' },
+        { left: '10%', right: '10%', top: '80%', height: '15%' }
+      ]
+    }
+    return [
+      { left: '10%', right: '10%', height: '60%' },
+      { left: '10%', right: '10%', top: '70%', height: '20%' }
+    ]
+  })()
+  
+  // 计算各子图的索引（主图=0，成交量=1，MACD/KDJ的索引随是否启用而变化）
+  const macdGridIndex = hasMACD ? (hasKDJ ? 2 : 2) : -1
+  const kdjGridIndex = hasKDJ ? (hasMACD ? 3 : 2) : -1
+  
+  // X轴
+  const xAxis = [
+    {
+      type: 'category',
+      data: data.categoryData,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      splitLine: { show: false },
+      min: 'dataMin',
+      max: 'dataMax',
+      axisLabel: { 
+        show: true,
+        formatter: formatDateMMDD
+      },
+      axisPointer: {
+        z: 100,
+        label: {
+          formatter: params => formatDateYYYYMMDD(params.value)
+        }
+      }
+    },
+    {
+      type: 'category',
+      gridIndex: 1,
+      data: data.categoryData,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: { 
+        show: true,
+        formatter: formatDateMMDD
+      },
+      min: 'dataMin',
+      max: 'dataMax',
+      axisPointer: {
+        label: {
+          formatter: params => formatDateYYYYMMDD(params.value)
+        }
+      }
+    }
+  ]
+  if (hasMACD) {
+    xAxis.push({
+      type: 'category',
+      gridIndex: macdGridIndex,
+      data: data.categoryData,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: { 
+        show: true,
+        formatter: formatDateMMDD
+      },
+      min: 'dataMin',
+      max: 'dataMax',
+      axisPointer: {
+        label: {
+          formatter: params => formatDateYYYYMMDD(params.value)
+        }
+      }
+    })
+  }
+  if (hasKDJ) {
+    xAxis.push({
+      type: 'category',
+      gridIndex: kdjGridIndex,
+      data: data.categoryData,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: { 
+        show: true,
+        formatter: formatDateMMDD
+      },
+      min: 'dataMin',
+      max: 'dataMax',
+      axisPointer: {
+        label: {
+          formatter: params => formatDateYYYYMMDD(params.value)
+        }
+      }
+    })
+  }
+  
+  // Y轴
+  const yAxis = [
+    { scale: true, splitArea: { show: true } },
+    { scale: true, gridIndex: 1, splitNumber: 2, axisLabel: { show: false }, axisLine: { show: false }, axisTick: { show: false }, splitLine: { show: false } }
+  ]
+  if (hasMACD) {
+    yAxis.push({ scale: true, gridIndex: macdGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } })
+  }
+  if (hasKDJ) {
+    yAxis.push({ scale: true, gridIndex: kdjGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } })
+  }
+  
+  // DataZoom
+  const zoomAxisIndex = [0, 1]
+  if (hasMACD) zoomAxisIndex.push(macdGridIndex)
+  if (hasKDJ) zoomAxisIndex.push(kdjGridIndex)
+  const sliderTop = hasMACD && hasKDJ ? '95%' : ((hasMACD || hasKDJ) ? '90%' : '85%')
+  
+  // 系列
+  const series = [
+    {
+      name: 'K线',
+      type: 'candlestick',
+      data: data.values,
+      itemStyle: {
+        color: upColor,
+        color0: downColor,
+        borderColor: upColor,
+        borderColor0: downColor
+      },
+      markPoint: {
+        symbol: 'pin',
+        symbolSize: 40,
+        data: trendPoints,
+        label: {
+          formatter: function(params) {
+            return params.data.value
+          },
+          position: 'top',
+          distance: 10,
+          fontSize: 12,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          padding: [4, 8],
+          borderRadius: 4,
+          color: '#fff'
+        },
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 15,
+            shadowColor: '#fff'
+          },
+          scale: 1.2
+        },
+        silent: false,
+        animation: true,
+        animationDuration: 300
+      }
+    },
+    // MA线系列 - 只有启用MA时才显示
+    ...(enabledIndicators.includes('ma') ? [
+      { name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
+      { name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
+      { name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
+      { name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }
+    ] : []),
+    {
+      name: '成交量',
+      type: 'bar',
+      xAxisIndex: 1,
+      yAxisIndex: 1,
+      data: data.volumes,
+      itemStyle: {
+        color: params => params.data[2] > 0 ? upColor : downColor
+      }
+    },
+    // MACD系列 - 只有启用MACD时才显示
+    ...(hasMACD ? [
+      { name: 'DIF', type: 'line', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
+      { name: 'DEA', type: 'line', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
+      { name: 'BAR', type: 'bar', xAxisIndex: macdGridIndex, yAxisIndex: macdGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } }
+    ] : []),
+    // KDJ系列 - 只有启用KDJ时才显示
+    ...(hasKDJ ? [
+      { name: 'KDJ-K', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
+      { name: 'KDJ-D', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
+      { name: 'KDJ-J', type: 'line', xAxisIndex: kdjGridIndex, yAxisIndex: kdjGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
+    ] : [])
+  ]
+  
   return {
     animation: false,
     tooltip: {
@@ -81,8 +303,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         type: 'cross'
       },
       formatter: function(params) {
-        const date = formatDateYYYYMMDD(params[0].axisValue);
-        let res = date + '<br/>';
+        const date = formatDateYYYYMMDD(params[0].axisValue)
+        let res = date + '<br/>'
         
         // K线数据
         if (params[0]) {
@@ -91,41 +313,57 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
             收盘: ${params[0].data[2]}<br/>
             最低: ${params[0].data[3]}<br/>
             最高: ${params[0].data[4]}<br/>
-          `;
+          `
         }
         
         // 均线数据
         if (enabledIndicators.includes('ma')) {
           params.forEach((param, index) => {
             if (index > 0 && index < 5) { // MA线
-              res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`;
+              res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`
             }
-          });
+          })
         }
         
         // MACD数据
-        if (enabledIndicators.includes('macd')) {
-          const difParam = params.find(p => p.seriesName === 'DIF');
-          const deaParam = params.find(p => p.seriesName === 'DEA');
-          const barParam = params.find(p => p.seriesName === 'BAR');
-          if (difParam && difParam.data !== undefined) {
-            res += `DIF: ${difParam.data.toFixed(4)}<br/>`;
+        if (hasMACD) {
+          const difParam = params.find(p => p.seriesName === 'DIF')
+          const deaParam = params.find(p => p.seriesName === 'DEA')
+          const barParam = params.find(p => p.seriesName === 'BAR')
+          if (difParam && typeof difParam.data === 'number') {
+            res += `DIF: ${difParam.data.toFixed(4)}<br/>`
           }
-          if (deaParam && deaParam.data !== undefined) {
-            res += `DEA: ${deaParam.data.toFixed(4)}<br/>`;
+          if (deaParam && typeof deaParam.data === 'number') {
+            res += `DEA: ${deaParam.data.toFixed(4)}<br/>`
           }
-          if (barParam && barParam.data !== undefined) {
-            res += `BAR: ${barParam.data.toFixed(4)}<br/>`;
+          if (barParam && typeof barParam.data === 'number') {
+            res += `BAR: ${barParam.data.toFixed(4)}<br/>`
+          }
+        }
+        
+        // KDJ数据
+        if (hasKDJ) {
+          const kParam = params.find(p => p.seriesName === 'KDJ-K')
+          const dParam = params.find(p => p.seriesName === 'KDJ-D')
+          const jParam = params.find(p => p.seriesName === 'KDJ-J')
+          if (kParam && typeof kParam.data === 'number') {
+            res += `K: ${kParam.data.toFixed(2)}<br/>`
+          }
+          if (dParam && typeof dParam.data === 'number') {
+            res += `D: ${dParam.data.toFixed(2)}<br/>`
+          }
+          if (jParam && typeof jParam.data === 'number') {
+            res += `J: ${jParam.data.toFixed(2)}<br/>`
           }
         }
         
         // 成交量
-        const volumeParam = params.find(p => p.seriesName === '成交量');
+        const volumeParam = params.find(p => p.seriesName === '成交量')
         if (volumeParam && volumeParam.data) {
-          res += `成交量: ${volumeParam.data[1]}<br/>`;
+          res += `成交量: ${volumeParam.data[1]}<br/>`
         }
         
-        return res;
+        return res
       }
     },
     axisPointer: {
@@ -141,315 +379,25 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         colorAlpha: 0.1
       }
     },
-    grid: enabledIndicators.includes('macd') ? [
-      {
-        left: '10%',
-        right: '10%',
-        height: '40%'
-      },
-      {
-        left: '10%',
-        right: '10%',
-        top: '50%',
-        height: '15%'
-      },
-      {
-        left: '10%',
-        right: '10%',
-        top: '70%',
-        height: '15%'
-      }
-    ] : [
-      {
-        left: '10%',
-        right: '10%',
-        height: '60%'
-      },
-      {
-        left: '10%',
-        right: '10%',
-        top: '70%',
-        height: '20%'
-      }
-    ],
-    xAxis: enabledIndicators.includes('macd') ? [
-      {
-        type: 'category',
-        data: data.categoryData,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        splitLine: { show: false },
-        min: 'dataMin',
-        max: 'dataMax',
-        axisLabel: { 
-          show: true,
-          formatter: formatDateMMDD
-        },
-        axisPointer: {
-          z: 100,
-          label: {
-            formatter: params => formatDateYYYYMMDD(params.value)
-          }
-        }
-      },
-      {
-        type: 'category',
-        gridIndex: 1,
-        data: data.categoryData,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-        axisLabel: { 
-          show: true,
-          formatter: formatDateMMDD
-        },
-        min: 'dataMin',
-        max: 'dataMax',
-        axisPointer: {
-          label: {
-            formatter: params => formatDateYYYYMMDD(params.value)
-          }
-        }
-      },
-      {
-        type: 'category',
-        gridIndex: 2,
-        data: data.categoryData,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-        axisLabel: { 
-          show: true,
-          formatter: formatDateMMDD
-        },
-        min: 'dataMin',
-        max: 'dataMax',
-        axisPointer: {
-          label: {
-            formatter: params => formatDateYYYYMMDD(params.value)
-          }
-        }
-      }
-    ] : [
-      {
-        type: 'category',
-        data: data.categoryData,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        splitLine: { show: false },
-        min: 'dataMin',
-        max: 'dataMax',
-        axisLabel: { 
-          show: true,
-          formatter: formatDateMMDD
-        },
-        axisPointer: {
-          z: 100,
-          label: {
-            formatter: params => formatDateYYYYMMDD(params.value)
-          }
-        }
-      },
-      {
-        type: 'category',
-        gridIndex: 1,
-        data: data.categoryData,
-        boundaryGap: false,
-        axisLine: { onZero: false },
-        axisTick: { show: false },
-        splitLine: { show: false },
-        axisLabel: { 
-          show: true,
-          formatter: formatDateMMDD
-        },
-        min: 'dataMin',
-        max: 'dataMax',
-        axisPointer: {
-          label: {
-            formatter: params => formatDateYYYYMMDD(params.value)
-          }
-        }
-      }
-    ],
-    yAxis: enabledIndicators.includes('macd') ? [
-      {
-        scale: true,
-        splitArea: { show: true }
-      },
-      {
-        scale: true,
-        gridIndex: 1,
-        splitNumber: 2,
-        axisLabel: { show: false },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { show: false }
-      },
-      {
-        scale: true,
-        gridIndex: 2,
-        splitNumber: 2,
-        axisLabel: { show: true },
-        axisLine: { show: true },
-        axisTick: { show: true },
-        splitLine: { show: true }
-      }
-    ] : [
-      {
-        scale: true,
-        splitArea: { show: true }
-      },
-      {
-        scale: true,
-        gridIndex: 1,
-        splitNumber: 2,
-        axisLabel: { show: false },
-        axisLine: { show: false },
-        axisTick: { show: false },
-        splitLine: { show: false }
-      }
-    ],
+    grid,
+    xAxis,
+    yAxis,
     dataZoom: [
       {
         type: 'inside',
-        xAxisIndex: enabledIndicators.includes('macd') ? [0, 1, 2] : [0, 1],
+        xAxisIndex: zoomAxisIndex,
         start: 50,
         end: 100
       },
       {
         show: true,
-        xAxisIndex: enabledIndicators.includes('macd') ? [0, 1, 2] : [0, 1],
+        xAxisIndex: zoomAxisIndex,
         type: 'slider',
-        top: enabledIndicators.includes('macd') ? '90%' : '85%',
+        top: sliderTop,
         start: 50,
         end: 100
       }
     ],
-    series: [
-      {
-        name: 'K线',
-        type: 'candlestick',
-        data: data.values,
-        itemStyle: {
-          color: upColor,
-          color0: downColor,
-          borderColor: upColor,
-          borderColor0: downColor
-        },
-        markPoint: {
-          symbol: 'pin',
-          symbolSize: 40,
-          data: trendPoints,
-          label: {
-            formatter: function(params) {
-              return params.data.value;
-            },
-            position: 'top',
-            distance: 10,
-            fontSize: 12,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            padding: [4, 8],
-            borderRadius: 4,
-            color: '#fff'
-          },
-          emphasis: {
-            itemStyle: {
-              shadowBlur: 15,
-              shadowColor: '#fff'
-            },
-            scale: 1.2
-          },
-          silent: false,
-          animation: true,
-          animationDuration: 300
-        }
-      },
-      // MA线系列 - 只有启用MA时才显示
-      ...(enabledIndicators.includes('ma') ? [
-        {
-          name: 'maS',
-          type: 'line',
-          data: maS,
-          smooth: true,
-          lineStyle: { opacity: 0.5 },
-          showSymbol: false
-        },
-        {
-          name: 'maM',
-          type: 'line',
-          data: maM,
-          smooth: true,
-          lineStyle: { opacity: 0.5 },
-          showSymbol: false
-        },
-        {
-          name: 'maL',
-          type: 'line',
-          data: maL,
-          smooth: true,
-          lineStyle: { opacity: 0.5 },
-          showSymbol: false
-        },
-        {
-          name: 'maX',
-          type: 'line',
-          data: maX,
-          smooth: true,
-          lineStyle: { opacity: 0.5 },
-          showSymbol: false
-        }
-      ] : []),
-      {
-        name: '成交量',
-        type: 'bar',
-        xAxisIndex: 1,
-        yAxisIndex: 1,
-        data: data.volumes,
-        itemStyle: {
-          color: params => params.data[2] > 0 ? upColor : downColor
-        }
-      },
-      // MACD系列 - 只有启用MACD时才显示
-      ...(enabledIndicators.includes('macd') ? [
-        {
-          name: 'DIF',
-          type: 'line',
-          xAxisIndex: 2,
-          yAxisIndex: 2,
-          data: dif,
-          smooth: true,
-          lineStyle: { 
-            color: '#da6ee8',
-            width: 1
-          },
-          showSymbol: false
-        },
-        {
-          name: 'DEA',
-          type: 'line',
-          xAxisIndex: 2,
-          yAxisIndex: 2,
-          data: dea,
-          smooth: true,
-          lineStyle: { 
-            color: '#39afe6',
-            width: 1
-          },
-          showSymbol: false
-        },
-        {
-          name: 'BAR',
-          type: 'bar',
-          xAxisIndex: 2,
-          yAxisIndex: 2,
-          data: bar,
-          itemStyle: {
-            color: params => params.data > 0 ? upColor : downColor
-          }
-        }
-      ] : [])
-    ]
+    series
   }
 }

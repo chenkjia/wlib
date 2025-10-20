@@ -207,6 +207,13 @@ onUnmounted(() => {
     console.error('组件卸载时出错:', err)
   }
 })
+watch(
+  () => props.enabledIndicators,
+  async () => {
+    await refreshChart()
+  },
+  { deep: true }
+)
 </script>
 
 <style scoped>
