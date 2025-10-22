@@ -148,6 +148,25 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     { scale: true, gridIndex: subGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }
   ]
   
+  // 如果有换手率，在副图中添加右侧百分比轴
+  let turnoverYAxisIndex = null
+  const turnoverFromLine = Array.isArray(dayLineWithMetric?.data) ? dayLineWithMetric.data.map(d => (d?.turn ?? d?.turnoverRate ?? d?.turnover ?? null)) : []
+  const turnoverRate = dayLineWithMetric.turn || dayLineWithMetric.turnoverRate || dayLineWithMetric.turnover || turnoverFromLine
+  const hasTurnover = Array.isArray(turnoverRate) && turnoverRate.some(v => v != null)
+  if (activeSubChart === 'volume' && hasTurnover) {
+    turnoverYAxisIndex = yAxis.length
+    yAxis.push({
+      scale: true,
+      gridIndex: subGridIndex,
+      position: 'right',
+      axisLabel: { show: true, formatter: value => `${value}%` },
+      axisLine: { show: true },
+      axisTick: { show: true },
+      splitLine: { show: false },
+      min: 0
+    })
+  }
+  
   // DataZoom 仅联动两个轴
   const zoomAxisIndex = [0, subGridIndex]
   const sliderTop = '90%'
@@ -212,6 +231,10 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         }
       }
     ] : []),
+    // 如果有换手率，叠加换手率曲线（使用副图的右侧百分比轴）
+    ...(activeSubChart === 'volume' && hasTurnover ? [
+      { name: '换手率', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: turnoverYAxisIndex, data: turnoverRate, smooth: true, lineStyle: { color: '#f6ad55', width: 1 }, showSymbol: false }
+    ] : []),
     ...(activeSubChart === 'macd' && macdEnabled ? [
       { name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
       { name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
@@ -240,10 +263,10 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         // K线数据
         if (klineParam && Array.isArray(klineParam.data)) {
           res += `
-            开盘: ${klineParam.data[0]}<br/>
-            收盘: ${klineParam.data[1]}<br/>
-            最低: ${klineParam.data[2]}<br/>
-            最高: ${klineParam.data[3]}<br/>
+            开盘: ${klineParam.data[1]}<br/>
+            收盘: ${klineParam.data[2]}<br/>
+            最低: ${klineParam.data[3]}<br/>
+            最高: ${klineParam.data[4]}<br/>
           `
         }
         
@@ -292,6 +315,12 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         const volumeParam = params.find(p => p.seriesName === '成交量')
         if (volumeParam && volumeParam.data) {
           res += `成交量: ${volumeParam.data[1]}<br/>`
+        }
+        
+        // 换手率
+        const turnoverParam = params.find(p => p.seriesName === '换手率')
+        if (turnoverParam && typeof turnoverParam.data === 'number') {
+          res += `换手率: ${turnoverParam.data.toFixed(2)}%<br/>`
         }
         
         return res

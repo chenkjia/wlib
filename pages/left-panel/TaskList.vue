@@ -352,7 +352,7 @@ const columnVisibility = computed(() => {
     return {
       name: true,
       status: true,
-      params: false,
+      params: true,
       totalTrades: false,
       profitTrades: false,
       winRate: false,
