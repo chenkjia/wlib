@@ -84,12 +84,23 @@ const availableTabs = computed(() => {
 // 日期格式化函数
 function formatDateYYYYMMDD(value) {
   const date = new Date(value)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const hasHour = date.getHours() !== 0 || date.getMinutes() !== 0
+  const dayPart = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  if (!hasHour) return dayPart
+  return `${dayPart} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+function getXAxisTimeLabel(date) {
+  const hasHour = date.getHours() !== 0 || date.getMinutes() !== 0
+  if (!hasHour) {
+    return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  }
+  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`
 }
 
 function formatDateMMDD(value) {
   const date = new Date(value)
-  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  return getXAxisTimeLabel(date)
 }
 
 // 刷新图表

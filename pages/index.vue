@@ -74,7 +74,6 @@ import { calculateStock } from '~/utils/chartUtils.js'
 import LeftPanel from './left-panel/LeftPanel.vue'
 import ChartPanel from './center-panel/ChartPanel.vue'
 import RightPanel from './right-panel/RightPanel.vue'
-import { tr } from '@nuxt/ui/runtime/locale/index.js'
 
 const route = useRoute()
 
@@ -141,7 +140,7 @@ const sellConditions = ref(getLocalConfig('sellConditions', [
 // 交易数据和回测数据
 const transactions = ref([])
 const backtestData = ref({})
-const dayLine = ref([]) // 存储日线数据
+const chartLine = ref([]) // 存储图表数据
 
 // 错误处理
 function handleError(error) {
@@ -244,12 +243,15 @@ async function loadStockData() {
   if (!selectedStockCode.value) return
   
   try {
-    // 根据数据源选择API端点
-    const apiEndpoint = '/api/dayLine'
-    
-    // 获取日线数据
-    const response = await fetch(`${apiEndpoint}?code=${encodeURIComponent(selectedStockCode.value)}`)
-    dayLine.value = await response.json()
+    const code = encodeURIComponent(selectedStockCode.value)
+    const hourLineResponse = await fetch(`/api/hourLine?code=${code}`)
+    const hourLine = await hourLineResponse.json()
+    if (Array.isArray(hourLine) && hourLine.length > 0) {
+      chartLine.value = hourLine
+    } else {
+      const dayLineResponse = await fetch(`/api/dayLine?code=${code}`)
+      chartLine.value = await dayLineResponse.json()
+    }
     
     // 计算交易数据
     calculateTransactions()
@@ -265,8 +267,8 @@ function calculateTransactions(type = 'page') {
     transactions: calcedTransactions,
     backtestData: backtestDataResult
   } = calculateStock({
-    dayLine: dayLine.value,
-    hourLine: dayLine.value,
+    dayLine: chartLine.value,
+    hourLine: chartLine.value,
     ma: ma.value,
     macd: macd.value,
     kdj: kdj.value,
@@ -308,7 +310,7 @@ onMounted(() => {
     selectedStockCode.value = stockFromQuery
   } else {
     // 如果没有从URL中选择股票，根据数据源默认设置
-    selectedStockCode.value = selectedDataSource.value.value === 'alib' ? 'sh.600000' : 'ETH'
+    selectedStockCode.value = selectedDataSource.value.value === 'alib' ? 'sz.300454' : 'ETH'
   }
 })
 </script>

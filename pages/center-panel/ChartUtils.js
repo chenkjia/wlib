@@ -62,6 +62,156 @@ function processTrendPoints(trendData) {
   return trendPoints
 }
 
+function processMagicNinePoints(lineData = []) {
+  const rawUpCounts = new Array(lineData.length).fill(0)
+  const rawDownCounts = new Array(lineData.length).fill(0)
+  const upSequences = []
+  const downSequences = []
+  let activeUpSequence = null
+  let activeDownSequence = null
+  for (let i = 4; i < lineData.length; i++) {
+    const currentClose = lineData[i]?.close
+    const compareClose = lineData[i - 4]?.close
+    if (typeof currentClose !== 'number' || typeof compareClose !== 'number') {
+      activeUpSequence = null
+      activeDownSequence = null
+      continue
+    }
+    if (currentClose > compareClose) {
+      rawUpCounts[i] = rawUpCounts[i - 1] >= 9 ? 1 : rawUpCounts[i - 1] + 1
+      rawDownCounts[i] = 0
+      activeDownSequence = null
+    } else if (currentClose < compareClose) {
+      rawDownCounts[i] = rawDownCounts[i - 1] >= 9 ? 1 : rawDownCounts[i - 1] + 1
+      rawUpCounts[i] = 0
+      activeUpSequence = null
+    } else {
+      rawUpCounts[i] = 0
+      rawDownCounts[i] = 0
+      activeUpSequence = null
+      activeDownSequence = null
+    }
+    if (rawUpCounts[i] > 0) {
+      if (!activeUpSequence) {
+        activeUpSequence = { points: [], maxCount: 0, endIndex: i }
+        upSequences.push(activeUpSequence)
+      }
+      const low = lineData[i]?.low
+      const point = {
+        name: `magic9-up-${i}`,
+        coord: [i, typeof low === 'number' ? low * 0.995 : currentClose],
+        value: String(rawUpCounts[i]),
+        symbol: 'circle',
+        symbolSize: 1,
+        itemStyle: { color: '#22c55e' },
+        label: {
+          show: true,
+          position: 'bottom',
+          distance: 4,
+          formatter: String(rawUpCounts[i]),
+          fontSize: 11,
+          color: '#22c55e',
+          backgroundColor: '#ffffff',
+          borderColor: '#22c55e',
+          borderWidth: 1,
+          borderRadius: 2,
+          padding: [1, 3]
+        }
+      }
+      activeUpSequence.points.push({ ...point, dataIndex: i, count: rawUpCounts[i] })
+      activeUpSequence.maxCount = Math.max(activeUpSequence.maxCount, rawUpCounts[i])
+      activeUpSequence.endIndex = i
+    }
+    if (rawDownCounts[i] > 0) {
+      if (!activeDownSequence) {
+        activeDownSequence = { points: [], maxCount: 0, endIndex: i }
+        downSequences.push(activeDownSequence)
+      }
+      const high = lineData[i]?.high
+      const point = {
+        name: `magic9-down-${i}`,
+        coord: [i, typeof high === 'number' ? high * 1.005 : currentClose],
+        value: String(rawDownCounts[i]),
+        symbol: 'circle',
+        symbolSize: 1,
+        itemStyle: { color: '#ef4444' },
+        label: {
+          show: true,
+          position: 'top',
+          distance: 4,
+          formatter: String(rawDownCounts[i]),
+          fontSize: 11,
+          color: '#ef4444',
+          backgroundColor: '#ffffff',
+          borderColor: '#ef4444',
+          borderWidth: 1,
+          borderRadius: 2,
+          padding: [1, 3]
+        }
+      }
+      activeDownSequence.points.push({ ...point, dataIndex: i, count: rawDownCounts[i] })
+      activeDownSequence.maxCount = Math.max(activeDownSequence.maxCount, rawDownCounts[i])
+      activeDownSequence.endIndex = i
+    }
+  }
+  const allSequences = [...upSequences, ...downSequences]
+  const latestEndIndex = allSequences.reduce((max, sequence) => Math.max(max, sequence.endIndex), -1)
+  const visibleSequences = allSequences.filter(sequence => sequence.maxCount >= 9 || sequence.endIndex === latestEndIndex)
+  const upCounts = new Array(lineData.length).fill(0)
+  const downCounts = new Array(lineData.length).fill(0)
+  const points = visibleSequences
+    .flatMap(sequence => sequence.points)
+    .sort((a, b) => a.dataIndex - b.dataIndex)
+    .map(point => {
+      if (point.name.startsWith('magic9-up-')) {
+        upCounts[point.dataIndex] = point.count
+      } else {
+        downCounts[point.dataIndex] = point.count
+      }
+      const { dataIndex, count, ...displayPoint } = point
+      return displayPoint
+    })
+  return { upCounts, downCounts, points }
+}
+
+function processMacdDeviationPoints(dif = [], dea = [], bar = []) {
+  const topPoints = []
+  const bottomPoints = []
+  const length = Math.min(dif.length, dea.length, bar.length || Infinity)
+  for (let i = 1; i < length; i++) {
+    const curDif = dif[i]
+    const prevDif = dif[i - 1]
+    const curDea = dea[i]
+    const prevDea = dea[i - 1]
+    if (
+      typeof curDif !== 'number' ||
+      typeof prevDif !== 'number' ||
+      typeof curDea !== 'number' ||
+      typeof prevDea !== 'number'
+    ) {
+      continue
+    }
+    const crossUp = prevDif < prevDea && curDif >= curDea
+    const crossDown = prevDif > prevDea && curDif <= curDea
+    const prevGap = prevDif - prevDea
+    const curGap = curDif - curDea
+    const gapDelta = curGap - prevGap
+    let crossY = (curDif + curDea) / 2
+    if (gapDelta !== 0) {
+      const t = -prevGap / gapDelta
+      const clampT = Math.max(0, Math.min(1, t))
+      crossY = prevDif + clampT * (curDif - prevDif)
+    }
+    if (crossUp && crossY <= 0) {
+      bottomPoints.push([i, crossY])
+    }
+    if (crossDown && crossY >= 0) {
+      topPoints.push([i, crossY])
+    }
+  }
+  return { topPoints, bottomPoints }
+}
+
 /**
  * 创建图表选项
  * @param {Object} data - 图表数据
@@ -89,6 +239,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const kdjJ = dayLineWithMetric.kdjJ || []
   
   const trendPoints = processTrendPoints(data.trendData)
+  const magicNine = processMagicNinePoints(dayLineWithMetric.line || [])
+  const macdDeviations = processMacdDeviationPoints(dif, dea, bar)
   
   // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
   const grid = [
@@ -170,6 +322,9 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   // DataZoom 仅联动两个轴
   const zoomAxisIndex = [0, subGridIndex]
   const sliderTop = '90%'
+  const visibleCount = 60
+  const dataLength = Array.isArray(data?.categoryData) ? data.categoryData.length : 0
+  const zoomStart = dataLength > visibleCount ? Math.max(0, ((dataLength - visibleCount) / dataLength) * 100) : 0
   
   // 系列
   const series = [
@@ -186,7 +341,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       markPoint: {
         symbol: 'pin',
         symbolSize: 40,
-        data: trendPoints,
+        data: [...trendPoints, ...magicNine.points],
         label: {
           formatter: function(params) {
             return params.data.value
@@ -238,7 +393,9 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     ...(activeSubChart === 'macd' && macdEnabled ? [
       { name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
       { name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
-      { name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } }
+      { name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } },
+      { name: 'MACD底背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.bottomPoints, symbol: 'triangle', symbolSize: 12, itemStyle: { color: '#22c55e' }, label: { show: true, formatter: '底背离', position: 'bottom', color: '#22c55e', fontSize: 10, backgroundColor: '#fff', borderColor: '#22c55e', borderWidth: 1, borderRadius: 2, padding: [1, 3] } },
+      { name: 'MACD顶背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.topPoints, symbol: 'triangle', symbolRotate: 180, symbolSize: 12, itemStyle: { color: '#ef4444' }, label: { show: true, formatter: '顶背离', position: 'top', color: '#ef4444', fontSize: 10, backgroundColor: '#fff', borderColor: '#ef4444', borderWidth: 1, borderRadius: 2, padding: [1, 3] } }
     ] : []),
     ...(activeSubChart === 'kdj' && kdjEnabled ? [
       { name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
@@ -268,6 +425,17 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
             最低: ${klineParam.data[3]}<br/>
             最高: ${klineParam.data[4]}<br/>
           `
+          const dataIndex = typeof klineParam.dataIndex === 'number' ? klineParam.dataIndex : -1
+          if (dataIndex >= 0) {
+            const upCount = magicNine.upCounts[dataIndex] || 0
+            const downCount = magicNine.downCounts[dataIndex] || 0
+            if (upCount > 0) {
+              res += `神奇9转(涨): ${upCount}<br/>`
+            }
+            if (downCount > 0) {
+              res += `神奇9转(跌): ${downCount}<br/>`
+            }
+          }
         }
         
         // 均线数据
@@ -292,6 +460,14 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           }
           if (barParam && typeof barParam.data === 'number') {
             res += `BAR: ${barParam.data.toFixed(4)}<br/>`
+          }
+          const bottomDevParam = params.find(p => p.seriesName === 'MACD底背离')
+          const topDevParam = params.find(p => p.seriesName === 'MACD顶背离')
+          if (bottomDevParam) {
+            res += `MACD底背离<br/>`
+          }
+          if (topDevParam) {
+            res += `MACD顶背离<br/>`
           }
         }
         
@@ -346,7 +522,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       {
         type: 'inside',
         xAxisIndex: zoomAxisIndex,
-        start: 50,
+        start: zoomStart,
         end: 100
       },
       {
@@ -354,7 +530,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         xAxisIndex: zoomAxisIndex,
         type: 'slider',
         top: sliderTop,
-        start: 50,
+        start: zoomStart,
         end: 100
       }
     ],

@@ -7,6 +7,60 @@ import { algorithmMap, evaluateConditionTree } from './algorithmUtils.js'
 import logger from './logger.js'
 
 /**
+ * 将日线数据按周聚合
+ * @param {Array} dayLine - 日线数据
+ * @returns {Array} 周线数据
+ */
+export function aggregateDayToWeek(dayLine = []) {
+  if (!Array.isArray(dayLine) || dayLine.length === 0) return []
+  
+  const weekLine = []
+  let currentWeek = null
+  
+  for (const day of dayLine) {
+    const date = new Date(day.time)
+    // 获取当前日期是周几 (0是周日, 1-6是周一到周六)
+    const dayOfWeek = date.getDay()
+    const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const monday = new Date(date)
+    monday.setDate(date.getDate() + diffToMonday)
+    monday.setHours(0, 0, 0, 0)
+    const weekKey = monday.getTime()
+    
+    if (!currentWeek || currentWeek.weekKey !== weekKey) {
+      if (currentWeek) {
+        weekLine.push(currentWeek.data)
+      }
+      currentWeek = {
+        weekKey,
+        data: {
+          time: day.time,
+          open: day.open,
+          high: day.high,
+          low: day.low,
+          close: day.close,
+          volume: day.volume || 0,
+          amount: day.amount || 0
+        }
+      }
+    } else {
+      currentWeek.data.time = day.time // 始终更新为该周最新的一天
+      currentWeek.data.high = Math.max(currentWeek.data.high, day.high)
+      currentWeek.data.low = Math.min(currentWeek.data.low, day.low)
+      currentWeek.data.close = day.close
+      currentWeek.data.volume += (day.volume || 0)
+      currentWeek.data.amount += (day.amount || 0)
+    }
+  }
+  
+  if (currentWeek) {
+    weekLine.push(currentWeek.data)
+  }
+  
+  return weekLine
+}
+
+/**
  * 计算移动平均线
  * @param {Array<number>} data - 历史行情数据
  * @param {number} period - 计算周期
@@ -316,12 +370,14 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, ena
 
 export const calculateStock = (props) => {
   const { dayLine, hourLine, ma, macd, kdj, buyConditions, sellConditions, enabledIndicators } = props
+  const weekLine = aggregateDayToWeek(dayLine)
   const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, enabledIndicators })
+  const weekLineWithMetric = calculateMetric(weekLine, { ma, macd, kdj, enabledIndicators })
   const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, enabledIndicators })
   
-  console.log(dayLineWithMetric)
   const transactions =  calculateTransactions({
     dayLineWithMetric,
+    weekLineWithMetric,
     hourLineWithMetric,
     buyConditions,
     sellConditions
@@ -330,6 +386,7 @@ export const calculateStock = (props) => {
   const backtestData = calculateBacktestData(transactions, dayLine)
   return {
     dayLineWithMetric,
+    weekLineWithMetric,
     hourLineWithMetric,
     transactions,
     backtestData
@@ -464,11 +521,12 @@ export const calculateTransactions = (props) => {
 
 // calculateSignals 
 // 计算信号
-// 传入含技术参数的dayLine, hourLine, 卖入算法组, 卖出算法组
+// 传入含技术参数的dayLine, weekLine, hourLine, 卖入算法组, 卖出算法组
 // 计算dayLine和hourLine的技术参数
 const calculateSignals = (props) => {
   const { 
     dayLineWithMetric,
+    weekLineWithMetric,
     hourLineWithMetric,
     buyConditions,
     sellConditions
@@ -501,9 +559,51 @@ const calculateSignals = (props) => {
     hold = false
 
   // 统一的组评估函数：支持旧数组结构和新树结构
-  const evalGroup = (group, index) => {
+  const evalGroup = (group, index, curDayTime) => {
+    // 建立多周期上下文
+    const datasets = {
+      day: dayLineWithMetric,
+      week: weekLineWithMetric,
+      hour: hourLineWithMetric
+    }
+    
+    // 获取当前时间戳
+    const targetTime = new Date(curDayTime).getTime()
+    
+    // 查找周线索引：找 time <= targetTime 的最后一个周线
+    let weekIndex = -1
+    if (weekLineWithMetric && weekLineWithMetric.data) {
+      for (let i = weekLineWithMetric.data.length - 1; i >= 0; i--) {
+        if (new Date(weekLineWithMetric.data[i].time).getTime() <= targetTime) {
+          weekIndex = i
+          break
+        }
+      }
+    }
+    
+    // 查找小时线索引：找 time 的日期与 targetTime 同一天，且时间最晚的那根；如果当天没有，找最近的前一天的最后一根
+    let hourIndex = -1
+    if (hourLineWithMetric && hourLineWithMetric.data) {
+      // 在小时线中寻找 time <= targetTime + (24*3600*1000 - 1) 的最新一根，即当前日期的最后一条小时线
+      const endOfDay = targetTime + 24 * 3600 * 1000 - 1
+      for (let i = hourLineWithMetric.data.length - 1; i >= 0; i--) {
+        if (new Date(hourLineWithMetric.data[i].time).getTime() <= endOfDay) {
+          hourIndex = i
+          break
+        }
+      }
+    }
+    
+    const indices = {
+      day: index,
+      week: weekIndex,
+      hour: hourIndex
+    }
+    
+    const context = { datasets, indices }
+
     if (Array.isArray(group)) {
-      // 旧结构：数组 ['COND_A','COND_B'] -> 全部满足
+      // 旧结构：数组 ['COND_A','COND_B'] -> 全部满足，旧结构默认只支持日线
       return group.every((conditionType) => {
         const cond = algorithmMap[conditionType]
         return cond ? cond.func(index, dayLineWithMetric) : false
@@ -511,14 +611,14 @@ const calculateSignals = (props) => {
     }
     // 新结构（树）：根节点可能是group或condition
     if (group && typeof group === 'object') {
-      return evaluateConditionTree(group, dayLineWithMetric, index)
+      return evaluateConditionTree(group, context)
     }
     return false
   }
 
   const signals = dayLineWithMetric.data.reduce((prev, cur, index) => {
     if (buyStep < buyLength && !hold) {
-      const buyResult = evalGroup(buyConditions[buyStep], index)
+      const buyResult = evalGroup(buyConditions[buyStep], index, cur.time)
       if (buyResult) {
         buyStep++
       }
@@ -534,7 +634,7 @@ const calculateSignals = (props) => {
       }
     }
     if (sellStep < sellLength && hold) {
-      const sellResult = evalGroup(sellConditions[sellStep], index)
+      const sellResult = evalGroup(sellConditions[sellStep], index, cur.time)
       if (sellResult) {
         sellStep++
       }

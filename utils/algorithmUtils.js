@@ -95,6 +95,18 @@ const availableConditions = [
   
   // macd相关
   { 
+    value: 'MACD_DIF_GT_DEA', 
+    label: 'MACD DIF大于DEA (多头)',
+    params: ['macd'],
+    func: (i, {dif, dea}) => dif[i] > dea[i]
+  },
+  { 
+    value: 'MACD_DIF_LT_DEA', 
+    label: 'MACD DIF小于DEA (空头)',
+    params: ['macd'],
+    func: (i, {dif, dea}) => dif[i] < dea[i]
+  },
+  { 
     value: 'MACD_CROSS_UP_GOLDEN', 
     label: 'macd金叉',
     params: ['macd'],
@@ -281,15 +293,32 @@ availableConditions.forEach(condition => {
 })
 
 // 条件树执行函数 - 使用algorithmMap优化性能
-function evaluateConditionTree(node, data, index) {
+function evaluateConditionTree(node, contextOrData, indexOrUndefined) {
+  const isLegacy = indexOrUndefined !== undefined
+  if (isLegacy && (!contextOrData || typeof contextOrData !== 'object')) {
+    throw new Error('旧调用方式已废弃，请使用新的context对象')
+  }
+  
   if (node.type === 'condition') {
     const condition = algorithmMap[node.value]
-    return condition?.func(index, data) || false
+    
+    if (isLegacy) {
+      return condition?.func(indexOrUndefined, contextOrData) || false
+    } else {
+      if (!contextOrData || typeof contextOrData !== 'object') return false
+      if (!contextOrData.datasets || !contextOrData.indices) return false
+      const timeframe = node.timeframe || 'day'
+      const data = contextOrData.datasets[timeframe]
+      const index = contextOrData.indices[timeframe]
+      
+      if (!data || index === -1 || index === undefined) return false
+      return condition?.func(index, data) || false
+    }
   }
   
   if (node.type === 'group') {
     const results = node.children.map(child => 
-      evaluateConditionTree(child, data, index)
+      evaluateConditionTree(child, contextOrData, indexOrUndefined)
     )
     
     switch (node.op) {

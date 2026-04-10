@@ -5,6 +5,52 @@ import { Stock } from './models/stock.js';
  * 股票列表数据库操作类
  */
 class StockDB {
+    static isMissingHintIndexError(error) {
+        return Boolean(error?.message?.includes('hint provided does not correspond to an existing index'));
+    }
+
+    static async countDocumentsWithHintFallback(query, hint) {
+        try {
+            return await Stock.countDocuments(query).hint(hint);
+        } catch (error) {
+            if (StockDB.isMissingHintIndexError(error)) {
+                return Stock.countDocuments(query);
+            }
+            throw error;
+        }
+    }
+
+    static async findWithHintFallback(query, projection, hint, sort = null, skip = null, limit = null) {
+        try {
+            let finder = Stock.find(query, projection).hint(hint);
+            if (sort) {
+                finder = finder.sort(sort);
+            }
+            if (typeof skip === 'number') {
+                finder = finder.skip(skip);
+            }
+            if (typeof limit === 'number') {
+                finder = finder.limit(limit);
+            }
+            return await finder.lean();
+        } catch (error) {
+            if (StockDB.isMissingHintIndexError(error)) {
+                let finder = Stock.find(query, projection);
+                if (sort) {
+                    finder = finder.sort(sort);
+                }
+                if (typeof skip === 'number') {
+                    finder = finder.skip(skip);
+                }
+                if (typeof limit === 'number') {
+                    finder = finder.limit(limit);
+                }
+                return finder.lean();
+            }
+            throw error;
+        }
+    }
+
     /**
      * 获取股票列表（不包含历史数据）
      * @param {number} page - 页码，从1开始
@@ -56,10 +102,10 @@ class StockDB {
             }
             
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
+            const shouldUseCodeHint = Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code);
             const [total, stocks] = await Promise.all([
-                // 查询总数 - 根据查询条件决定是否使用索引提示
-                Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code) 
-                    ? Stock.countDocuments(query).hint({ code: 1 })
+                shouldUseCodeHint
+                    ? StockDB.countDocumentsWithHintFallback(query, { code: 1 })
                     : Stock.countDocuments(query),
                 
                 // 查询当前页的数据 - 明确指定只获取需要的字段
@@ -145,16 +191,18 @@ class StockDB {
             }
             
             // 查询所有数据 - 只获取需要的字段
-            const stocks = await Stock.find(query, {
-                _id: 0, // 不返回_id字段
-                code: 1,
-                name: 1,
-                isFocused: 1,
-                isHourFocused: 1
-            })
-            .hint({ code: 1 }) // 使用code索引
-            .sort({ code: 1 }) // 按股票代码排序
-            .lean(); // 返回纯JavaScript对象，提高性能
+            const stocks = await StockDB.findWithHintFallback(
+                query,
+                {
+                    _id: 0, // 不返回_id字段
+                    code: 1,
+                    name: 1,
+                    isFocused: 1,
+                    isHourFocused: 1
+                },
+                { code: 1 },
+                { code: 1 }
+            );
             
             return stocks;
         } catch (error) {
@@ -169,14 +217,16 @@ class StockDB {
      */
     static async getFocusedStocks() {
         try {
-            const stocks = await Stock.find({ isFocused: true }, {
-                _id: 0,
-                code: 1,
-                name: 1
-            })
-            .hint({ isFocused: 1 })
-            .sort({ code: 1 })
-            .lean();
+            const stocks = await StockDB.findWithHintFallback(
+                { isFocused: true },
+                {
+                    _id: 0,
+                    code: 1,
+                    name: 1
+                },
+                { isFocused: 1 },
+                { code: 1 }
+            );
             
             return stocks;
         } catch (error) {

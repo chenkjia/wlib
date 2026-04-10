@@ -3,6 +3,7 @@
   <div v-if="node">
     <!-- 条件节点 -->
     <div v-if="node.type === 'condition'" class="flex items-center gap-2 p-2 rounded-md bg-gray-50 dark:bg-gray-800/40 shadow-sm">
+      <USelect v-model="node.timeframe" :items="timeframeOptions" class="w-28" />
       <USelect v-model="node.value" :items="filteredOptions" class="flex-1" />
       <UButton color="danger" variant="soft" size="sm" label="删除" @click="removeSelf" />
     </div>
@@ -62,9 +63,15 @@ const filteredAvailableConditions = computed(() => {
 })
 const filteredOptions = computed(() => filteredAvailableConditions.value.map(c => ({ label: c.label, value: c.value })))
 
+const timeframeOptions = [
+  { label: '日线', value: 'day' },
+  { label: '周线', value: 'week' },
+  { label: '小时线', value: 'hour' }
+]
+
 function createConditionNode(value) {
   const defaultValue = value ?? (filteredOptions.value[0]?.value || filteredAvailableConditions.value[0]?.value || availableConditions[0]?.value)
-  return { type: 'condition', value: defaultValue }
+  return { type: 'condition', value: defaultValue, timeframe: 'day' }
 }
 function createGroupNode(op = 'AND', children = []) {
   return { type: 'group', op, children }

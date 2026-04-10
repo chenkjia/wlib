@@ -47,7 +47,7 @@ const filteredOptions = computed(() => filteredAvailableConditions.value.map(c =
 // 节点与组的基础结构
 function createConditionNode(value) {
   const defaultValue = value ?? (filteredOptions.value[0]?.value || filteredAvailableConditions.value[0]?.value || availableConditions[0]?.value)
-  return { type: 'condition', value: defaultValue }
+  return { type: 'condition', value: defaultValue, timeframe: 'day' }
 }
 
 function createGroupNode(op = 'AND', children = []) {
