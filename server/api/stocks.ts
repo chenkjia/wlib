@@ -41,14 +41,13 @@ export default defineEventHandler(async (event) => {
       .split(',')
       .map(item => item.trim())
       .filter(Boolean);
-    const macdTagsMode = (query.macdTagsMode as string) === 'any' ? 'any' : 'all';
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTags, macdTagsMode),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTags),
       timeoutPromise
     ]) as StockListResult;
     
