@@ -49,6 +49,8 @@
       >
         <RightPanel
           :panelState="panelState"
+          :selectedStockCode="selectedStockCode"
+          :dayLineWithMetric="dayLineWithMetric"
           v-model:ma="ma"
           v-model:macd="macd"
           v-model:kdj="kdj"

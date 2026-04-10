@@ -2,7 +2,7 @@ import MongoDB from '../database/mongo.js';
 
 // 定义股票列表返回类型
 interface StockListResult {
-  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number}>;
+  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number, isStar?: boolean, macdTags?: string[]}>;
   total: number;
   page: number;
   pageSize: number;
@@ -37,13 +37,18 @@ export default defineEventHandler(async (event) => {
     const focusFilter = query.focusFilter as string || 'all';
     const hourFocusFilter = query.hourFocusFilter as string || 'all';
     const starFilter = query.starFilter as string || 'all';
+    const macdTags = ((query.macdTags as string) || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    const macdTagsMode = (query.macdTagsMode as string) === 'any' ? 'any' : 'all';
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTags, macdTagsMode),
       timeoutPromise
     ]) as StockListResult;
     

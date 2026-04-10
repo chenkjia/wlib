@@ -63,7 +63,7 @@ class StockDB {
      * @param {string} starFilter - 星标过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all') {
+    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTags = []) {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -100,6 +100,10 @@ class StockDB {
             } else if (starFilter === 'unstarred') {
                 query.isStar = { $ne: true };
             }
+
+            if (Array.isArray(macdTags) && macdTags.length > 0) {
+                query.macdTags = { $all: macdTags };
+            }
             
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
             const shouldUseCodeHint = Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code);
@@ -116,7 +120,9 @@ class StockDB {
                     isFocused: 1,
                     isHourFocused: 1,
                     focusedDays: 1,
-                    hourFocusedDays: 1
+                    hourFocusedDays: 1,
+                    isStar: 1,
+                    macdTags: 1
                 })
                 .sort({ [sortField]: sortOrder === 'asc' ? 1 : -1 }) // 动态排序
                 .skip(skip)
@@ -198,7 +204,8 @@ class StockDB {
                     code: 1,
                     name: 1,
                     isFocused: 1,
-                    isHourFocused: 1
+                    isHourFocused: 1,
+                    macdTags: 1
                 },
                 { code: 1 },
                 { code: 1 }
@@ -417,6 +424,47 @@ static async getStarredStocks() {
             return result;
         } catch (error) {
             logger.error('保存股票列表失败:', error);
+            throw error;
+        }
+    }
+
+    static async getStocksForMacdTagging() {
+        try {
+            return await Stock.find(
+                {},
+                {
+                    _id: 0,
+                    code: 1,
+                    dayLine: 1,
+                    hourLine: 1
+                }
+            ).lean();
+        } catch (error) {
+            logger.error('获取MACD标签源数据失败:', error);
+            throw error;
+        }
+    }
+
+    static async bulkUpdateMacdTags(tagDataList = []) {
+        try {
+            if (!Array.isArray(tagDataList) || tagDataList.length === 0) {
+                return { matchedCount: 0, modifiedCount: 0 };
+            }
+
+            const operations = tagDataList.map(item => ({
+                updateOne: {
+                    filter: { code: item.code },
+                    update: { $set: { macdTags: Array.isArray(item.macdTags) ? item.macdTags : [] } }
+                }
+            }));
+
+            const result = await Stock.bulkWrite(operations, { ordered: false });
+            return {
+                matchedCount: result.matchedCount || 0,
+                modifiedCount: result.modifiedCount || 0
+            };
+        } catch (error) {
+            logger.error('批量更新MACD标签失败:', error);
             throw error;
         }
     }

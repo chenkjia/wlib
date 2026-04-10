@@ -36,6 +36,17 @@
       >
         计算结果
       </button>
+      <button
+        @click="activeTab = 'macd'"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'macd'
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        MACD分析
+      </button>
     </div>     
     
     <!-- Tab内容 - 可滚动区域 -->
@@ -77,6 +88,63 @@
             :loading="calculationLoading"
             @focusChart="handleFocusChart"
           />
+        </div>
+        <div v-show="activeTab === 'macd'" class="p-3 space-y-3">
+          <div v-if="!macdAnalysis.ready" class="rounded-md border border-gray-200 bg-gray-50 px-3 py-4 text-sm text-gray-600">
+            {{ macdAnalysis.message }}
+          </div>
+          <template v-else>
+            <div class="grid grid-cols-2 gap-2">
+              <div
+                :class="[
+                  'rounded-md border px-3 py-2 text-xs font-medium',
+                  macdAnalysis.difAboveZero ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'
+                ]"
+              >
+                {{ macdAnalysis.difZeroLabel }}
+              </div>
+              <div
+                :class="[
+                  'rounded-md border px-3 py-2 text-xs font-medium',
+                  macdAnalysis.difAboveDea ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'
+                ]"
+              >
+                {{ macdAnalysis.difDeaLabel }}
+              </div>
+              <div
+                :class="[
+                  'rounded-md border px-3 py-2 text-xs font-medium',
+                  macdAnalysis.isRedBar ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'
+                ]"
+              >
+                {{ macdAnalysis.barLabel }}
+              </div>
+              <div class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700">
+                {{ macdAnalysis.crossLabel }}
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="rounded-md border border-gray-200 bg-white px-3 py-2">
+                <div class="text-[11px] text-gray-500">DIF</div>
+                <div class="text-sm font-semibold text-gray-800">{{ macdAnalysis.difValue }}</div>
+              </div>
+              <div class="rounded-md border border-gray-200 bg-white px-3 py-2">
+                <div class="text-[11px] text-gray-500">DEA</div>
+                <div class="text-sm font-semibold text-gray-800">{{ macdAnalysis.deaValue }}</div>
+              </div>
+              <div class="rounded-md border border-gray-200 bg-white px-3 py-2">
+                <div class="text-[11px] text-gray-500">BAR</div>
+                <div class="text-sm font-semibold text-gray-800">{{ macdAnalysis.barValue }}</div>
+              </div>
+            </div>
+            <div class="rounded-md border border-gray-200 bg-white px-3 py-3">
+              <div class="text-xs font-medium text-gray-600">动能解读</div>
+              <div class="mt-1 text-sm text-gray-800">{{ macdAnalysis.summary }}</div>
+            </div>
+            <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+              K线数量：{{ macdAnalysis.kLineCount }}，建议最少：{{ macdRequiredKLineCount }}
+            </div>
+          </template>
         </div>
     </div>
   </div>
@@ -142,6 +210,14 @@ const props = defineProps({
   panelState: {
     type: String,
     default: 'normal'
+  },
+  dayLineWithMetric: {
+    type: Object,
+    default: () => ({})
+  },
+  selectedStockCode: {
+    type: String,
+    default: ''
   }
 })
 
@@ -259,6 +335,92 @@ watch(enabledIndicators, (newVal) => {
 const calculationMessage = ref('')
 const calculationLoading = ref(false)
 const messageClass = computed(() => calculationLoading.value ? 'text-yellow-600' : 'text-green-600')
+const macdRequiredKLineCount = computed(() => Number(props.macd?.l || 26) + Number(props.macd?.d || 9) - 1)
+
+function formatMetricValue(value) {
+  return Number.isFinite(value) ? value.toFixed(4) : '--'
+}
+
+const macdAnalysis = computed(() => {
+  if (!props.selectedStockCode) {
+    return {
+      ready: false,
+      message: '请先在左侧选择股票'
+    }
+  }
+
+  if (!props.enabledIndicators.includes('macd')) {
+    return {
+      ready: false,
+      message: '请先在配置规则中启用 MACD'
+    }
+  }
+
+  const { dif = [], dea = [], bar = [], data = [] } = props.dayLineWithMetric || {}
+  const usableLength = Math.min(dif.length, dea.length, bar.length)
+  if (usableLength < 1) {
+    return {
+      ready: false,
+      message: '当前股票暂无可用的 MACD 数据'
+    }
+  }
+
+  const lastIndex = usableLength - 1
+  const prevIndex = usableLength - 2
+  const difLast = Number(dif[lastIndex])
+  const deaLast = Number(dea[lastIndex])
+  const barLast = Number(bar[lastIndex])
+  const difPrev = prevIndex >= 0 ? Number(dif[prevIndex]) : null
+  const deaPrev = prevIndex >= 0 ? Number(dea[prevIndex]) : null
+  const barPrev = prevIndex >= 0 ? Number(bar[prevIndex]) : null
+
+  if (![difLast, deaLast, barLast].every(Number.isFinite)) {
+    return {
+      ready: false,
+      message: '当前 MACD 数值无效，请稍后重试'
+    }
+  }
+
+  let crossLabel = '无新交叉'
+  if (Number.isFinite(difPrev) && Number.isFinite(deaPrev)) {
+    if (difPrev <= deaPrev && difLast > deaLast) {
+      crossLabel = '最新信号：金叉'
+    } else if (difPrev >= deaPrev && difLast < deaLast) {
+      crossLabel = '最新信号：死叉'
+    }
+  }
+
+  let momentumLabel = '动能稳定'
+  if (Number.isFinite(barPrev)) {
+    if (barLast > 0 && barLast > barPrev) momentumLabel = '红柱放大，动能增强'
+    if (barLast > 0 && barLast < barPrev) momentumLabel = '红柱缩短，动能放缓'
+    if (barLast < 0 && barLast < barPrev) momentumLabel = '绿柱放大，空头增强'
+    if (barLast < 0 && barLast > barPrev) momentumLabel = '绿柱缩短，空头减弱'
+  }
+
+  const difAboveZero = difLast >= 0
+  const difAboveDea = difLast >= deaLast
+  const isRedBar = barLast >= 0
+  const baseTrend = difAboveZero && difAboveDea
+    ? '多头偏强'
+    : (!difAboveZero && !difAboveDea ? '空头偏弱' : (difAboveZero ? '零轴上方回调' : '零轴下方修复'))
+
+  return {
+    ready: true,
+    difAboveZero,
+    difAboveDea,
+    isRedBar,
+    difZeroLabel: difAboveZero ? 'DIF 在0轴上方' : 'DIF 在0轴下方',
+    difDeaLabel: difAboveDea ? 'DIF 在DEA上方' : 'DIF 在DEA下方',
+    barLabel: isRedBar ? '当前红柱' : '当前绿柱',
+    crossLabel,
+    difValue: formatMetricValue(difLast),
+    deaValue: formatMetricValue(deaLast),
+    barValue: formatMetricValue(barLast),
+    summary: `${baseTrend}，${crossLabel.replace('最新信号：', '')}，${momentumLabel}`,
+    kLineCount: data.length || usableLength
+  }
+})
 
 onMounted(() => {
   // 初始化逻辑

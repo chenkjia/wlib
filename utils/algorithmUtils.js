@@ -298,12 +298,21 @@ function evaluateConditionTree(node, contextOrData, indexOrUndefined) {
   if (isLegacy && (!contextOrData || typeof contextOrData !== 'object')) {
     throw new Error('旧调用方式已废弃，请使用新的context对象')
   }
+
+  const runConditionSafely = (condition, index, data) => {
+    if (!condition || typeof condition.func !== 'function') return false
+    try {
+      return Boolean(condition.func(index, data))
+    } catch (error) {
+      return false
+    }
+  }
   
   if (node.type === 'condition') {
     const condition = algorithmMap[node.value]
     
     if (isLegacy) {
-      return condition?.func(indexOrUndefined, contextOrData) || false
+      return runConditionSafely(condition, indexOrUndefined, contextOrData)
     } else {
       if (!contextOrData || typeof contextOrData !== 'object') return false
       if (!contextOrData.datasets || !contextOrData.indices) return false
@@ -312,7 +321,7 @@ function evaluateConditionTree(node, contextOrData, indexOrUndefined) {
       const index = contextOrData.indices[timeframe]
       
       if (!data || index === -1 || index === undefined) return false
-      return condition?.func(index, data) || false
+      return runConditionSafely(condition, index, data)
     }
   }
   

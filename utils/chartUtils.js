@@ -606,7 +606,12 @@ const calculateSignals = (props) => {
       // 旧结构：数组 ['COND_A','COND_B'] -> 全部满足，旧结构默认只支持日线
       return group.every((conditionType) => {
         const cond = algorithmMap[conditionType]
-        return cond ? cond.func(index, dayLineWithMetric) : false
+        if (!cond || typeof cond.func !== 'function') return false
+        try {
+          return Boolean(cond.func(index, dayLineWithMetric))
+        } catch (error) {
+          return false
+        }
       })
     }
     // 新结构（树）：根节点可能是group或condition
