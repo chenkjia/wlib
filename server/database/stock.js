@@ -5,8 +5,28 @@ import { Stock } from './models/stock.js';
  * 股票列表数据库操作类
  */
 class StockDB {
+    static macdFieldIndexesEnsured = false;
+    static macdFieldIndexesEnsuring = false;
+
     static isMissingHintIndexError(error) {
         return Boolean(error?.message?.includes('hint provided does not correspond to an existing index'));
+    }
+
+    static async ensureMacdFieldIndexes() {
+        if (StockDB.macdFieldIndexesEnsured || StockDB.macdFieldIndexesEnsuring) {
+            return;
+        }
+        StockDB.macdFieldIndexesEnsuring = true;
+        try {
+            await Stock.collection.createIndex({ macdTrendUpChannel: 1, code: 1 }, { background: true });
+            await Stock.collection.createIndex({ macdDayTags: 1 }, { background: true });
+            await Stock.collection.createIndex({ macdHourTags: 1 }, { background: true });
+            StockDB.macdFieldIndexesEnsured = true;
+        } catch (error) {
+            logger.warn('确保MACD标签索引失败，将继续无索引查询:', error?.message || error);
+        } finally {
+            StockDB.macdFieldIndexesEnsuring = false;
+        }
     }
 
     static async countDocumentsWithHintFallback(query, hint) {
@@ -63,7 +83,7 @@ class StockDB {
      * @param {string} starFilter - 星标过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTags = []) {
+    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTrendUpChannel = false, macdDayTags = [], macdHourTags = [], includeCount = true) {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -101,33 +121,72 @@ class StockDB {
                 query.isStar = { $ne: true };
             }
 
-            if (Array.isArray(macdTags) && macdTags.length > 0) {
-                query.macdTags = { $all: macdTags };
+            if (macdTrendUpChannel) {
+                query.macdTrendUpChannel = true;
+            }
+
+            if (Array.isArray(macdDayTags) && macdDayTags.length > 0) {
+                query.macdDayTags = { $all: macdDayTags };
+            }
+
+            if (Array.isArray(macdHourTags) && macdHourTags.length > 0) {
+                query.macdHourTags = { $all: macdHourTags };
             }
             
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
             const shouldUseCodeHint = Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code);
+            const hasMacdFilter = macdTrendUpChannel || (Array.isArray(macdDayTags) && macdDayTags.length > 0) || (Array.isArray(macdHourTags) && macdHourTags.length > 0);
+            if (hasMacdFilter) {
+                StockDB.ensureMacdFieldIndexes();
+            }
+            const projection = {
+                _id: 0, // 不返回_id字段
+                code: 1,
+                name: 1,
+                isFocused: 1,
+                isHourFocused: 1,
+                focusedDays: 1,
+                hourFocusedDays: 1,
+                isStar: 1,
+                macdTrendUpChannel: 1,
+                macdDayTags: 1,
+                macdHourTags: 1
+            };
+            const sortSpec = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
+            const trendHint = { macdTrendUpChannel: 1, code: 1 };
+
+            if (!includeCount) {
+                const stocks = macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                    ? await StockDB.findWithHintFallback(query, projection, trendHint, sortSpec, skip, pageSize)
+                    : await Stock.find(query, projection)
+                        .sort(sortSpec)
+                        .skip(skip)
+                        .limit(pageSize)
+                        .lean();
+                return {
+                    stocks,
+                    total: stocks.length,
+                    page,
+                    pageSize,
+                    totalPages: 1
+                };
+            }
+
             const [total, stocks] = await Promise.all([
                 shouldUseCodeHint
                     ? StockDB.countDocumentsWithHintFallback(query, { code: 1 })
-                    : Stock.countDocuments(query),
+                    : (macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                        ? StockDB.countDocumentsWithHintFallback(query, trendHint)
+                        : Stock.countDocuments(query)),
                 
                 // 查询当前页的数据 - 明确指定只获取需要的字段
-                Stock.find(query, {
-                    _id: 0, // 不返回_id字段
-                    code: 1,
-                    name: 1,
-                    isFocused: 1,
-                    isHourFocused: 1,
-                    focusedDays: 1,
-                    hourFocusedDays: 1,
-                    isStar: 1,
-                    macdTags: 1
-                })
-                .sort({ [sortField]: sortOrder === 'asc' ? 1 : -1 }) // 动态排序
-                .skip(skip)
-                .limit(pageSize)
-                .lean() // 返回纯JavaScript对象，而不是Mongoose文档，提高性能
+                macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                    ? StockDB.findWithHintFallback(query, projection, trendHint, sortSpec, skip, pageSize)
+                    : Stock.find(query, projection)
+                        .sort(sortSpec) // 动态排序
+                        .skip(skip)
+                        .limit(pageSize)
+                        .lean() // 返回纯JavaScript对象，而不是Mongoose文档，提高性能
             ]);
             
             // 计算总页数
@@ -205,7 +264,9 @@ class StockDB {
                     name: 1,
                     isFocused: 1,
                     isHourFocused: 1,
-                    macdTags: 1
+                    macdTrendUpChannel: 1,
+                    macdDayTags: 1,
+                    macdHourTags: 1
                 },
                 { code: 1 },
                 { code: 1 }
@@ -428,10 +489,25 @@ static async getStarredStocks() {
         }
     }
 
-    static async getStocksForMacdTagging() {
+    static async getStockCodesForMacdTagging() {
         try {
             return await Stock.find(
                 {},
+                {
+                    _id: 0,
+                    code: 1
+                }
+            ).lean();
+        } catch (error) {
+            logger.error('获取MACD标签股票清单失败:', error);
+            throw error;
+        }
+    }
+
+    static async getStockLineForMacdTagging(code) {
+        try {
+            return await Stock.findOne(
+                { code },
                 {
                     _id: 0,
                     code: 1,
@@ -440,12 +516,12 @@ static async getStarredStocks() {
                 }
             ).lean();
         } catch (error) {
-            logger.error('获取MACD标签源数据失败:', error);
+            logger.error(`获取股票 ${code} 的MACD标签源数据失败:`, error);
             throw error;
         }
     }
 
-    static async bulkUpdateMacdTags(tagDataList = []) {
+    static async bulkUpdateMacdFields(tagDataList = []) {
         try {
             if (!Array.isArray(tagDataList) || tagDataList.length === 0) {
                 return { matchedCount: 0, modifiedCount: 0 };
@@ -454,7 +530,13 @@ static async getStarredStocks() {
             const operations = tagDataList.map(item => ({
                 updateOne: {
                     filter: { code: item.code },
-                    update: { $set: { macdTags: Array.isArray(item.macdTags) ? item.macdTags : [] } }
+                    update: {
+                        $set: {
+                            macdTrendUpChannel: Boolean(item.macdTrendUpChannel),
+                            macdDayTags: Array.isArray(item.macdDayTags) ? item.macdDayTags : [],
+                            macdHourTags: Array.isArray(item.macdHourTags) ? item.macdHourTags : []
+                        }
+                    }
                 }
             }));
 
@@ -464,7 +546,7 @@ static async getStarredStocks() {
                 modifiedCount: result.modifiedCount || 0
             };
         } catch (error) {
-            logger.error('批量更新MACD标签失败:', error);
+            logger.error('批量更新MACD字段失败:', error);
             throw error;
         }
     }

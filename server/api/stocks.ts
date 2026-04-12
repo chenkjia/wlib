@@ -2,7 +2,7 @@ import MongoDB from '../database/mongo.js';
 
 // 定义股票列表返回类型
 interface StockListResult {
-  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number, isStar?: boolean, macdTags?: string[]}>;
+  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number, isStar?: boolean, macdTrendUpChannel?: boolean, macdDayTags?: string[], macdHourTags?: string[]}>;
   total: number;
   page: number;
   pageSize: number;
@@ -14,13 +14,6 @@ interface StockListResult {
  * @returns {Object} 包含所有股票列表的对象
  */
 export default defineEventHandler(async (event) => {
-  // 设置超时处理
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => {
-      reject(new Error('获取股票列表超时'));
-    }, 5000); // 5秒超时
-  });
-
   try {
     // 获取查询参数
     const query = getQuery(event);
@@ -37,17 +30,32 @@ export default defineEventHandler(async (event) => {
     const focusFilter = query.focusFilter as string || 'all';
     const hourFocusFilter = query.hourFocusFilter as string || 'all';
     const starFilter = query.starFilter as string || 'all';
-    const macdTags = ((query.macdTags as string) || '')
+    const macdTrendUpChannel = (query.macdTrendUpChannel as string) === '1' || (query.macdTrendUpChannel as string) === 'true';
+    const macdDayTags = ((query.macdDayTags as string) || '')
       .split(',')
       .map(item => item.trim())
       .filter(Boolean);
+    const macdHourTags = ((query.macdHourTags as string) || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    const hasMacdFilter = macdTrendUpChannel || macdDayTags.length > 0 || macdHourTags.length > 0;
+    const includeCount = (query.noCount as string) !== '1' && !hasMacdFilter;
+    const timeoutMs = hasMacdFilter
+      ? (includeCount ? 30000 : 15000)
+      : 5000;
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`获取股票列表超时(${timeoutMs}ms)`));
+      }, timeoutMs);
+    });
 
     // 确保MongoDB已连接
     await MongoDB.connect();
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTags),
+      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, includeCount),
       timeoutPromise
     ]) as StockListResult;
     

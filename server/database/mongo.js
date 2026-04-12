@@ -24,8 +24,9 @@ class MongoDB {
     static saveList = StockDB.saveList;
     static updateStockStar = StockDB.updateStockStar;
     static getStarredStocks = StockDB.getStarredStocks;
-    static getStocksForMacdTagging = StockDB.getStocksForMacdTagging;
-    static bulkUpdateMacdTags = StockDB.bulkUpdateMacdTags;
+    static getStockCodesForMacdTagging = StockDB.getStockCodesForMacdTagging;
+    static getStockLineForMacdTagging = StockDB.getStockLineForMacdTagging;
+    static bulkUpdateMacdFields = StockDB.bulkUpdateMacdFields;
 
     static getLastDayLine = DayLineDB.getLastDayLine;
     static getFirstDayLine = DayLineDB.getFirstDayLine;
