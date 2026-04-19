@@ -3,6 +3,15 @@
     <div class="mx-auto max-w-5xl space-y-4">
       <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div class="mb-2 text-sm font-medium text-gray-700">MACD筛选</div>
+        <div class="mb-3">
+          <label class="mb-1 block text-xs font-medium text-gray-500">代码搜索（模糊匹配）</label>
+          <input
+            v-model.trim="searchKeyword"
+            type="text"
+            placeholder="输入股票代码，例如 600 或 sz.000"
+            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-300"
+          >
+        </div>
         <label class="mb-3 flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700">
           <input
             v-model="trendUpChannelOnly"
@@ -116,7 +125,13 @@ import { ref, watch, onMounted } from 'vue'
 const macdDayTagOptions = [
   { value: 'macd_day_bar_green_to_red', label: '日线绿柱转红柱' },
   { value: 'macd_day_red_bar_growing', label: '日线红柱增大' },
-  { value: 'macd_day_dif_above_zero_low_zone', label: '日线 DIF 0轴上方低位' }
+  { value: 'macd_day_dif_above_zero_low_zone', label: '日线 DIF 0轴上方低位' },
+  { value: 'macd_day_prev_bar_less_than_prev2', label: '日线前一天柱线小于前前一天' },
+  { value: 'macd_day_close_above_ma60', label: '日线收盘价高于 MA60' },
+  { value: 'macd_day_ma60_up', label: '日线 MA60 高于前一日' },
+  { value: 'macd_day_close_above_ma20', label: '日线收盘价高于 MA20' },
+  { value: 'macd_day_ma20_up', label: '日线 MA20 高于前一日' },
+  { value: 'macd_day_ma20_above_ma60', label: '日线 MA20 大于 MA60' }
 ]
 
 const macdHourTagOptions = [
@@ -126,9 +141,11 @@ const macdHourTagOptions = [
 const trendUpChannelOnly = ref(false)
 const selectedDayTags = ref([])
 const selectedHourTags = ref([])
+const searchKeyword = ref('')
 const stocks = ref([])
 const loading = ref(false)
 const error = ref('')
+let searchTimer = null
 
 function formatDayTag(tag) {
   const match = macdDayTagOptions.find(item => item.value === tag)
@@ -158,6 +175,10 @@ async function loadStocks() {
     if (selectedHourTags.value.length > 0) {
       params.set('macdHourTags', selectedHourTags.value.join(','))
     }
+    if (searchKeyword.value) {
+      params.set('search', searchKeyword.value)
+      params.set('searchField', 'code')
+    }
     const data = await $fetch(`/api/stocks?${params.toString()}`)
     stocks.value = Array.isArray(data?.stocks) ? data.stocks : []
   } catch (err) {
@@ -171,6 +192,15 @@ async function loadStocks() {
 watch([trendUpChannelOnly, selectedDayTags, selectedHourTags], () => {
   loadStocks()
 }, { deep: true })
+
+watch(searchKeyword, () => {
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  searchTimer = setTimeout(() => {
+    loadStocks()
+  }, 300)
+})
 
 onMounted(() => {
   loadStocks()

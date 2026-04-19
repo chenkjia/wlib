@@ -12,6 +12,10 @@ class StockDB {
         return Boolean(error?.message?.includes('hint provided does not correspond to an existing index'));
     }
 
+    static escapeRegex(value = '') {
+        return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
     static async ensureMacdFieldIndexes() {
         if (StockDB.macdFieldIndexesEnsured || StockDB.macdFieldIndexesEnsuring) {
             return;
@@ -83,7 +87,7 @@ class StockDB {
      * @param {string} starFilter - 星标过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTrendUpChannel = false, macdDayTags = [], macdHourTags = [], includeCount = true) {
+    static async getList(page = 1, pageSize = 20, search = '', searchField = 'all', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTrendUpChannel = false, macdDayTags = [], macdHourTags = [], includeCount = true) {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -91,13 +95,21 @@ class StockDB {
             // 构建查询条件，大小写不敏感的搜索
             let query = { };
             if (search) {
-                // 使用正则表达式实现大小写不敏感的模糊搜索，支持股票代码和名称
-                query = {
-                    $or: [
-                        { code: { $regex: new RegExp('^' + search, 'i') } },
-                        { name: { $regex: new RegExp('^' + search, 'i') } }
-                    ]
-                };
+                const escapedSearch = StockDB.escapeRegex(search);
+                if (searchField === 'code') {
+                    // 代码搜索走前缀匹配，优先命中 code 索引
+                    query = { code: { $regex: new RegExp(`^${escapedSearch}`) } };
+                } else if (searchField === 'name') {
+                    query = { name: { $regex: new RegExp(`^${escapedSearch}`) } };
+                } else {
+                    // 通用搜索支持股票代码和名称
+                    query = {
+                        $or: [
+                            { code: { $regex: new RegExp('^' + escapedSearch, 'i') } },
+                            { name: { $regex: new RegExp('^' + escapedSearch, 'i') } }
+                        ]
+                    };
+                }
             }
             
             // 添加重点关注过滤条件

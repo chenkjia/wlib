@@ -3,7 +3,7 @@
 import MongoConnection from '../database/connection.js'
 import MongoDB from '../database/mongo.js'
 import logger from '~/utils/logger.js'
-import { calculateEMA, aggregateDayToWeek } from '~/utils/chartUtils.js'
+import { calculateEMA, calculateMA, aggregateDayToWeek } from '~/utils/chartUtils.js'
 
 // 将日线聚合为月线
 function aggregateDayToMonth(dayLine = []) {
@@ -126,12 +126,21 @@ function buildMacdFields({ dayLine = [], hourLine = [], macdConfig = { s: 12, l:
     const weekDifAboveDea = weekMacd.size >= requiredK && Number.isFinite(weekPair.lastA) && Number.isFinite(weekPair.lastB) && weekPair.lastA > weekPair.lastB
     macdTrendUpChannel = monthDifAboveZero && weekDifAboveDea
 
-    // 日线：绿柱翻红、红柱放大、DIF 在 0 轴上方低位
+    // 日线：绿柱翻红、红柱放大、DIF 在 0 轴上方低位、收盘与均线关系
     const dayLastIndex = Math.min(dayMacd.dif.length, dayMacd.dea.length, dayMacd.bar.length) - 1
     if (dayMacd.size >= requiredK && dayLastIndex > 0) {
         const barLast = Number(dayMacd.bar[dayLastIndex])
         const barPrev = Number(dayMacd.bar[dayLastIndex - 1])
+        const barPrevPrev = dayLastIndex > 1 ? Number(dayMacd.bar[dayLastIndex - 2]) : null
         const difLast = Number(dayMacd.dif[dayLastIndex])
+        const closeSeries = normalizedDayLine.map(item => Number(item.close))
+        const ma20 = calculateMA(closeSeries, 20)
+        const ma60 = calculateMA(closeSeries, 60)
+        const closeLast = Number(closeSeries[dayLastIndex])
+        const ma20Last = Number(ma20[dayLastIndex])
+        const ma20Prev = Number(ma20[dayLastIndex - 1])
+        const ma60Last = Number(ma60[dayLastIndex])
+        const ma60Prev = Number(ma60[dayLastIndex - 1])
         if (Number.isFinite(barLast) && Number.isFinite(barPrev) && barPrev < 0 && barLast > 0) {
             dayTags.push('macd_day_bar_green_to_red')
         }
@@ -140,6 +149,24 @@ function buildMacdFields({ dayLine = [], hourLine = [], macdConfig = { s: 12, l:
         }
         if (Number.isFinite(difLast) && difLast > 0 && difLast <= dayLowThreshold) {
             dayTags.push('macd_day_dif_above_zero_low_zone')
+        }
+        if (Number.isFinite(barPrev) && Number.isFinite(barPrevPrev) && barPrev < barPrevPrev) {
+            dayTags.push('macd_day_prev_bar_less_than_prev2')
+        }
+        if (Number.isFinite(closeLast) && Number.isFinite(ma60Last) && closeLast > ma60Last) {
+            dayTags.push('macd_day_close_above_ma60')
+        }
+        if (Number.isFinite(ma60Last) && Number.isFinite(ma60Prev) && ma60Last > ma60Prev) {
+            dayTags.push('macd_day_ma60_up')
+        }
+        if (Number.isFinite(closeLast) && Number.isFinite(ma20Last) && closeLast > ma20Last) {
+            dayTags.push('macd_day_close_above_ma20')
+        }
+        if (Number.isFinite(ma20Last) && Number.isFinite(ma20Prev) && ma20Last > ma20Prev) {
+            dayTags.push('macd_day_ma20_up')
+        }
+        if (Number.isFinite(ma20Last) && Number.isFinite(ma60Last) && ma20Last > ma60Last) {
+            dayTags.push('macd_day_ma20_above_ma60')
         }
     }
 

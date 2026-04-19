@@ -20,6 +20,7 @@ export default defineEventHandler(async (event) => {
     const page = parseInt(query.page as string) || 1;
     const pageSize = parseInt(query.pageSize as string) || 20;
     const search = query.search as string || '';
+    const searchField = query.searchField as string || 'all';
     // 只允许对有索引的字段进行排序
     const allowedSortFields = ['code', 'isFocused', 'isHourFocused', 'focusedDays', 'hourFocusedDays'];
     const requestedSortField = query.sortField as string || 'code';
@@ -55,7 +56,7 @@ export default defineEventHandler(async (event) => {
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, includeCount),
+      MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, includeCount),
       timeoutPromise
     ]) as StockListResult;
     
