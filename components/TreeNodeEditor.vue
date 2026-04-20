@@ -6,7 +6,7 @@
       <USelect v-model="node.timeframe" :items="timeframeOptions" class="w-28" />
       <USelectMenu
         v-model="node.value"
-        :items="filteredOptions"
+        :items="groupedFilteredOptions"
         value-key="value"
         searchable
         :search-input="{ placeholder: '搜索条件（名称/编码）' }"
@@ -69,6 +69,41 @@ const filteredAvailableConditions = computed(() => {
   })
 })
 const filteredOptions = computed(() => filteredAvailableConditions.value.map(c => ({ label: c.label, value: c.value })))
+
+function getConditionGroup(condition) {
+  const value = String(condition?.value || '')
+  if (value.startsWith('MACD_')) return 'MACD类'
+  if (value.startsWith('KDJ_')) return 'KDJ类'
+  if (value.startsWith('VOLUME_')) return '量能类'
+  if (Array.isArray(condition?.params) && condition.params.includes('ma')) return '均线类'
+  return '其他'
+}
+
+const groupedFilteredOptions = computed(() => {
+  const groups = new Map([
+    ['均线类', []],
+    ['MACD类', []],
+    ['KDJ类', []],
+    ['量能类', []],
+    ['其他', []]
+  ])
+
+  for (const item of filteredOptions.value) {
+    const source = filteredAvailableConditions.value.find(c => c.value === item.value)
+    const groupName = getConditionGroup(source)
+    groups.get(groupName).push(item)
+  }
+
+  const result = []
+  for (const [groupName, options] of groups.entries()) {
+    if (!options.length) continue
+    result.push([
+      { type: 'label', label: groupName },
+      ...options
+    ])
+  }
+  return result
+})
 
 const timeframeOptions = [
   { label: '日线', value: 'day' },

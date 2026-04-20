@@ -1,6 +1,78 @@
 
 // 算法工具函数
 
+function isFiniteNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value)
+}
+
+function findRecentPivotIndices(series = [], endIndex = 0, pivotType = 'low', lookback = 120, leftRight = 2) {
+  if (!Array.isArray(series) || series.length === 0) return []
+  const start = Math.max(leftRight, endIndex - lookback + 1)
+  const end = Math.min(endIndex, series.length - 1 - leftRight)
+  if (end < start) return []
+
+  const pivots = []
+  for (let i = start; i <= end; i++) {
+    const center = series[i]
+    if (!isFiniteNumber(center)) continue
+    let isPivot = true
+    for (let offset = 1; offset <= leftRight; offset++) {
+      const left = series[i - offset]
+      const right = series[i + offset]
+      if (!isFiniteNumber(left) || !isFiniteNumber(right)) {
+        isPivot = false
+        break
+      }
+      if (pivotType === 'low') {
+        if (!(center <= left && center <= right)) {
+          isPivot = false
+          break
+        }
+      } else {
+        if (!(center >= left && center >= right)) {
+          isPivot = false
+          break
+        }
+      }
+    }
+    if (isPivot) pivots.push(i)
+  }
+
+  return pivots
+}
+
+function isMacdBottomDeviation(index, line = [], dif = []) {
+  if (!Array.isArray(line) || !Array.isArray(dif) || index < 4) return false
+  const lowSeries = line.map(item => Number(item?.low))
+  const pivots = findRecentPivotIndices(lowSeries, index, 'low', 180, 2)
+  if (pivots.length < 2) return false
+  const prev = pivots[pivots.length - 2]
+  const curr = pivots[pivots.length - 1]
+  if (curr !== index) return false
+  const prevLow = lowSeries[prev]
+  const currLow = lowSeries[curr]
+  const prevDif = Number(dif[prev])
+  const currDif = Number(dif[curr])
+  if (![prevLow, currLow, prevDif, currDif].every(isFiniteNumber)) return false
+  return currLow < prevLow && currDif > prevDif && currDif < 0 && prevDif < 0
+}
+
+function isMacdTopDeviation(index, line = [], dif = []) {
+  if (!Array.isArray(line) || !Array.isArray(dif) || index < 4) return false
+  const highSeries = line.map(item => Number(item?.high))
+  const pivots = findRecentPivotIndices(highSeries, index, 'high', 180, 2)
+  if (pivots.length < 2) return false
+  const prev = pivots[pivots.length - 2]
+  const curr = pivots[pivots.length - 1]
+  if (curr !== index) return false
+  const prevHigh = highSeries[prev]
+  const currHigh = highSeries[curr]
+  const prevDif = Number(dif[prev])
+  const currDif = Number(dif[curr])
+  if (![prevHigh, currHigh, prevDif, currDif].every(isFiniteNumber)) return false
+  return currHigh > prevHigh && currDif < prevDif && currDif > 0 && prevDif > 0
+}
+
 // 可用条件列表
 const availableConditions = [
   // 短期与中期均线对比
@@ -128,13 +200,13 @@ const availableConditions = [
     value: 'MACD_BOTTOM_DEVIATION', 
     label: 'macd底背离',
     params: ['macd'],
-    func: (i, {dif, line}) => i > 2 && (line[i].low < line[i-1].low) && (dif[i] > dif[i-1]) && (dif[i] < 0)
+    func: (i, {dif, line}) => isMacdBottomDeviation(i, line, dif)
   },
   { 
     value: 'MACD_TOP_DEVIATION', 
     label: 'macd顶背离',
     params: ['macd'],
-    func: (i, {dif, line}) => i > 2 && (line[i].high > line[i-1].high) && (dif[i] < dif[i-1]) && (dif[i] > 0)
+    func: (i, {dif, line}) => isMacdTopDeviation(i, line, dif)
   },
 
   // kdj相关
