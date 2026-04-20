@@ -341,9 +341,19 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, ena
   if (enabledIndicators.includes('macd')) {
     const emaS = calculateEMA(close, macd.s);
     const emaL = calculateEMA(close, macd.l);
-    const dif = emaS.map((ema, index) => ema - emaL[index])
-    const dea = calculateEMA(dif, macd.d)
-    const bar = dif.map((line, index) => line - dea[index])
+    const difRaw = emaS.map((ema, index) => ema - emaL[index])
+    const deaRaw = calculateEMA(difRaw, macd.d)
+    const barRaw = difRaw.map((line, index) => line - deaRaw[index])
+
+    // MACD 归一化：按当根收盘价缩放，便于跨标的比较
+    const normalizeByClose = (value, index) => {
+      const closeValue = Number(close[index])
+      if (!Number.isFinite(closeValue) || closeValue === 0) return 0
+      return new Decimal(value).div(closeValue).toNumber()
+    }
+    const dif = difRaw.map((value, index) => normalizeByClose(value, index))
+    const dea = deaRaw.map((value, index) => normalizeByClose(value, index))
+    const bar = barRaw.map((value, index) => normalizeByClose(value, index))
     
     result = {
       ...result,
