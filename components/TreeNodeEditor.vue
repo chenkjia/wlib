@@ -4,9 +4,10 @@
     <!-- 条件节点 -->
     <div v-if="node.type === 'condition'" class="flex items-center gap-2 p-2 rounded-md bg-gray-50 dark:bg-gray-800/40 shadow-sm">
       <USelect v-model="node.timeframe" :items="timeframeOptions" class="w-28" />
-      <USelect
+      <USelectMenu
         v-model="node.value"
         :items="filteredOptions"
+        value-key="value"
         searchable
         :search-input="{ placeholder: '搜索条件（名称/编码）' }"
         class="flex-1"
