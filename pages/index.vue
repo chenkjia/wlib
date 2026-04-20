@@ -32,6 +32,7 @@
           :stockCode="selectedStockCode"
           :dayLineWithMetric="dayLineWithMetric"
           :transactions="transactions"
+          :simulatedBuyPoints="simulatedBuyPoints"
           :backtestData="backtestData"
           :ma="ma"
           :buyConditions="buyConditions"
@@ -58,11 +59,13 @@
           v-model:sellConditions="sellConditions"
           v-model:enabledIndicators="enabledIndicators"
           :transactions="transactions"
+          :simulatedBuyPoints="simulatedBuyPoints"
           @changePanelState="changePanelState"
           @calculation="handleCalculation"
           @useTaskParams="handleUseTaskParams"
           @changeViewStock="handleChangeViewStock"
           @focusChart="handleFocusChart"
+          @updateSimulatedBuyPoints="handleUpdateSimulatedBuyPoints"
         />
       </div>
     </div>
@@ -88,6 +91,7 @@ const selectedDataSource = ref({
 const panelState = ref('normal') // 面板状态：normal, leftExpanded, rightExpanded, collapsed
 const dayLineWithMetric = ref([]) // 存储带有指标的日线数据
 const chartFocusData = ref(null) // 图表聚焦数据
+const simulatedBuyPoints = ref([]) // 买点模拟器命中点
 
 // 从本地存储读取配置或使用默认值
 const getLocalConfig = (key, defaultValue) => {
@@ -204,6 +208,10 @@ function handleFocusChart(focusData) {
   chartFocusData.value = focusData
 }
 
+function handleUpdateSimulatedBuyPoints(points) {
+  simulatedBuyPoints.value = Array.isArray(points) ? points : []
+}
+
 // 处理使用任务参数
 function handleUseTaskParams(params) {
   // 更新MA参数
@@ -293,6 +301,7 @@ function handleChangeViewStock(stockCode) {
 // 监听股票代码变化
 watch(() => selectedStockCode.value, async (newCode, oldCode) => {
   if (newCode && newCode !== oldCode) {
+    simulatedBuyPoints.value = []
     await loadStockData()
   }
 }, { immediate: true })

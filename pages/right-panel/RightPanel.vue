@@ -47,6 +47,17 @@
       >
         MACD分析
       </button>
+      <button
+        @click="activeTab = 'simulator'"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'simulator'
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        买点模拟器
+      </button>
     </div>     
     
     <!-- Tab内容 - 可滚动区域 -->
@@ -146,12 +157,59 @@
             </div>
           </template>
         </div>
+        <div v-show="activeTab === 'simulator'" class="p-3 space-y-3">
+          <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            仅当前股票 · 日线 · 收盘后确认 · 连续命中仅记首个
+          </div>
+          <div class="rounded-md border border-gray-200 bg-white p-3">
+            <div class="mb-2 text-xs font-medium text-gray-600">买点规则（仅用于模拟器）</div>
+            <AlgorithmConfig
+              type="buy"
+              :initialValue="simulatorBuyConditions"
+              :enabledIndicators="enabledIndicators"
+              @update:value="updateSimulatorBuyConditions"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              class="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!simulatorReady"
+              @click="runBuyPointSimulation"
+            >
+              开始模拟
+            </button>
+            <span class="text-xs text-gray-500">命中 {{ simulatedBuyPoints.length }} 个买点</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              class="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="simulatedBuyPoints.length === 0 || simulatorCursor <= 0"
+              @click="focusPrevBuyPoint"
+            >
+              上一个买点
+            </button>
+            <button
+              class="rounded-md border border-gray-300 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="simulatedBuyPoints.length === 0 || simulatorCursor >= simulatedBuyPoints.length - 1"
+              @click="focusNextBuyPoint"
+            >
+              下一个买点
+            </button>
+            <span class="text-xs text-gray-500">
+              {{ simulatedBuyPoints.length ? `第 ${simulatorCursor + 1} / ${simulatedBuyPoints.length} 个` : '--' }}
+            </span>
+          </div>
+          <div class="rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+            {{ simulatorStatusText }}
+          </div>
+        </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, defineProps, defineEmits, computed, watch, onMounted } from 'vue'
+import { algorithmMap, evaluateConditionTree } from '~/utils/algorithmUtils.js'
 import AlgorithmConfig from './AlgorithmConfig.vue'
 import TransactionList from './TransactionList.vue'
 import IndicatorList from './IndicatorList.vue'
@@ -196,6 +254,10 @@ const props = defineProps({
     type: Array,
     default: () => []
   },
+  simulatedBuyPoints: {
+    type: Array,
+    default: () => []
+  },
   // 买入算法
   buyConditions: {
       type: Array,
@@ -230,7 +292,8 @@ const emit = defineEmits([
   'update:enabledIndicators',
   'calculation',
   'changePanelState',
-  'focusChart'
+  'focusChart',
+  'updateSimulatedBuyPoints'
 ])
 
 // 本地响应式状态
@@ -336,6 +399,159 @@ const calculationMessage = ref('')
 const calculationLoading = ref(false)
 const messageClass = computed(() => calculationLoading.value ? 'text-yellow-600' : 'text-green-600')
 const macdRequiredKLineCount = computed(() => Number(props.macd?.l || 26) + Number(props.macd?.d || 9) - 1)
+const simulatedBuyPoints = ref([])
+const simulatorCursor = ref(-1)
+const simulatorBuyConditions = ref([])
+
+function getSimulatorLocalConfig() {
+  if (!process.client) return [{ type: 'group', op: 'AND', children: [] }]
+  const stored = localStorage.getItem('stock_config_simulator_buy_conditions')
+  if (!stored) return [{ type: 'group', op: 'AND', children: [] }]
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : [{ type: 'group', op: 'AND', children: [] }]
+  } catch (error) {
+    return [{ type: 'group', op: 'AND', children: [] }]
+  }
+}
+
+if (process.client) {
+  simulatorBuyConditions.value = getSimulatorLocalConfig()
+}
+
+function hasInvalidGroup(groups = []) {
+  return groups.some((group) => {
+    if (Array.isArray(group)) return group.length === 0
+    if (group && typeof group === 'object') {
+      if (group.type === 'group') return !Array.isArray(group.children) || group.children.length === 0
+      if (group.type === 'condition') return !group.value
+    }
+    return true
+  })
+}
+
+const simulatorReady = computed(() => {
+  const hasData = Array.isArray(props.dayLineWithMetric?.data) && props.dayLineWithMetric.data.length > 0
+  const hasRules = Array.isArray(simulatorBuyConditions.value) && simulatorBuyConditions.value.length > 0 && !hasInvalidGroup(simulatorBuyConditions.value)
+  return hasData && hasRules
+})
+
+function updateSimulatorBuyConditions(value) {
+  simulatorBuyConditions.value = Array.isArray(value) ? value : []
+  if (process.client) {
+    localStorage.setItem('stock_config_simulator_buy_conditions', JSON.stringify(simulatorBuyConditions.value))
+  }
+}
+
+function formatSimulatorTime(value) {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+const simulatorStatusText = computed(() => {
+  if (!Array.isArray(props.dayLineWithMetric?.data) || props.dayLineWithMetric.data.length === 0) return '请先选择股票并加载日线数据'
+  if (!Array.isArray(simulatorBuyConditions.value) || simulatorBuyConditions.value.length === 0 || hasInvalidGroup(simulatorBuyConditions.value)) return '请先在“买点规则（仅用于模拟器）”中配置有效条件'
+  if (simulatedBuyPoints.value.length === 0) return '尚未命中买点，点击“开始模拟”执行扫描'
+  const current = simulatedBuyPoints.value[simulatorCursor.value]
+  if (!current) return '暂无当前买点'
+  return `当前买点：${formatSimulatorTime(current.time)}，价格 ${Number(current.price).toFixed(2)}`
+})
+
+function evaluateBuyGroup(group, index) {
+  if (Array.isArray(group)) {
+    return group.every((conditionType) => {
+      const cond = algorithmMap[conditionType]
+      if (!cond || typeof cond.func !== 'function') return false
+      try {
+        return Boolean(cond.func(index, props.dayLineWithMetric))
+      } catch (error) {
+        return false
+      }
+    })
+  }
+  if (group && typeof group === 'object') {
+    const context = {
+      datasets: { day: props.dayLineWithMetric },
+      indices: { day: index, week: -1, hour: -1 }
+    }
+    return evaluateConditionTree(group, context)
+  }
+  return false
+}
+
+function focusPointByCursor() {
+  if (simulatorCursor.value < 0 || simulatorCursor.value >= simulatedBuyPoints.value.length) return
+  const point = simulatedBuyPoints.value[simulatorCursor.value]
+  emit('focusChart', {
+    buyIndex: point.index,
+    sellIndex: point.index
+  })
+}
+
+function runBuyPointSimulation() {
+  if (!simulatorReady.value) return
+  const line = props.dayLineWithMetric?.data || []
+  const buyConditions = simulatorBuyConditions.value || []
+  if (!Array.isArray(line) || line.length === 0 || !Array.isArray(buyConditions) || buyConditions.length === 0) {
+    simulatedBuyPoints.value = []
+    simulatorCursor.value = -1
+    emit('updateSimulatedBuyPoints', [])
+    return
+  }
+
+  const points = []
+  let buyStep = 0
+  const buyLength = buyConditions.length
+  let lastTriggeredIndex = -2
+
+  for (let index = 0; index < line.length; index++) {
+    const group = buyConditions[buyStep]
+    const buyResult = evaluateBuyGroup(group, index)
+    if (buyResult) {
+      buyStep++
+    }
+    if (buyStep === buyLength) {
+      // 连续多天满足时仅记录首次命中
+      if (index !== lastTriggeredIndex + 1) {
+        points.push({
+          index,
+          time: line[index]?.time,
+          price: Number(line[index]?.close)
+        })
+      }
+      lastTriggeredIndex = index
+      buyStep = 0
+    }
+  }
+
+  simulatedBuyPoints.value = points
+  emit('updateSimulatedBuyPoints', points)
+  simulatorCursor.value = points.length > 0 ? points.length - 1 : -1 // 从最近买点开始
+  focusPointByCursor()
+}
+
+function focusPrevBuyPoint() {
+  if (simulatorCursor.value <= 0) return
+  simulatorCursor.value -= 1
+  focusPointByCursor()
+}
+
+function focusNextBuyPoint() {
+  if (simulatorCursor.value >= simulatedBuyPoints.value.length - 1) return
+  simulatorCursor.value += 1
+  focusPointByCursor()
+}
+
+watch(() => [props.selectedStockCode, props.dayLineWithMetric?.data?.length || 0], () => {
+  simulatedBuyPoints.value = []
+  simulatorCursor.value = -1
+  emit('updateSimulatedBuyPoints', [])
+})
 
 function formatMetricValue(value) {
   return Number.isFinite(value) ? value.toFixed(4) : '--'

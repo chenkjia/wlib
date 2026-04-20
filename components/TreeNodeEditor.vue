@@ -4,7 +4,13 @@
     <!-- 条件节点 -->
     <div v-if="node.type === 'condition'" class="flex items-center gap-2 p-2 rounded-md bg-gray-50 dark:bg-gray-800/40 shadow-sm">
       <USelect v-model="node.timeframe" :items="timeframeOptions" class="w-28" />
-      <USelect v-model="node.value" :items="filteredOptions" class="flex-1" />
+      <USelect
+        v-model="node.value"
+        :items="filteredOptions"
+        searchable
+        :search-input="{ placeholder: '搜索条件（名称/编码）' }"
+        class="flex-1"
+      />
       <UButton color="danger" variant="soft" size="sm" label="删除" @click="removeSelf" />
     </div>
 

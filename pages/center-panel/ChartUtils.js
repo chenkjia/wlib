@@ -6,6 +6,68 @@
 export const upColor = '#00da3c'
 export const downColor = '#ec0000'
 
+function calculateSimpleMA(values = [], period = 60) {
+  if (!Array.isArray(values) || values.length === 0) return []
+  const result = []
+  for (let i = 0; i < values.length; i++) {
+    const start = Math.max(0, i - period + 1)
+    const window = values.slice(start, i + 1).filter(v => typeof v === 'number' && Number.isFinite(v))
+    if (window.length === 0) {
+      result.push(null)
+      continue
+    }
+    const sum = window.reduce((acc, cur) => acc + cur, 0)
+    result.push(sum / window.length)
+  }
+  return result
+}
+
+function getTrendStateByIndex(closeSeries = [], ma60Series = [], difSeries = [], index = 0) {
+  // 数据前段（MA60不足或无法比较前一日）统一归为震荡
+  if (index < 60) return 'range'
+  const close = Number(closeSeries[index])
+  const ma60 = Number(ma60Series[index])
+  const ma60Prev = Number(ma60Series[index - 1])
+  const dif = Number(difSeries[index])
+  if (!Number.isFinite(close) || !Number.isFinite(ma60) || !Number.isFinite(ma60Prev) || !Number.isFinite(dif)) {
+    return 'range'
+  }
+  if (close > ma60 && ma60 > ma60Prev && dif > 0) return 'bull'
+  if (close < ma60 && ma60 < ma60Prev && dif < 0) return 'bear'
+  return 'range'
+}
+
+function buildTrendSegments(lineData = [], difSeries = [], categoryData = []) {
+  if (!Array.isArray(lineData) || lineData.length === 0) return []
+  const closeSeries = lineData.map(item => (typeof item?.close === 'number' ? item.close : null))
+  const ma60Series = calculateSimpleMA(closeSeries, 60)
+  const states = lineData.map((_, index) => getTrendStateByIndex(closeSeries, ma60Series, difSeries, index))
+  const segments = []
+  let start = 0
+  let currentState = states[0] || 'range'
+  for (let i = 1; i < states.length; i++) {
+    if (states[i] !== currentState) {
+      segments.push({
+        state: currentState,
+        startIndex: start,
+        endIndex: i - 1,
+        startX: categoryData[start],
+        endX: categoryData[i - 1]
+      })
+      start = i
+      currentState = states[i]
+    }
+  }
+  segments.push({
+    state: currentState,
+    startIndex: start,
+    endIndex: states.length - 1,
+    startX: categoryData[start],
+    endX: categoryData[states.length - 1]
+  })
+  return segments
+}
+
 /**
  * 分割K线图数据
  * @param {Array} rawData - 原始数据
@@ -220,7 +282,7 @@ function processMacdDeviationPoints(dif = [], dea = [], bar = []) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], activeSubChart = 'volume') {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], activeSubChart = 'volume', simulatedBuyPoints = []) {
   const macdEnabled = enabledIndicators.includes('macd')
   const kdjEnabled = enabledIndicators.includes('kdj')
   // 仅保留一个副图显示：macd 或 kdj 或 none（成交量始终显示）
@@ -241,6 +303,26 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const trendPoints = processTrendPoints(data.trendData)
   const magicNine = processMagicNinePoints(dayLineWithMetric.line || [])
   const macdDeviations = processMacdDeviationPoints(dif, dea, bar)
+  const simulationPoints = Array.isArray(simulatedBuyPoints)
+    ? simulatedBuyPoints
+      .filter(point => Number.isFinite(point?.index) && Number.isFinite(point?.price))
+      .map((point, index) => ({
+        name: `sim-buy-${index + 1}`,
+        coord: [point.index, point.price],
+        value: 'B',
+        symbol: 'circle',
+        symbolSize: 9,
+        itemStyle: { color: '#2563eb', borderColor: '#ffffff', borderWidth: 1 },
+        label: { show: false }
+      }))
+    : []
+  const trendSegments = buildTrendSegments(dayLineWithMetric.line || [], dif, data.categoryData || [])
+  const bullTrendAreas = trendSegments
+    .filter(segment => segment.state === 'bull')
+    .map(segment => [{ xAxis: segment.startX }, { xAxis: segment.endX }])
+  const bearTrendAreas = trendSegments
+    .filter(segment => segment.state === 'bear')
+    .map(segment => [{ xAxis: segment.startX }, { xAxis: segment.endX }])
   
   // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
   const grid = [
@@ -296,7 +378,12 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   // Y轴（主图 + 单一副图）
   const yAxis = [
-    { scale: true, splitArea: { show: true } },
+    {
+      scale: true,
+      splitArea: {
+        show: false
+      }
+    },
     { scale: true, gridIndex: subGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }
   ]
   
@@ -328,6 +415,40 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   // 系列
   const series = [
+    ...(bullTrendAreas.length > 0 ? [{
+      name: '多头趋势背景',
+      type: 'line',
+      xAxisIndex: 0,
+      yAxisIndex: 0,
+      data: data.categoryData.map(() => null),
+      showSymbol: false,
+      lineStyle: { opacity: 0 },
+      tooltip: { show: false },
+      silent: true,
+      z: -10,
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(236, 0, 0, 0.08)' },
+        data: bullTrendAreas
+      }
+    }] : []),
+    ...(bearTrendAreas.length > 0 ? [{
+      name: '空头趋势背景',
+      type: 'line',
+      xAxisIndex: 0,
+      yAxisIndex: 0,
+      data: data.categoryData.map(() => null),
+      showSymbol: false,
+      lineStyle: { opacity: 0 },
+      tooltip: { show: false },
+      silent: true,
+      z: -10,
+      markArea: {
+        silent: true,
+        itemStyle: { color: 'rgba(0, 218, 60, 0.08)' },
+        data: bearTrendAreas
+      }
+    }] : []),
     {
       name: 'K线',
       type: 'candlestick',
@@ -341,7 +462,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       markPoint: {
         symbol: 'pin',
         symbolSize: 40,
-        data: [...trendPoints, ...magicNine.points],
+        data: [...trendPoints, ...magicNine.points, ...simulationPoints],
         label: {
           formatter: function(params) {
             return params.data.value
@@ -406,6 +527,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   return {
     animation: false,
+    backgroundColor: '#ffffff',
+    textStyle: { color: '#111827' },
     tooltip: {
       trigger: 'axis',
       axisPointer: {

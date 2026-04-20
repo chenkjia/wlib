@@ -40,6 +40,10 @@ const props = defineProps({
     type: Array,
     required: true
   },
+  simulatedBuyPoints: {
+    type: Array,
+    default: () => []
+  },
   backtestData: {
     type: Object,
     required: true
@@ -119,7 +123,7 @@ async function refreshChart() {
     }
     
     // 重新初始化图表
-    myChart = echarts.init(chartContainer.value, 'dark')
+    myChart = echarts.init(chartContainer.value)
     
     const data = splitData(props.dayLineWithMetric.line, props.transactions)
     renderChart(
@@ -142,7 +146,8 @@ function renderChart(data, dayLineWithMetric) {
     formatDateYYYYMMDD, 
     formatDateMMDD,
     props.enabledIndicators,
-    activeSubChart.value
+    activeSubChart.value,
+    props.simulatedBuyPoints
   )
   myChart.setOption(option)
 }
@@ -195,7 +200,7 @@ function focusChartToRange(focusData) {
 }
 
 // 监听数据变化，重新渲染图表
-watch([() => props.dayLineWithMetric, () => props.transactions, () => props.ma], async () => {
+watch([() => props.dayLineWithMetric, () => props.transactions, () => props.ma, () => props.simulatedBuyPoints], async () => {
   await refreshChart()
 }, { deep: true })
 
@@ -271,6 +276,7 @@ watch(
   min-height: 400px;
   z-index: 10;
   position: relative;
+  background-color: #ffffff;
 }
 
 .chart-tabs {

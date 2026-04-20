@@ -100,6 +100,12 @@ const availableConditions = [
     params: ['macd'],
     func: (i, {dif, dea}) => dif[i] > dea[i]
   },
+  {
+    value: 'MACD_DIF_GT_ZERO',
+    label: 'MACD DIF大于0轴',
+    params: ['macd'],
+    func: (i, {dif}) => dif[i] > 0
+  },
   { 
     value: 'MACD_DIF_LT_DEA', 
     label: 'MACD DIF小于DEA (空头)',
@@ -247,6 +253,30 @@ const availableConditions = [
     label: '远期均线拐头向下',
     params: ['ma'],
     func: (i, {maX}) => maX[i-2] < maX[i-1] && maX[i] < maX[i-1]
+  },
+  {
+    value: 'CLOSE_GT_MAS',
+    label: '收盘价高于短期均线',
+    params: ['ma'],
+    func: (i, {line, maS}) => line[i]?.close > maS[i]
+  },
+  {
+    value: 'CLOSE_GT_MAM',
+    label: '收盘价高于中期均线',
+    params: ['ma'],
+    func: (i, {line, maM}) => line[i]?.close > maM[i]
+  },
+  {
+    value: 'CLOSE_GT_MAL',
+    label: '收盘价高于长期均线',
+    params: ['ma'],
+    func: (i, {line, maL}) => line[i]?.close > maL[i]
+  },
+  {
+    value: 'CLOSE_GT_MAX',
+    label: '收盘价高于超长期均线',
+    params: ['ma'],
+    func: (i, {line, maX}) => line[i]?.close > maX[i]
   },
   { 
     value: 'MAS_EXPEND_MAM', 
