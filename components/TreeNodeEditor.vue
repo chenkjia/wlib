@@ -61,11 +61,16 @@ const props = defineProps({
 
 // 根据启用的指标过滤可用条件（与主界面一致的规则）
 const filteredAvailableConditions = computed(() => {
+  const indicatorParams = ['ma', 'macd', 'kdj', 'volume']
   return availableConditions.filter(condition => {
     if (!condition.params || condition.params.length === 0) {
       return true
     }
-    return condition.params.every(param => props.enabledIndicators.includes(param))
+    return condition.params.every(param => {
+      // 非指标依赖（如 line/time）不参与开关过滤
+      if (!indicatorParams.includes(param)) return true
+      return props.enabledIndicators.includes(param)
+    })
   })
 })
 const filteredOptions = computed(() => filteredAvailableConditions.value.map(c => ({ label: c.label, value: c.value })))

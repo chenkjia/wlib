@@ -5,6 +5,25 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+const historicalHighPrefixCache = new WeakMap()
+
+function getHistoricalHighPrefix(line = []) {
+  if (!Array.isArray(line) || line.length === 0) return []
+  const cached = historicalHighPrefixCache.get(line)
+  if (cached) return cached
+  const prefix = new Array(line.length).fill(-Infinity)
+  let runningMax = -Infinity
+  for (let i = 0; i < line.length; i++) {
+    const high = Number(line[i]?.high ?? line[i]?.close)
+    if (isFiniteNumber(high) && high > runningMax) {
+      runningMax = high
+    }
+    prefix[i] = runningMax
+  }
+  historicalHighPrefixCache.set(line, prefix)
+  return prefix
+}
+
 function isGoldenCross(i, dif = [], dea = []) {
   if (i <= 0) return false
   const prevDif = Number(dif[i - 1])
@@ -206,6 +225,30 @@ const availableConditions = [
     params: ['macd'],
     func: (i, {dif}) => Math.abs(Number(dif[i])) > 10
   },
+  {
+    value: 'MACD_DIF_LTE_5',
+    label: 'MACD DIF不超过5',
+    params: ['macd'],
+    func: (i, {dif}) => Number(dif[i]) <= 5
+  },
+  {
+    value: 'MACD_GREEN_BAR_PULL_LEG',
+    label: 'MACD 绿柱抽脚',
+    params: ['macd'],
+    func: (i, {bar}) => i > 0 && Number(bar[i]) < 0 && Number(bar[i - 1]) < 0 && Math.abs(Number(bar[i])) < Math.abs(Number(bar[i - 1]))
+  },
+  {
+    value: 'MACD_RED_BAR_SHRINK_HEAD',
+    label: 'MACD 红柱缩头',
+    params: ['macd'],
+    func: (i, {bar}) => i > 0 && Number(bar[i]) > 0 && Number(bar[i - 1]) > 0 && Math.abs(Number(bar[i])) < Math.abs(Number(bar[i - 1]))
+  },
+  {
+    value: 'MACD_BAR_ABS_GT_5',
+    label: 'MACD 柱绝对值大于5',
+    params: ['macd'],
+    func: (i, {bar}) => Math.abs(Number(bar[i])) > 5
+  },
   { 
     value: 'MACD_DIF_LT_DEA', 
     label: 'MACD DIF小于DEA (空头)',
@@ -377,6 +420,38 @@ const availableConditions = [
     label: '收盘价高于超长期均线',
     params: ['ma'],
     func: (i, {line, maX}) => line[i]?.close > maX[i]
+  },
+  {
+    value: 'PRICE_BREAK_ALL_TIME_HIGH_IN_3D',
+    label: '三天内价格突破历史最高价',
+    params: ['line'],
+    func: (i, {line}) => {
+      if (!Array.isArray(line) || i < 0) return false
+      const prefix = getHistoricalHighPrefix(line)
+      const start = Math.max(0, i - 2)
+      for (let j = start; j <= i; j++) {
+        const cur = Number(line[j]?.high ?? line[j]?.close)
+        if (!isFiniteNumber(cur) || j <= 0) continue
+        const prevHigh = prefix[j - 1]
+        if (isFiniteNumber(prevHigh) && cur > prevHigh) {
+          return true
+        }
+      }
+      return false
+    }
+  },
+  {
+    value: 'PRICE_BREAK_ALL_TIME_HIGH_TODAY',
+    label: '当天突破历史最高价',
+    params: ['line'],
+    func: (i, {line}) => {
+      if (!Array.isArray(line) || i <= 0) return false
+      const prefix = getHistoricalHighPrefix(line)
+      const cur = Number(line[i]?.high ?? line[i]?.close)
+      const prevHigh = prefix[i - 1]
+      if (!isFiniteNumber(cur) || !isFiniteNumber(prevHigh)) return false
+      return cur > prevHigh
+    }
   },
   { 
     value: 'MAS_EXPEND_MAM', 
