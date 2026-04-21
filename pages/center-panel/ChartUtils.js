@@ -3,8 +3,8 @@
  */
 
 // 颜色配置
-export const upColor = '#00da3c'
-export const downColor = '#ec0000'
+export const upColor = '#ef4444'
+export const downColor = '#22c55e'
 
 function calculateSimpleMA(values = [], period = 60) {
   if (!Array.isArray(values) || values.length === 0) return []
@@ -236,39 +236,69 @@ function processMagicNinePoints(lineData = []) {
   return { upCounts, downCounts, points }
 }
 
-function processMacdDeviationPoints(dif = [], dea = [], bar = []) {
+function processMacdDeviationPoints(dif = [], dea = [], line = []) {
   const topPoints = []
   const bottomPoints = []
-  const length = Math.min(dif.length, dea.length, bar.length || Infinity)
+  const length = Math.min(dif.length, dea.length, line.length || Infinity)
+  const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(value)
+  const isGoldenCross = (i) => i > 0 && isFiniteNumber(dif[i - 1]) && isFiniteNumber(dea[i - 1]) && isFiniteNumber(dif[i]) && isFiniteNumber(dea[i]) && dif[i - 1] < dea[i - 1] && dif[i] >= dea[i]
+  const isDeadCross = (i) => i > 0 && isFiniteNumber(dif[i - 1]) && isFiniteNumber(dea[i - 1]) && isFiniteNumber(dif[i]) && isFiniteNumber(dea[i]) && dif[i - 1] > dea[i - 1] && dif[i] <= dea[i]
+
   for (let i = 1; i < length; i++) {
-    const curDif = dif[i]
-    const prevDif = dif[i - 1]
-    const curDea = dea[i]
-    const prevDea = dea[i - 1]
-    if (
-      typeof curDif !== 'number' ||
-      typeof prevDif !== 'number' ||
-      typeof curDea !== 'number' ||
-      typeof prevDea !== 'number'
-    ) {
-      continue
+    // 底背离：当前金叉 vs 上一个金叉，且中间死叉DIF都在0轴下
+    if (isGoldenCross(i)) {
+      let prevGolden = -1
+      for (let j = i - 1; j >= 1; j--) {
+        if (isGoldenCross(j)) {
+          prevGolden = j
+          break
+        }
+      }
+      if (prevGolden !== -1) {
+        const deadBetween = []
+        for (let j = prevGolden + 1; j < i; j++) {
+          if (isDeadCross(j)) deadBetween.push(j)
+        }
+        if (deadBetween.length > 0 && deadBetween.every(j => isFiniteNumber(dif[j]) && dif[j] < 0)) {
+          const prevGoldenDif = Number(dif[prevGolden])
+          const currGoldenDif = Number(dif[i])
+          const prevPrice = Number(line[prevGolden]?.close)
+          const currPrice = Number(line[i]?.close)
+          if ([prevGoldenDif, currGoldenDif, prevPrice, currPrice].every(isFiniteNumber)) {
+            if (currGoldenDif > prevGoldenDif && currPrice < prevPrice) {
+              bottomPoints.push([i, currGoldenDif])
+            }
+          }
+        }
+      }
     }
-    const crossUp = prevDif < prevDea && curDif >= curDea
-    const crossDown = prevDif > prevDea && curDif <= curDea
-    const prevGap = prevDif - prevDea
-    const curGap = curDif - curDea
-    const gapDelta = curGap - prevGap
-    let crossY = (curDif + curDea) / 2
-    if (gapDelta !== 0) {
-      const t = -prevGap / gapDelta
-      const clampT = Math.max(0, Math.min(1, t))
-      crossY = prevDif + clampT * (curDif - prevDif)
-    }
-    if (crossUp && crossY <= 0) {
-      bottomPoints.push([i, crossY])
-    }
-    if (crossDown && crossY >= 0) {
-      topPoints.push([i, crossY])
+
+    // 顶背离：当前死叉 vs 上一个死叉，且中间金叉DIF都在0轴上
+    if (isDeadCross(i)) {
+      let prevDead = -1
+      for (let j = i - 1; j >= 1; j--) {
+        if (isDeadCross(j)) {
+          prevDead = j
+          break
+        }
+      }
+      if (prevDead !== -1) {
+        const goldenBetween = []
+        for (let j = prevDead + 1; j < i; j++) {
+          if (isGoldenCross(j)) goldenBetween.push(j)
+        }
+        if (goldenBetween.length > 0 && goldenBetween.every(j => isFiniteNumber(dif[j]) && dif[j] > 0)) {
+          const prevDeadDif = Number(dif[prevDead])
+          const currDeadDif = Number(dif[i])
+          const prevPrice = Number(line[prevDead]?.close)
+          const currPrice = Number(line[i]?.close)
+          if ([prevDeadDif, currDeadDif, prevPrice, currPrice].every(isFiniteNumber)) {
+            if (currDeadDif < prevDeadDif && currPrice > prevPrice) {
+              topPoints.push([i, currDeadDif])
+            }
+          }
+        }
+      }
     }
   }
   return { topPoints, bottomPoints }
@@ -301,8 +331,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const kdjJ = dayLineWithMetric.kdjJ || []
   
   const trendPoints = processTrendPoints(data.trendData)
-  const magicNine = processMagicNinePoints(dayLineWithMetric.line || [])
-  const macdDeviations = processMacdDeviationPoints(dif, dea, bar)
+  const macdDeviations = processMacdDeviationPoints(dif, dea, dayLineWithMetric.line || [])
   const simulationPoints = Array.isArray(simulatedBuyPoints)
     ? simulatedBuyPoints
       .filter(point => Number.isFinite(point?.index) && Number.isFinite(point?.price))
@@ -326,8 +355,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
   const grid = [
-    { left: '10%', right: '10%', height: '65%' },
-    { left: '10%', right: '10%', top: '72%', height: '22%' }
+    { left: '10%', right: '10%', top: '4%', height: '60%' },
+    { left: '10%', right: '10%', top: '74%', height: '20%' }
   ]
   
   // 副图网格索引统一为 1
@@ -462,7 +491,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       markPoint: {
         symbol: 'pin',
         symbolSize: 40,
-        data: [...trendPoints, ...magicNine.points, ...simulationPoints],
+        data: [...trendPoints, ...simulationPoints],
         label: {
           formatter: function(params) {
             return params.data.value
@@ -548,17 +577,6 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
             最低: ${klineParam.data[3]}<br/>
             最高: ${klineParam.data[4]}<br/>
           `
-          const dataIndex = typeof klineParam.dataIndex === 'number' ? klineParam.dataIndex : -1
-          if (dataIndex >= 0) {
-            const upCount = magicNine.upCounts[dataIndex] || 0
-            const downCount = magicNine.downCounts[dataIndex] || 0
-            if (upCount > 0) {
-              res += `神奇9转(涨): ${upCount}<br/>`
-            }
-            if (downCount > 0) {
-              res += `神奇9转(跌): ${downCount}<br/>`
-            }
-          }
         }
         
         // 均线数据

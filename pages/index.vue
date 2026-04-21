@@ -33,6 +33,7 @@
           :dayLineWithMetric="dayLineWithMetric"
           :transactions="transactions"
           :simulatedBuyPoints="simulatedBuyPoints"
+          :autoCalculateSignals="autoCalculateSignals"
           :backtestData="backtestData"
           :ma="ma"
           :buyConditions="buyConditions"
@@ -58,6 +59,7 @@
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           v-model:enabledIndicators="enabledIndicators"
+          v-model:autoCalculateSignals="autoCalculateSignals"
           :transactions="transactions"
           :simulatedBuyPoints="simulatedBuyPoints"
           @changePanelState="changePanelState"
@@ -75,7 +77,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { calculateStock } from '~/utils/chartUtils.js'
+import { calculateStock, calculateMetric } from '~/utils/chartUtils.js'
 import LeftPanel from './left-panel/LeftPanel.vue'
 import ChartPanel from './center-panel/ChartPanel.vue'
 import RightPanel from './right-panel/RightPanel.vue'
@@ -102,6 +104,8 @@ const getLocalConfig = (key, defaultValue) => {
   return defaultValue
 }
 
+const autoCalculateSignals = ref(getLocalConfig('autoCalculateSignals', true)) // 是否自动计算买卖点
+
 const enabledIndicators = ref(getLocalConfig('enabledIndicators', ['ma', 'macd'])) // 启用的指标
 
 // 保存配置到本地存储
@@ -113,6 +117,7 @@ const saveConfigToLocalStorage = () => {
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
     localStorage.setItem(`stock_config_enabledIndicators`, JSON.stringify(enabledIndicators.value))
+    localStorage.setItem(`stock_config_autoCalculateSignals`, JSON.stringify(autoCalculateSignals.value))
   }
 }
 
@@ -263,11 +268,28 @@ async function loadStockData() {
       chartLine.value = await dayLineResponse.json()
     }
     
-    // 计算交易数据
-    calculateTransactions()
+    // 自动计算开关关闭时，仅刷新指标，不计算买卖点
+    if (autoCalculateSignals.value) {
+      calculateTransactions()
+    } else {
+      calculateMetricsOnly()
+    }
   } catch (err) {
     console.error('加载数据失败:', err)
   }
+}
+
+function calculateMetricsOnly() {
+  const dayLine = chartLine.value
+  dayLineWithMetric.value = calculateMetric(dayLine, {
+    ma: ma.value,
+    macd: macd.value,
+    kdj: kdj.value,
+    enabledIndicators: enabledIndicators.value
+  })
+  // 关闭自动计算时清空交易结果，避免沿用上一只股票的买卖点
+  transactions.value = []
+  backtestData.value = {}
 }
 
 // 计算交易数据
@@ -305,6 +327,12 @@ watch(() => selectedStockCode.value, async (newCode, oldCode) => {
     await loadStockData()
   }
 }, { immediate: true })
+
+watch(() => autoCalculateSignals.value, (value) => {
+  if (process.client) {
+    localStorage.setItem(`stock_config_autoCalculateSignals`, JSON.stringify(Boolean(value)))
+  }
+})
 
 // 监听数据源变化，重新加载数据
 

@@ -74,6 +74,16 @@
         />
       </div>
       <div v-show="activeTab === 'config'" class="space-y-2 pt-3">
+        <div class="mx-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+          <label class="flex items-center justify-between gap-3 text-sm text-gray-700">
+            <span>切换股票时自动计算买卖点</span>
+            <input
+              v-model="autoCalculateSignalsModel"
+              type="checkbox"
+              class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            >
+          </label>
+        </div>
         <ConfigRules
           :ma="props.ma"
           :macd="props.macd"
@@ -160,6 +170,16 @@
         <div v-show="activeTab === 'simulator'" class="p-3 space-y-3">
           <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
             仅当前股票 · 日线 · 收盘后确认 · 连续命中仅记首个
+          </div>
+          <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+            <label class="flex items-center justify-between gap-3 text-sm text-gray-700">
+              <span>切换股票时自动计算买点</span>
+              <input
+                v-model="autoCalculateSimulator"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              >
+            </label>
           </div>
           <div class="rounded-md border border-gray-200 bg-white p-3">
             <div class="mb-2 text-xs font-medium text-gray-600">买点规则（仅用于模拟器）</div>
@@ -280,6 +300,10 @@ const props = defineProps({
   selectedStockCode: {
     type: String,
     default: ''
+  },
+  autoCalculateSignals: {
+    type: Boolean,
+    default: true
   }
 })
 
@@ -290,6 +314,7 @@ const emit = defineEmits([
   'update:buyConditions',
   'update:sellConditions',
   'update:enabledIndicators',
+  'update:autoCalculateSignals',
   'calculation',
   'changePanelState',
   'focusChart',
@@ -304,6 +329,10 @@ const activeTab = ref('config')
 const enabledIndicators = computed({
   get: () => props.enabledIndicators,
   set: (val) => emit('update:enabledIndicators', val)
+})
+const autoCalculateSignalsModel = computed({
+  get: () => props.autoCalculateSignals,
+  set: (val) => emit('update:autoCalculateSignals', Boolean(val))
 })
 
 // 计算属性（与父组件双向绑定）
@@ -402,6 +431,7 @@ const macdRequiredKLineCount = computed(() => Number(props.macd?.l || 26) + Numb
 const simulatedBuyPoints = ref([])
 const simulatorCursor = ref(-1)
 const simulatorBuyConditions = ref([])
+const autoCalculateSimulator = ref(process.client ? JSON.parse(localStorage.getItem('stock_config_autoCalculateSimulator') || 'true') : true)
 
 function getSimulatorLocalConfig() {
   if (!process.client) return [{ type: 'group', op: 'AND', children: [] }]
@@ -548,9 +578,19 @@ function focusNextBuyPoint() {
 }
 
 watch(() => [props.selectedStockCode, props.dayLineWithMetric?.data?.length || 0], () => {
-  simulatedBuyPoints.value = []
-  simulatorCursor.value = -1
-  emit('updateSimulatedBuyPoints', [])
+  if (autoCalculateSimulator.value && simulatorReady.value) {
+    runBuyPointSimulation()
+  } else {
+    simulatedBuyPoints.value = []
+    simulatorCursor.value = -1
+    emit('updateSimulatedBuyPoints', [])
+  }
+})
+
+watch(autoCalculateSimulator, (value) => {
+  if (process.client) {
+    localStorage.setItem('stock_config_autoCalculateSimulator', JSON.stringify(Boolean(value)))
+  }
 })
 
 function formatMetricValue(value) {

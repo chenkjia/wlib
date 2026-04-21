@@ -2,6 +2,18 @@
   <div class="w-full flex flex-col h-full">
     <!-- 图表顶部交易统计组件 -->
     <TradeStats :backtestData="backtestData" />
+    <div class="px-3 pt-1">
+      <span
+        :class="[
+          'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium',
+          props.autoCalculateSignals
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-amber-50 text-amber-700 border border-amber-200'
+        ]"
+      >
+        自动计算买卖点：{{ props.autoCalculateSignals ? '开启' : '关闭' }}
+      </span>
+    </div>
     
     <!-- 图表容器 -->
     <div class="chart-container flex-grow" ref="chartContainer"></div>
@@ -43,6 +55,10 @@ const props = defineProps({
   simulatedBuyPoints: {
     type: Array,
     default: () => []
+  },
+  autoCalculateSignals: {
+    type: Boolean,
+    default: true
   },
   backtestData: {
     type: Object,

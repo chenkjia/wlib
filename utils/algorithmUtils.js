@@ -5,72 +5,88 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
-function findRecentPivotIndices(series = [], endIndex = 0, pivotType = 'low', lookback = 120, leftRight = 2) {
-  if (!Array.isArray(series) || series.length === 0) return []
-  const start = Math.max(leftRight, endIndex - lookback + 1)
-  const end = Math.min(endIndex, series.length - 1 - leftRight)
-  if (end < start) return []
+function isGoldenCross(i, dif = [], dea = []) {
+  if (i <= 0) return false
+  const prevDif = Number(dif[i - 1])
+  const prevDea = Number(dea[i - 1])
+  const curDif = Number(dif[i])
+  const curDea = Number(dea[i])
+  if (![prevDif, prevDea, curDif, curDea].every(isFiniteNumber)) return false
+  return prevDif < prevDea && curDif >= curDea
+}
 
-  const pivots = []
-  for (let i = start; i <= end; i++) {
-    const center = series[i]
-    if (!isFiniteNumber(center)) continue
-    let isPivot = true
-    for (let offset = 1; offset <= leftRight; offset++) {
-      const left = series[i - offset]
-      const right = series[i + offset]
-      if (!isFiniteNumber(left) || !isFiniteNumber(right)) {
-        isPivot = false
-        break
-      }
-      if (pivotType === 'low') {
-        if (!(center <= left && center <= right)) {
-          isPivot = false
-          break
-        }
-      } else {
-        if (!(center >= left && center >= right)) {
-          isPivot = false
-          break
-        }
-      }
+function isDeadCross(i, dif = [], dea = []) {
+  if (i <= 0) return false
+  const prevDif = Number(dif[i - 1])
+  const prevDea = Number(dea[i - 1])
+  const curDif = Number(dif[i])
+  const curDea = Number(dea[i])
+  if (![prevDif, prevDea, curDif, curDea].every(isFiniteNumber)) return false
+  return prevDif > prevDea && curDif <= curDea
+}
+
+function isMacdBottomDeviation(index, line = [], dif = [], dea = []) {
+  if (!Array.isArray(line) || !Array.isArray(dif) || !Array.isArray(dea) || index <= 0) return false
+  // 仅在当前是金叉时判定底背离
+  if (!isGoldenCross(index, dif, dea)) return false
+
+  // 找上一个金叉
+  let prevGolden = -1
+  for (let i = index - 1; i >= 1; i--) {
+    if (isGoldenCross(i, dif, dea)) {
+      prevGolden = i
+      break
     }
-    if (isPivot) pivots.push(i)
   }
+  if (prevGolden === -1) return false
 
-  return pivots
+  // 两次金叉中间所有死叉的DIF都必须在零轴下
+  const deadBetween = []
+  for (let i = prevGolden + 1; i < index; i++) {
+    if (isDeadCross(i, dif, dea)) deadBetween.push(i)
+  }
+  if (deadBetween.length === 0) return false
+  if (!deadBetween.every(i => Number(dif[i]) < 0)) return false
+
+  const prevGoldenDif = Number(dif[prevGolden])
+  const currGoldenDif = Number(dif[index])
+  const prevPrice = Number(line[prevGolden]?.close)
+  const currPrice = Number(line[index]?.close)
+  if (![prevGoldenDif, currGoldenDif, prevPrice, currPrice].every(isFiniteNumber)) return false
+
+  return currGoldenDif > prevGoldenDif && currPrice < prevPrice
 }
 
-function isMacdBottomDeviation(index, line = [], dif = []) {
-  if (!Array.isArray(line) || !Array.isArray(dif) || index < 4) return false
-  const lowSeries = line.map(item => Number(item?.low))
-  const pivots = findRecentPivotIndices(lowSeries, index, 'low', 180, 2)
-  if (pivots.length < 2) return false
-  const prev = pivots[pivots.length - 2]
-  const curr = pivots[pivots.length - 1]
-  if (curr !== index) return false
-  const prevLow = lowSeries[prev]
-  const currLow = lowSeries[curr]
-  const prevDif = Number(dif[prev])
-  const currDif = Number(dif[curr])
-  if (![prevLow, currLow, prevDif, currDif].every(isFiniteNumber)) return false
-  return currLow < prevLow && currDif > prevDif && currDif < 0 && prevDif < 0
-}
+function isMacdTopDeviation(index, line = [], dif = [], dea = []) {
+  if (!Array.isArray(line) || !Array.isArray(dif) || !Array.isArray(dea) || index <= 0) return false
+  // 仅在当前是死叉时判定顶背离
+  if (!isDeadCross(index, dif, dea)) return false
 
-function isMacdTopDeviation(index, line = [], dif = []) {
-  if (!Array.isArray(line) || !Array.isArray(dif) || index < 4) return false
-  const highSeries = line.map(item => Number(item?.high))
-  const pivots = findRecentPivotIndices(highSeries, index, 'high', 180, 2)
-  if (pivots.length < 2) return false
-  const prev = pivots[pivots.length - 2]
-  const curr = pivots[pivots.length - 1]
-  if (curr !== index) return false
-  const prevHigh = highSeries[prev]
-  const currHigh = highSeries[curr]
-  const prevDif = Number(dif[prev])
-  const currDif = Number(dif[curr])
-  if (![prevHigh, currHigh, prevDif, currDif].every(isFiniteNumber)) return false
-  return currHigh > prevHigh && currDif < prevDif && currDif > 0 && prevDif > 0
+  // 找上一个死叉
+  let prevDead = -1
+  for (let i = index - 1; i >= 1; i--) {
+    if (isDeadCross(i, dif, dea)) {
+      prevDead = i
+      break
+    }
+  }
+  if (prevDead === -1) return false
+
+  // 两次死叉中间所有金叉的DIF都必须在零轴上
+  const goldenBetween = []
+  for (let i = prevDead + 1; i < index; i++) {
+    if (isGoldenCross(i, dif, dea)) goldenBetween.push(i)
+  }
+  if (goldenBetween.length === 0) return false
+  if (!goldenBetween.every(i => Number(dif[i]) > 0)) return false
+
+  const prevDeadDif = Number(dif[prevDead])
+  const currDeadDif = Number(dif[index])
+  const prevPrice = Number(line[prevDead]?.close)
+  const currPrice = Number(line[index]?.close)
+  if (![prevDeadDif, currDeadDif, prevPrice, currPrice].every(isFiniteNumber)) return false
+
+  return currDeadDif < prevDeadDif && currPrice > prevPrice
 }
 
 // 可用条件列表
@@ -178,6 +194,18 @@ const availableConditions = [
     params: ['macd'],
     func: (i, {dif}) => dif[i] > 0
   },
+  {
+    value: 'MACD_DIF_ABS_LT_1',
+    label: 'MACD DIF绝对值小于1（低位）',
+    params: ['macd'],
+    func: (i, {dif}) => Math.abs(Number(dif[i])) < 1
+  },
+  {
+    value: 'MACD_DIF_ABS_GT_10',
+    label: 'MACD DIF绝对值大于10（高位）',
+    params: ['macd'],
+    func: (i, {dif}) => Math.abs(Number(dif[i])) > 10
+  },
   { 
     value: 'MACD_DIF_LT_DEA', 
     label: 'MACD DIF小于DEA (空头)',
@@ -200,13 +228,13 @@ const availableConditions = [
     value: 'MACD_BOTTOM_DEVIATION', 
     label: 'macd底背离',
     params: ['macd'],
-    func: (i, {dif, line}) => isMacdBottomDeviation(i, line, dif)
+    func: (i, {dif, dea, line}) => isMacdBottomDeviation(i, line, dif, dea)
   },
   { 
     value: 'MACD_TOP_DEVIATION', 
     label: 'macd顶背离',
     params: ['macd'],
-    func: (i, {dif, line}) => isMacdTopDeviation(i, line, dif)
+    func: (i, {dif, dea, line}) => isMacdTopDeviation(i, line, dif, dea)
   },
 
   // kdj相关

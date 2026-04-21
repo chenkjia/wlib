@@ -83,6 +83,26 @@
         />
       </div>
     </div>
+    <div class="border-t px-3 py-2" style="border-color: var(--border-light);">
+      <div class="grid grid-cols-2 gap-2">
+        <UButton
+          label="上一个"
+          color="neutral"
+          variant="soft"
+          size="sm"
+          :disabled="!canGoPrev"
+          @click="goPrevStock"
+        />
+        <UButton
+          label="下一个"
+          color="primary"
+          variant="soft"
+          size="sm"
+          :disabled="!canGoNext"
+          @click="goNextStock"
+        />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -141,6 +161,9 @@ const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'
 
 // 标签页状态
 const activeTab = ref('stocks')
+const allStockCodes = ref([])
+const starredStockCodes = ref([])
+const navLoading = ref(false)
 
 // 数据源相关状态
 const dataSourceOptions = [
@@ -153,15 +176,79 @@ const handleDataSourceChange = (newDataSource) => {
   // 数据源切换逻辑由StockList组件处理
 }
 
+const currentNavCodes = computed(() => {
+  if (activeTab.value === 'starred') return starredStockCodes.value
+  if (activeTab.value === 'stocks') return allStockCodes.value
+  return []
+})
+
+const currentNavIndex = computed(() => currentNavCodes.value.indexOf(selectedStockCode.value))
+const canGoPrev = computed(() => !navLoading.value && currentNavCodes.value.length > 0 && currentNavIndex.value > 0)
+const canGoNext = computed(() => !navLoading.value && currentNavCodes.value.length > 0 && currentNavIndex.value >= 0 && currentNavIndex.value < currentNavCodes.value.length - 1)
+
+async function loadStockCodesForNavigation() {
+  navLoading.value = true
+  try {
+    const stockResp = await fetch('/api/stocks?page=1&pageSize=5000&noCount=1')
+    const stockData = await stockResp.json()
+    allStockCodes.value = Array.isArray(stockData?.stocks) ? stockData.stocks.map(item => item.code).filter(Boolean) : []
+  } catch (error) {
+    allStockCodes.value = []
+  } finally {
+    navLoading.value = false
+  }
+}
+
+async function loadStarredCodesForNavigation() {
+  navLoading.value = true
+  try {
+    const starredResp = await fetch('/api/stocks/starred')
+    const starredData = await starredResp.json()
+    starredStockCodes.value = Array.isArray(starredData?.stocks) ? starredData.stocks.map(item => item.code).filter(Boolean) : []
+  } catch (error) {
+    starredStockCodes.value = []
+  } finally {
+    navLoading.value = false
+  }
+}
+
+async function refreshNavCodes() {
+  if (activeTab.value === 'starred') {
+    await loadStarredCodesForNavigation()
+    return
+  }
+  if (activeTab.value === 'stocks') {
+    await loadStockCodesForNavigation()
+    return
+  }
+}
+
+function goPrevStock() {
+  if (!canGoPrev.value) return
+  const target = currentNavCodes.value[currentNavIndex.value - 1]
+  if (target) selectedStockCode.value = target
+}
+
+function goNextStock() {
+  if (!canGoNext.value) return
+  const target = currentNavCodes.value[currentNavIndex.value + 1]
+  if (target) selectedStockCode.value = target
+}
+
 // 监听数据源变化
 watch(selectedDataSource, (newDataSource) => {
   if (newDataSource) {
     handleDataSourceChange(newDataSource)
+    refreshNavCodes()
   }
 })
 
+watch(activeTab, () => {
+  refreshNavCodes()
+})
+
 onMounted(() => {
-  // 组件挂载时的初始化逻辑
+  refreshNavCodes()
 })
 </script>
 
