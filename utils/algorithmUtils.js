@@ -280,6 +280,68 @@ const availableConditions = [
     func: (i, {dif, dea, line}) => isMacdTopDeviation(i, line, dif, dea)
   },
 
+  // BIAS相关
+  {
+    value: 'BIAS_S_GT_ZERO',
+    label: 'BIAS 短期大于0',
+    params: ['bias'],
+    func: (i, {biasS}) => Number(biasS?.[i]) > 0
+  },
+  {
+    value: 'BIAS_S_LT_ZERO',
+    label: 'BIAS 短期小于0',
+    params: ['bias'],
+    func: (i, {biasS}) => Number(biasS?.[i]) < 0
+  },
+  {
+    value: 'BIAS_S_ABS_LT_5',
+    label: 'BIAS 短期绝对值小于5',
+    params: ['bias'],
+    func: (i, {biasS}) => Math.abs(Number(biasS?.[i])) < 5
+  },
+  {
+    value: 'BIAS_S_ABS_GT_10',
+    label: 'BIAS 短期绝对值大于10',
+    params: ['bias'],
+    func: (i, {biasS}) => Math.abs(Number(biasS?.[i])) > 10
+  },
+  {
+    value: 'BIAS_S_CROSS_UP_ZERO',
+    label: 'BIAS 短期上穿0轴',
+    params: ['bias'],
+    func: (i, {biasS}) => i > 0 && Number(biasS?.[i - 1]) <= 0 && Number(biasS?.[i]) > 0
+  },
+  {
+    value: 'BIAS_S_CROSS_DOWN_ZERO',
+    label: 'BIAS 短期下穿0轴',
+    params: ['bias'],
+    func: (i, {biasS}) => i > 0 && Number(biasS?.[i - 1]) >= 0 && Number(biasS?.[i]) < 0
+  },
+  {
+    value: 'BIAS_S_GT_M',
+    label: 'BIAS 短期大于中期',
+    params: ['bias'],
+    func: (i, {biasS, biasM}) => Number(biasS?.[i]) > Number(biasM?.[i])
+  },
+  {
+    value: 'BIAS_S_LT_M',
+    label: 'BIAS 短期小于中期',
+    params: ['bias'],
+    func: (i, {biasS, biasM}) => Number(biasS?.[i]) < Number(biasM?.[i])
+  },
+  {
+    value: 'BIAS_M_GT_L',
+    label: 'BIAS 中期大于长期',
+    params: ['bias'],
+    func: (i, {biasM, biasL}) => Number(biasM?.[i]) > Number(biasL?.[i])
+  },
+  {
+    value: 'BIAS_M_LT_L',
+    label: 'BIAS 中期小于长期',
+    params: ['bias'],
+    func: (i, {biasM, biasL}) => Number(biasM?.[i]) < Number(biasL?.[i])
+  },
+
   // kdj相关
   { 
     value: 'KDJ_OVERBOUGHT', 

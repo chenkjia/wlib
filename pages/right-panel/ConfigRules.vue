@@ -184,6 +184,61 @@
       </div>
     </div>
 
+    <!-- BIAS 开关 -->
+    <div class="pl-3 pr-3">
+      <label class="flex items-center">
+        <input
+          type="checkbox"
+          v-model="enabledIndicators"
+          value="bias"
+          class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+        />
+        <span class="text-sm font-medium text-gray-700">BIAS</span>
+      </label>
+    </div>
+    <!-- BIAS 配置 -->
+    <div v-show="enabledIndicators.includes('bias')" class="bg-gray-50 p-3 rounded-md">
+      <h4 class="font-medium text-gray-700 mb-2">BIAS配置</h4>
+      <div class="grid grid-cols-3 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">短期 (S)</label>
+          <div class="flex items-center">
+            <input
+              type="number"
+              v-model="biasS"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              min="2"
+              max="30"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">中期 (M)</label>
+          <div class="flex items-center">
+            <input
+              type="number"
+              v-model="biasM"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              min="4"
+              max="60"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">长期 (L)</label>
+          <div class="flex items-center">
+            <input
+              type="number"
+              v-model="biasL"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              min="6"
+              max="120"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 买入算法 -->
     <div class="bg-gray-50 p-3 rounded-md">
       <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
@@ -265,6 +320,14 @@ const props = defineProps({
       d: 3
     })
   },
+  bias: {
+    type: Object,
+    default: () => ({
+      s: 6,
+      m: 12,
+      l: 24
+    })
+  },
   enabledIndicators: {
     type: Array,
     default: () => ['ma', 'macd']
@@ -291,6 +354,7 @@ const emit = defineEmits([
   'update:ma',
   'update:macd',
   'update:kdj',
+  'update:bias',
   'update:buyConditions',
   'update:sellConditions',
   'update:enabledIndicators',
@@ -347,6 +411,18 @@ const kdjK = computed({
 const kdjD = computed({
   get: () => props.kdj.d,
   set: (val) => emit('update:kdj', { ...props.kdj, d: Number(val) })
+})
+const biasS = computed({
+  get: () => props.bias.s,
+  set: (val) => emit('update:bias', { ...props.bias, s: Number(val) })
+})
+const biasM = computed({
+  get: () => props.bias.m,
+  set: (val) => emit('update:bias', { ...props.bias, m: Number(val) })
+})
+const biasL = computed({
+  get: () => props.bias.l,
+  set: (val) => emit('update:bias', { ...props.bias, l: Number(val) })
 })
 
 // 计算提示样式

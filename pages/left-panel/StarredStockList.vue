@@ -100,6 +100,10 @@ const props = defineProps({
     type: Object,
     default: () => ({ n: 9, k: 3, d: 3 })
   },
+  bias: {
+    type: Object,
+    default: () => ({ s: 6, m: 12, l: 24 })
+  },
   enabledIndicators: {
     type: Array,
     default: () => ['ma', 'macd']
@@ -245,6 +249,7 @@ const calculateBacktest = async () => {
       ma: props.ma,
       macd: props.macd,
       kdj: props.kdj,
+      bias: props.bias,
       enabledIndicators: props.enabledIndicators,
       buyConditions: props.buyConditions,
       sellConditions: props.sellConditions

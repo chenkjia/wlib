@@ -315,9 +315,11 @@ function processMacdDeviationPoints(dif = [], dea = [], line = []) {
 export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], activeSubChart = 'volume', simulatedBuyPoints = []) {
   const macdEnabled = enabledIndicators.includes('macd')
   const kdjEnabled = enabledIndicators.includes('kdj')
+  const biasEnabled = enabledIndicators.includes('bias')
   // 仅保留一个副图显示：macd 或 kdj 或 none（成交量始终显示）
   const hasMACD = activeSubChart === 'macd' ? macdEnabled : false
   const hasKDJ = activeSubChart === 'kdj' ? kdjEnabled : false
+  const hasBIAS = activeSubChart === 'bias' ? biasEnabled : false
   
   const maS = dayLineWithMetric.maS || []
   const maM = dayLineWithMetric.maM || []
@@ -329,6 +331,9 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const kdjK = dayLineWithMetric.kdjK || []
   const kdjD = dayLineWithMetric.kdjD || []
   const kdjJ = dayLineWithMetric.kdjJ || []
+  const biasS = dayLineWithMetric.biasS || []
+  const biasM = dayLineWithMetric.biasM || []
+  const biasL = dayLineWithMetric.biasL || []
   
   const trendPoints = processTrendPoints(data.trendData)
   const macdDeviations = processMacdDeviationPoints(dif, dea, dayLineWithMetric.line || [])
@@ -551,6 +556,12 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       { name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
       { name: 'KDJ-D', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
       { name: 'KDJ-J', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
+    ] : []),
+    ...(activeSubChart === 'bias' && biasEnabled ? [
+      { name: 'BIAS-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+      { name: 'BIAS-M', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasM, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
+      { name: 'BIAS-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasL, smooth: true, lineStyle: { color: '#8b5cf6', width: 1.1 }, showSymbol: false },
+      { name: 'BIAS-0', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: data.categoryData.map(() => 0), smooth: false, lineStyle: { color: '#9ca3af', type: 'dashed', width: 1 }, showSymbol: false, silent: true, tooltip: { show: false } }
     ] : [])
   ]
   
@@ -625,6 +636,20 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           }
           if (jParam && typeof jParam.data === 'number') {
             res += `J: ${jParam.data.toFixed(2)}<br/>`
+          }
+        }
+        if (hasBIAS) {
+          const sParam = params.find(p => p.seriesName === 'BIAS-S')
+          const mParam = params.find(p => p.seriesName === 'BIAS-M')
+          const lParam = params.find(p => p.seriesName === 'BIAS-L')
+          if (sParam && typeof sParam.data === 'number') {
+            res += `BIAS-S: ${sParam.data.toFixed(2)}%<br/>`
+          }
+          if (mParam && typeof mParam.data === 'number') {
+            res += `BIAS-M: ${mParam.data.toFixed(2)}%<br/>`
+          }
+          if (lParam && typeof lParam.data === 'number') {
+            res += `BIAS-L: ${lParam.data.toFixed(2)}%<br/>`
           }
         }
         

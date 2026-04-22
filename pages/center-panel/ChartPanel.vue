@@ -93,11 +93,12 @@ const chartContainer = ref(null)
 let myChart = null
 
 // 新增：副图切换状态
-const activeSubChart = ref('volume') // volume | macd | kdj
+const activeSubChart = ref('volume') // volume | macd | kdj | bias
 const availableTabs = computed(() => {
   const tabs = [{ key: 'volume', label: '成交量' }]
   if (props.enabledIndicators.includes('macd')) tabs.push({ key: 'macd', label: 'MACD' })
   if (props.enabledIndicators.includes('kdj')) tabs.push({ key: 'kdj', label: 'KDJ' })
+  if (props.enabledIndicators.includes('bias')) tabs.push({ key: 'bias', label: 'BIAS' })
   return tabs
 })
 
@@ -110,17 +111,9 @@ function formatDateYYYYMMDD(value) {
   return `${dayPart} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-function getXAxisTimeLabel(date) {
-  const hasHour = date.getHours() !== 0 || date.getMinutes() !== 0
-  if (!hasHour) {
-    return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-  }
-  return `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`
-}
-
 function formatDateMMDD(value) {
   const date = new Date(value)
-  return getXAxisTimeLabel(date)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 // 刷新图表

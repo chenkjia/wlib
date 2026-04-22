@@ -88,6 +88,7 @@
           :ma="props.ma"
           :macd="props.macd"
           :kdj="props.kdj"
+          :bias="props.bias"
           :enabledIndicators="enabledIndicators"
           :buyConditions="props.buyConditions"
           :sellConditions="props.sellConditions"
@@ -96,6 +97,7 @@
           @update:ma="val => emit('update:ma', val)"
           @update:macd="val => emit('update:macd', val)"
           @update:kdj="val => emit('update:kdj', val)"
+          @update:bias="val => emit('update:bias', val)"
           @update:buyConditions="updateBuyConditions"
           @update:sellConditions="updateSellConditions"
           @update:enabledIndicators="val => emit('update:enabledIndicators', val)"
@@ -264,6 +266,15 @@ const props = defineProps({
       d: 3
     })
   },
+  // BIAS配置参数
+  bias: {
+    type: Object,
+    default: () => ({
+      s: 6,
+      m: 12,
+      l: 24
+    })
+  },
   // 启用的指标
   enabledIndicators: {
     type: Array,
@@ -311,6 +322,7 @@ const emit = defineEmits([
   'update:ma',
   'update:macd',
   'update:kdj',
+  'update:bias',
   'update:buyConditions',
   'update:sellConditions',
   'update:enabledIndicators',
@@ -379,12 +391,25 @@ const kdjD = computed({
   get: () => props.kdj.d,
   set: (val) => emit('update:kdj', { ...props.kdj, d: Number(val) })
 })
+const biasS = computed({
+  get: () => props.bias.s,
+  set: (val) => emit('update:bias', { ...props.bias, s: Number(val) })
+})
+const biasM = computed({
+  get: () => props.bias.m,
+  set: (val) => emit('update:bias', { ...props.bias, m: Number(val) })
+})
+const biasL = computed({
+  get: () => props.bias.l,
+  set: (val) => emit('update:bias', { ...props.bias, l: Number(val) })
+})
 
 // 同步对象（供子组件使用）
 const syncSettings = computed(() => ({
   ma: { s: maS.value, m: maM.value, l: maL.value, x: maX.value },
   macd: { s: macdS.value, l: macdL.value, d: macdD.value },
   kdj: { n: kdjN.value, k: kdjK.value, d: kdjD.value },
+  bias: { s: biasS.value, m: biasM.value, l: biasL.value },
   buyConditions: props.buyConditions,
   sellConditions: props.sellConditions,
   enabledIndicators: enabledIndicators.value

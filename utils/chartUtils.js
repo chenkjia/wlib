@@ -102,6 +102,23 @@ export function calculateEMA(data, period) {
 }
 
 /**
+ * 计算 BIAS 乖离率
+ * BIAS = (收盘价 - MA) / MA * 100
+ * @param {Array<number>} close - 收盘价序列
+ * @param {number} period - 均线周期
+ * @returns {Array<number>}
+ */
+export function calculateBIAS(close = [], period = 6) {
+  if (!Array.isArray(close) || close.length === 0) return []
+  const ma = calculateMA(close, period)
+  return close.map((price, index) => {
+    const maValue = Number(ma[index])
+    if (!Number.isFinite(maValue) || maValue === 0) return 0
+    return new Decimal(price).minus(maValue).div(maValue).mul(100).toNumber()
+  })
+}
+
+/**
  * 计算 RSV (Raw Stochastic Value)
  * RSV = (收盘价 - N日最低价) / (N日最高价 - N日最低价) * 100
  * @param {Array<Object>} dayLineData - K线数据，包含 high/low/close
@@ -289,7 +306,7 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
  * @param {Object} config - 配置对象，包含ma、macd和enabledIndicators
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, enabledIndicators = ['ma', 'macd']}) {
+export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bias = { s: 6, m: 12, l: 24 }, enabledIndicators = ['ma', 'macd']}) {
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
   const high = data.map(item => item.high);
@@ -374,16 +391,29 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, ena
       kdjRSV: rsv
     };
   }
+
+  // 启用BIAS时计算BIAS相关指标
+  if (enabledIndicators.includes('bias')) {
+    const biasS = calculateBIAS(close, bias.s)
+    const biasM = calculateBIAS(close, bias.m)
+    const biasL = calculateBIAS(close, bias.l)
+    result = {
+      ...result,
+      biasS,
+      biasM,
+      biasL
+    }
+  }
   
   return result;
 }
 
 export const calculateStock = (props) => {
-  const { dayLine, hourLine, ma, macd, kdj, buyConditions, sellConditions, enabledIndicators } = props
+  const { dayLine, hourLine, ma, macd, kdj, bias, buyConditions, sellConditions, enabledIndicators } = props
   const weekLine = aggregateDayToWeek(dayLine)
-  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, enabledIndicators })
-  const weekLineWithMetric = calculateMetric(weekLine, { ma, macd, kdj, enabledIndicators })
-  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, enabledIndicators })
+  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, bias, enabledIndicators })
+  const weekLineWithMetric = calculateMetric(weekLine, { ma, macd, kdj, bias, enabledIndicators })
+  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, bias, enabledIndicators })
   
   const transactions =  calculateTransactions({
     dayLineWithMetric,

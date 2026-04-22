@@ -14,6 +14,7 @@
           :ma="ma"
           :macd="macd"
           :kdj="kdj"
+          :bias="bias"
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
           :enabledIndicators="enabledIndicators"
@@ -56,6 +57,7 @@
           v-model:ma="ma"
           v-model:macd="macd"
           v-model:kdj="kdj"
+          v-model:bias="bias"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
           v-model:enabledIndicators="enabledIndicators"
@@ -106,7 +108,13 @@ const getLocalConfig = (key, defaultValue) => {
 
 const autoCalculateSignals = ref(getLocalConfig('autoCalculateSignals', true)) // 是否自动计算买卖点
 
-const enabledIndicators = ref(getLocalConfig('enabledIndicators', ['ma', 'macd'])) // 启用的指标
+const normalizeEnabledIndicators = (value) => {
+  const indicators = Array.isArray(value) ? [...new Set(value)] : ['ma', 'macd']
+  if (!indicators.includes('bias')) indicators.push('bias')
+  return indicators
+}
+
+const enabledIndicators = ref(normalizeEnabledIndicators(getLocalConfig('enabledIndicators', ['ma', 'macd']))) // 启用的指标
 
 // 保存配置到本地存储
 const saveConfigToLocalStorage = () => {
@@ -114,6 +122,7 @@ const saveConfigToLocalStorage = () => {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
     localStorage.setItem(`stock_config_macd`, JSON.stringify(macd.value))
     localStorage.setItem(`stock_config_kdj`, JSON.stringify(kdj.value))
+    localStorage.setItem(`stock_config_bias`, JSON.stringify(bias.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
     localStorage.setItem(`stock_config_enabledIndicators`, JSON.stringify(enabledIndicators.value))
@@ -138,6 +147,7 @@ const macd = ref(getLocalConfig('macd', {
 
 // KDJ配置参数
 const kdj = ref(getLocalConfig('kdj', { n: 9, k: 3, d: 3 }))
+const bias = ref(getLocalConfig('bias', { s: 6, m: 12, l: 24 }))
 
 // 买入和卖出条件配置
 const buyConditions = ref(getLocalConfig('buyConditions', [
@@ -187,6 +197,7 @@ async function handleRemoteCalculation(params) {
       ma: params.ma,
       macd: params.macd,
       kdj: params.kdj,
+      bias: params.bias,
       buyConditions: params.buyConditions,
       sellConditions: params.sellConditions,
       enabledIndicators: params.enabledIndicators
@@ -233,6 +244,9 @@ function handleUseTaskParams(params) {
   if (params.kdj) {
     kdj.value = { ...params.kdj }
   }
+  if (params.bias) {
+    bias.value = { ...params.bias }
+  }
   
   // 更新买入条件
   if (params.buyConditions) {
@@ -246,7 +260,7 @@ function handleUseTaskParams(params) {
   
   // 更新启用的指标
   if (params.enabledIndicators) {
-    enabledIndicators.value = [...params.enabledIndicators]
+    enabledIndicators.value = normalizeEnabledIndicators(params.enabledIndicators)
   }
   
   // 保存到本地存储
@@ -285,6 +299,7 @@ function calculateMetricsOnly() {
     ma: ma.value,
     macd: macd.value,
     kdj: kdj.value,
+    bias: bias.value,
     enabledIndicators: enabledIndicators.value
   })
   // 关闭自动计算时清空交易结果，避免沿用上一只股票的买卖点
@@ -304,6 +319,7 @@ function calculateTransactions(type = 'page') {
     ma: ma.value,
     macd: macd.value,
     kdj: kdj.value,
+    bias: bias.value,
     buyConditions: buyConditions.value,
     sellConditions: sellConditions.value,
     enabledIndicators: enabledIndicators.value

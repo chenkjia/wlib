@@ -16,6 +16,7 @@ class BacktestExecutor {
         dayLine: stock.dayLine,
         hourLine: stock.hourLine,
         enabledIndicators: strategy.enabledIndicators || ['ma', 'macd'], // 添加enabledIndicators参数
+        bias: strategy.bias || { s: 6, m: 12, l: 24 },
         ...strategy
       });
       return backtestData;

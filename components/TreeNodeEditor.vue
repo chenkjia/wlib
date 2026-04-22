@@ -61,7 +61,7 @@ const props = defineProps({
 
 // 根据启用的指标过滤可用条件（与主界面一致的规则）
 const filteredAvailableConditions = computed(() => {
-  const indicatorParams = ['ma', 'macd', 'kdj', 'volume']
+  const indicatorParams = ['ma', 'macd', 'kdj', 'bias', 'volume']
   return availableConditions.filter(condition => {
     if (!condition.params || condition.params.length === 0) {
       return true
@@ -79,6 +79,7 @@ function getConditionGroup(condition) {
   const value = String(condition?.value || '')
   if (value.startsWith('MACD_')) return 'MACD类'
   if (value.startsWith('KDJ_')) return 'KDJ类'
+  if (value.startsWith('BIAS_')) return 'BIAS类'
   if (value.startsWith('VOLUME_')) return '量能类'
   if (Array.isArray(condition?.params) && condition.params.includes('ma')) return '均线类'
   return '其他'
@@ -89,6 +90,7 @@ const groupedFilteredOptions = computed(() => {
     ['均线类', []],
     ['MACD类', []],
     ['KDJ类', []],
+    ['BIAS类', []],
     ['量能类', []],
     ['其他', []]
   ])
