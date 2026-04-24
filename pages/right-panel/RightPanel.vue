@@ -26,6 +26,17 @@
         配置规则
       </button>
       <button
+        @click="activeTab = 'calculate'"
+        :class="[
+          'flex-1 px-4 py-3 text-sm font-medium transition-colors',
+          activeTab === 'calculate'
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        计算执行
+      </button>
+      <button
         @click="activeTab = 'results'"
         :class="[
           'flex-1 px-4 py-3 text-sm font-medium transition-colors',
@@ -74,16 +85,6 @@
         />
       </div>
       <div v-show="activeTab === 'config'" class="space-y-2 pt-3">
-        <div class="mx-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-          <label class="flex items-center justify-between gap-3 text-sm text-gray-700">
-            <span>切换股票时自动计算买卖点</span>
-            <input
-              v-model="autoCalculateSignalsModel"
-              type="checkbox"
-              class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            >
-          </label>
-        </div>
         <ConfigRules
           :ma="props.ma"
           :macd="props.macd"
@@ -94,6 +95,8 @@
           :sellConditions="props.sellConditions"
           :calculationLoading="calculationLoading"
           :calculationMessage="calculationMessage"
+          :showCalculationActions="false"
+          :showAlgorithmEditors="false"
           @update:ma="val => emit('update:ma', val)"
           @update:macd="val => emit('update:macd', val)"
           @update:kdj="val => emit('update:kdj', val)"
@@ -104,6 +107,62 @@
           @calculation="handleCalculation"
         />
       </div>
+        <div v-show="activeTab === 'calculate'" class="p-3 space-y-3">
+          <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            计算操作已从“配置规则”拆分到此处，参数修改后可直接执行。
+          </div>
+          <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+            <label class="flex items-center justify-between gap-3 text-sm text-gray-700">
+              <span>切换股票时自动计算买卖点</span>
+              <input
+                v-model="autoCalculateSignalsModel"
+                type="checkbox"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              >
+            </label>
+          </div>
+          <div class="rounded-md border border-gray-200 bg-white p-3">
+            <div class="mb-2 text-xs font-medium text-gray-600">买入算法</div>
+            <AlgorithmConfig
+              type="buy"
+              :initialValue="props.buyConditions"
+              :enabledIndicators="enabledIndicators"
+              @update:value="updateBuyConditions"
+            />
+          </div>
+          <div class="rounded-md border border-gray-200 bg-white p-3">
+            <div class="mb-2 text-xs font-medium text-gray-600">卖出算法</div>
+            <AlgorithmConfig
+              type="sell"
+              :initialValue="props.sellConditions"
+              :enabledIndicators="enabledIndicators"
+              @update:value="updateSellConditions"
+            />
+          </div>
+          <div class="grid grid-cols-1 gap-2">
+            <button
+              class="w-full rounded-md bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              @click="handleCalculation('page')"
+            >
+              页内计算
+            </button>
+            <button
+              class="w-full rounded-md bg-yellow-500 px-4 py-2 text-sm text-white hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50"
+              @click="handleCalculation('star')"
+            >
+              星标计算
+            </button>
+            <button
+              class="w-full rounded-md bg-green-500 px-4 py-2 text-sm text-white hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
+              @click="handleCalculation('global')"
+            >
+              全局计算
+            </button>
+          </div>
+          <div v-if="calculationMessage" class="text-sm" :class="messageClass">
+            {{ calculationMessage }}
+          </div>
+        </div>
         <!-- 计算结果 Tab -->
         <div v-show="activeTab === 'results'" class="tab-pane bg-white">
           <TransactionList 
@@ -417,10 +476,20 @@ const syncSettings = computed(() => ({
 
 // 计算事件处理
 function handleCalculation(type) {
+  const labelMap = {
+    page: '页内计算',
+    star: '星标计算',
+    global: '全局计算'
+  }
+  calculationLoading.value = true
+  calculationMessage.value = `已发起${labelMap[type] || '计算'}`
   emit('calculation', {
     type,
     ...syncSettings.value
   })
+  setTimeout(() => {
+    calculationLoading.value = false
+  }, 300)
 }
 
 // 更新算法配置
@@ -444,7 +513,7 @@ function handleExpandPanel(newState) {
 }
 
 // 监听启用的指标变化（用于动态显示配置）
-watch(enabledIndicators, (newVal) => {
+watch(enabledIndicators, () => {
   // 可添加需要的副作用处理
 }, { deep: true })
 

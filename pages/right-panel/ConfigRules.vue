@@ -240,7 +240,7 @@
     </div>
 
     <!-- 买入算法 -->
-    <div class="bg-gray-50 p-3 rounded-md">
+    <div v-if="props.showAlgorithmEditors" class="bg-gray-50 p-3 rounded-md">
       <h4 class="font-medium text-gray-700 mb-2">买入算法</h4>
       <AlgorithmConfig 
         type="buy" 
@@ -251,7 +251,7 @@
     </div>
 
     <!-- 卖出算法 -->
-    <div class="bg-gray-50 p-3 rounded-md">
+    <div v-if="props.showAlgorithmEditors" class="bg-gray-50 p-3 rounded-md">
       <h4 class="font-medium text-gray-700 mb-2">卖出算法</h4>
       <AlgorithmConfig 
         type="sell" 
@@ -262,20 +262,20 @@
     </div>
 
     <!-- 计算按钮 -->
-    <div class="flex justify-center space-x-4 mt-4">
-      <button 
+    <div v-if="props.showCalculationActions" class="flex justify-center space-x-4 mt-4">
+      <button
         class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
         @click="handleCalculation('page')"
       >
         页内计算
       </button>
-      <button 
+      <button
         class="px-4 py-2 bg-yellow-500 text-white rounded-md hover:bg-yellow-600 transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-opacity-50"
         @click="handleCalculation('star')"
       >
         星标计算
       </button>
-      <button 
+      <button
         class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50"
         @click="handleCalculation('global')"
       >
@@ -284,7 +284,7 @@
     </div>
 
     <!-- 计算提示信息 -->
-    <div v-if="calculationMessage" class="text-center mt-2 text-sm" :class="messageClass">
+    <div v-if="props.showCalculationActions && calculationMessage" class="text-center mt-2 text-sm" :class="messageClass">
       {{ calculationMessage }}
     </div>
   </div>
@@ -347,6 +347,14 @@ const props = defineProps({
   calculationMessage: {
     type: String,
     default: ''
+  },
+  showCalculationActions: {
+    type: Boolean,
+    default: true
+  },
+  showAlgorithmEditors: {
+    type: Boolean,
+    default: true
   }
 })
 
