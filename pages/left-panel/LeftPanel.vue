@@ -67,6 +67,7 @@
           :ma="props.ma"
           :macd="props.macd"
           :kdj="props.kdj"
+          :volumeMa="props.volumeMa"
           :bias="props.bias"
           :enabledIndicators="props.enabledIndicators"
           :buyConditions="props.buyConditions"
@@ -143,6 +144,10 @@ const props = defineProps({
   kdj: {
     type: Object,
     default: () => ({ n: 9, k: 3, d: 3 })
+  },
+  volumeMa: {
+    type: Object,
+    default: () => ({ s: 5, l: 10 })
   },
   bias: {
     type: Object,

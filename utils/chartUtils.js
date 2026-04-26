@@ -306,7 +306,7 @@ export function calculateTrendAlignment({maS, maM, maL, maX}) {
  * @param {Object} config - 配置对象，包含ma、macd和enabledIndicators
  * @returns {Array<Object>} 包含技术指标的日线数据
  */
-export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bias = { s: 6, m: 12, l: 24 }, enabledIndicators = ['ma', 'macd']}) {
+export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bias = { s: 6, m: 12, l: 24 }, volumeMa = { s: 5, l: 10 }, enabledIndicators = ['ma', 'macd']}) {
   const close = data.map(item => item.close);
   const volume = data.map(item => item.volume);
   const high = data.map(item => item.high);
@@ -321,6 +321,16 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bia
     low
     
   };
+
+  const volumeMaSPeriod = Math.max(2, Number(volumeMa?.s) || 5)
+  const volumeMaLPeriod = Math.max(volumeMaSPeriod, Number(volumeMa?.l) || 10)
+  const volumeMaS = calculateMA(volume, volumeMaSPeriod)
+  const volumeMaL = calculateMA(volume, volumeMaLPeriod)
+  result = {
+    ...result,
+    volumeMaS,
+    volumeMaL
+  }
   
   // 只有启用MA时才计算MA相关指标
   if (enabledIndicators.includes('ma')) {
@@ -409,11 +419,11 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bia
 }
 
 export const calculateStock = (props) => {
-  const { dayLine, hourLine, ma, macd, kdj, bias, buyConditions, sellConditions, enabledIndicators } = props
+  const { dayLine, hourLine, ma, macd, kdj, bias, volumeMa, buyConditions, sellConditions, enabledIndicators } = props
   const weekLine = aggregateDayToWeek(dayLine)
-  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, bias, enabledIndicators })
-  const weekLineWithMetric = calculateMetric(weekLine, { ma, macd, kdj, bias, enabledIndicators })
-  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, bias, enabledIndicators })
+  const dayLineWithMetric = calculateMetric(dayLine, { ma, macd, kdj, bias, volumeMa, enabledIndicators })
+  const weekLineWithMetric = calculateMetric(weekLine, { ma, macd, kdj, bias, volumeMa, enabledIndicators })
+  const hourLineWithMetric = calculateMetric(hourLine, { ma, macd, kdj, bias, volumeMa, enabledIndicators })
   
   const transactions =  calculateTransactions({
     dayLineWithMetric,

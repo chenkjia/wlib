@@ -184,6 +184,37 @@
       </div>
     </div>
 
+    <!-- 成交量均线配置 -->
+    <div class="bg-gray-50 p-3 rounded-md">
+      <h4 class="font-medium text-gray-700 mb-2">成交量均线配置</h4>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">短期量均线 (VOL-MA S)</label>
+          <div class="flex items-center">
+            <input
+              type="number"
+              v-model="volumeMaS"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              min="2"
+              max="60"
+            />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-600 mb-1">长期量均线 (VOL-MA L)</label>
+          <div class="flex items-center">
+            <input
+              type="number"
+              v-model="volumeMaL"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+              min="2"
+              max="120"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- BIAS 开关 -->
     <div class="pl-3 pr-3">
       <label class="flex items-center">
@@ -320,6 +351,13 @@ const props = defineProps({
       d: 3
     })
   },
+  volumeMa: {
+    type: Object,
+    default: () => ({
+      s: 5,
+      l: 10
+    })
+  },
   bias: {
     type: Object,
     default: () => ({
@@ -362,6 +400,7 @@ const emit = defineEmits([
   'update:ma',
   'update:macd',
   'update:kdj',
+  'update:volumeMa',
   'update:bias',
   'update:buyConditions',
   'update:sellConditions',
@@ -419,6 +458,22 @@ const kdjK = computed({
 const kdjD = computed({
   get: () => props.kdj.d,
   set: (val) => emit('update:kdj', { ...props.kdj, d: Number(val) })
+})
+const volumeMaS = computed({
+  get: () => props.volumeMa.s,
+  set: (val) => {
+    const s = Math.max(2, Number(val) || 2)
+    const l = Math.max(s, Number(props.volumeMa.l) || 10)
+    emit('update:volumeMa', { ...props.volumeMa, s, l })
+  }
+})
+const volumeMaL = computed({
+  get: () => props.volumeMa.l,
+  set: (val) => {
+    const s = Math.max(2, Number(props.volumeMa.s) || 2)
+    const l = Math.max(s, Number(val) || 10)
+    emit('update:volumeMa', { ...props.volumeMa, s, l })
+  }
 })
 const biasS = computed({
   get: () => props.bias.s,

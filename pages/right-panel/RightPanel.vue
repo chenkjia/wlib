@@ -89,6 +89,7 @@
           :ma="props.ma"
           :macd="props.macd"
           :kdj="props.kdj"
+          :volumeMa="props.volumeMa"
           :bias="props.bias"
           :enabledIndicators="enabledIndicators"
           :buyConditions="props.buyConditions"
@@ -100,6 +101,7 @@
           @update:ma="val => emit('update:ma', val)"
           @update:macd="val => emit('update:macd', val)"
           @update:kdj="val => emit('update:kdj', val)"
+          @update:volumeMa="val => emit('update:volumeMa', val)"
           @update:bias="val => emit('update:bias', val)"
           @update:buyConditions="updateBuyConditions"
           @update:sellConditions="updateSellConditions"
@@ -325,6 +327,13 @@ const props = defineProps({
       d: 3
     })
   },
+  volumeMa: {
+    type: Object,
+    default: () => ({
+      s: 5,
+      l: 10
+    })
+  },
   // BIAS配置参数
   bias: {
     type: Object,
@@ -381,6 +390,7 @@ const emit = defineEmits([
   'update:ma',
   'update:macd',
   'update:kdj',
+  'update:volumeMa',
   'update:bias',
   'update:buyConditions',
   'update:sellConditions',
@@ -450,6 +460,14 @@ const kdjD = computed({
   get: () => props.kdj.d,
   set: (val) => emit('update:kdj', { ...props.kdj, d: Number(val) })
 })
+const volumeMaS = computed({
+  get: () => props.volumeMa.s,
+  set: (val) => emit('update:volumeMa', { ...props.volumeMa, s: Number(val) })
+})
+const volumeMaL = computed({
+  get: () => props.volumeMa.l,
+  set: (val) => emit('update:volumeMa', { ...props.volumeMa, l: Number(val) })
+})
 const biasS = computed({
   get: () => props.bias.s,
   set: (val) => emit('update:bias', { ...props.bias, s: Number(val) })
@@ -468,6 +486,7 @@ const syncSettings = computed(() => ({
   ma: { s: maS.value, m: maM.value, l: maL.value, x: maX.value },
   macd: { s: macdS.value, l: macdL.value, d: macdD.value },
   kdj: { n: kdjN.value, k: kdjK.value, d: kdjD.value },
+  volumeMa: { s: volumeMaS.value, l: volumeMaL.value },
   bias: { s: biasS.value, m: biasM.value, l: biasL.value },
   buyConditions: props.buyConditions,
   sellConditions: props.sellConditions,

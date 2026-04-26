@@ -334,6 +334,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const biasS = dayLineWithMetric.biasS || []
   const biasM = dayLineWithMetric.biasM || []
   const biasL = dayLineWithMetric.biasL || []
+  const volumeMaS = dayLineWithMetric.volumeMaS || []
+  const volumeMaL = dayLineWithMetric.volumeMaL || []
   
   const trendPoints = processTrendPoints(data.trendData)
   const macdDeviations = processMacdDeviationPoints(dif, dea, dayLineWithMetric.line || [])
@@ -539,7 +541,9 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         itemStyle: {
           color: params => params.data[2] > 0 ? upColor : downColor
         }
-      }
+      },
+      { name: 'VOL-MA-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+      { name: 'VOL-MA-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaL, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false }
     ] : []),
     // 如果有换手率，叠加换手率曲线（使用副图的右侧百分比轴）
     ...(activeSubChart === 'volume' && hasTurnover ? [
@@ -657,6 +661,14 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         const volumeParam = params.find(p => p.seriesName === '成交量')
         if (volumeParam && volumeParam.data) {
           res += `成交量: ${volumeParam.data[1]}<br/>`
+        }
+        const volumeMaSParam = params.find(p => p.seriesName === 'VOL-MA-S')
+        const volumeMaLParam = params.find(p => p.seriesName === 'VOL-MA-L')
+        if (volumeMaSParam && typeof volumeMaSParam.data === 'number') {
+          res += `VOL-MA-S: ${volumeMaSParam.data.toFixed(2)}<br/>`
+        }
+        if (volumeMaLParam && typeof volumeMaLParam.data === 'number') {
+          res += `VOL-MA-L: ${volumeMaLParam.data.toFixed(2)}<br/>`
         }
         
         // 换手率

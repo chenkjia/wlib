@@ -199,6 +199,21 @@ const availableConditions = [
     label: '成交量缩小',
     func: (i, {volume}) => volume[i] < volume[i-1] * 0.9
   },
+  {
+    value: 'VOLUME_MA_S_UP',
+    label: '短期交易量均线向上',
+    func: (i, {volumeMaS}) => i >= 2 && Number(volumeMaS?.[i - 2]) < Number(volumeMaS?.[i - 1]) && Number(volumeMaS?.[i - 1]) < Number(volumeMaS?.[i])
+  },
+  {
+    value: 'VOLUME_MA_L_UP',
+    label: '长期交易量均线向上',
+    func: (i, {volumeMaL}) => i >= 2 && Number(volumeMaL?.[i - 2]) < Number(volumeMaL?.[i - 1]) && Number(volumeMaL?.[i - 1]) < Number(volumeMaL?.[i])
+  },
+  {
+    value: 'VOLUME_MA_S_GT_L',
+    label: '短期交易量均线在长期交易量均线之上',
+    func: (i, {volumeMaS, volumeMaL}) => Number(volumeMaS?.[i]) > Number(volumeMaL?.[i])
+  },
   
   // macd相关
   { 
@@ -482,6 +497,25 @@ const availableConditions = [
     label: '收盘价高于超长期均线',
     params: ['ma'],
     func: (i, {line, maX}) => line[i]?.close > maX[i]
+  },
+  {
+    value: 'MA_CLUSTERED_WITH_PRICE',
+    label: '均线密集（价+四均线最大最小差≤3%）',
+    params: ['ma'],
+    func: (i, {line, maS, maM, maL, maX}) => {
+      const values = [
+        Number(line?.[i]?.close),
+        Number(maS?.[i]),
+        Number(maM?.[i]),
+        Number(maL?.[i]),
+        Number(maX?.[i])
+      ]
+      if (!values.every(isFiniteNumber)) return false
+      const minValue = Math.min(...values)
+      const maxValue = Math.max(...values)
+      if (!isFiniteNumber(minValue) || minValue <= 0) return false
+      return ((maxValue - minValue) / minValue) * 100 <= 3
+    }
   },
   {
     value: 'PRICE_BREAK_ALL_TIME_HIGH_IN_3D',

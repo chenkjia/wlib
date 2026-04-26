@@ -14,6 +14,7 @@
           :ma="ma"
           :macd="macd"
           :kdj="kdj"
+          :volumeMa="volumeMa"
           :bias="bias"
           :buyConditions="buyConditions"
           :sellConditions="sellConditions"
@@ -57,6 +58,7 @@
           v-model:ma="ma"
           v-model:macd="macd"
           v-model:kdj="kdj"
+          v-model:volumeMa="volumeMa"
           v-model:bias="bias"
           v-model:buyConditions="buyConditions"
           v-model:sellConditions="sellConditions"
@@ -114,6 +116,14 @@ const normalizeEnabledIndicators = (value) => {
   return indicators
 }
 
+const normalizeVolumeMa = (value) => {
+  const rawS = Number(value?.s)
+  const rawL = Number(value?.l)
+  const s = Math.max(2, Number.isFinite(rawS) ? rawS : 5)
+  const l = Math.max(s, Number.isFinite(rawL) ? rawL : 10)
+  return { s, l }
+}
+
 const enabledIndicators = ref(normalizeEnabledIndicators(getLocalConfig('enabledIndicators', ['ma', 'macd']))) // 启用的指标
 
 // 保存配置到本地存储
@@ -122,6 +132,7 @@ const saveConfigToLocalStorage = () => {
     localStorage.setItem(`stock_config_ma`, JSON.stringify(ma.value))
     localStorage.setItem(`stock_config_macd`, JSON.stringify(macd.value))
     localStorage.setItem(`stock_config_kdj`, JSON.stringify(kdj.value))
+    localStorage.setItem(`stock_config_volumeMa`, JSON.stringify(volumeMa.value))
     localStorage.setItem(`stock_config_bias`, JSON.stringify(bias.value))
     localStorage.setItem(`stock_config_buyConditions`, JSON.stringify(buyConditions.value))
     localStorage.setItem(`stock_config_sellConditions`, JSON.stringify(sellConditions.value))
@@ -147,6 +158,7 @@ const macd = ref(getLocalConfig('macd', {
 
 // KDJ配置参数
 const kdj = ref(getLocalConfig('kdj', { n: 9, k: 3, d: 3 }))
+const volumeMa = ref(normalizeVolumeMa(getLocalConfig('volumeMa', { s: 5, l: 10 })))
 const bias = ref(getLocalConfig('bias', { s: 6, m: 12, l: 24 }))
 
 // 买入和卖出条件配置
@@ -197,6 +209,7 @@ async function handleRemoteCalculation(params) {
       ma: params.ma,
       macd: params.macd,
       kdj: params.kdj,
+      volumeMa: params.volumeMa,
       bias: params.bias,
       buyConditions: params.buyConditions,
       sellConditions: params.sellConditions,
@@ -246,6 +259,9 @@ function handleUseTaskParams(params) {
   }
   if (params.bias) {
     bias.value = { ...params.bias }
+  }
+  if (params.volumeMa) {
+    volumeMa.value = normalizeVolumeMa(params.volumeMa)
   }
   
   // 更新买入条件
@@ -300,6 +316,7 @@ function calculateMetricsOnly() {
     macd: macd.value,
     kdj: kdj.value,
     bias: bias.value,
+    volumeMa: volumeMa.value,
     enabledIndicators: enabledIndicators.value
   })
   // 关闭自动计算时清空交易结果，避免沿用上一只股票的买卖点
@@ -319,6 +336,7 @@ function calculateTransactions(type = 'page') {
     ma: ma.value,
     macd: macd.value,
     kdj: kdj.value,
+    volumeMa: volumeMa.value,
     bias: bias.value,
     buyConditions: buyConditions.value,
     sellConditions: sellConditions.value,
