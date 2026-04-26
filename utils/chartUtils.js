@@ -67,12 +67,13 @@ export function aggregateDayToWeek(dayLine = []) {
  * @returns {Array<number>} 移动平均线数据
  */
 export function calculateMA(data, period) {
-  if (!Array.isArray(data) || data.length === 0) {
+  const normalizedPeriod = Number(period)
+  if (!Array.isArray(data) || data.length === 0 || !Number.isFinite(normalizedPeriod) || normalizedPeriod <= 0) {
     return [];
   }
   const result = [];
   for (let i = 0; i < data.length; i++) {
-    const param = i >= period - 1 ? period : i + 1;
+    const param = i >= normalizedPeriod - 1 ? normalizedPeriod : i + 1;
     const sum = data.slice(i - param + 1, i + 1)
       .reduce((acc, cur) => new Decimal(acc).plus(cur), new Decimal(0));
     result.push(new Decimal(sum).div(param).toNumber());
@@ -334,10 +335,10 @@ export function calculateMetric(data, {ma, macd, kdj = { n: 9, k: 3, d: 3 }, bia
   
   // 只有启用MA时才计算MA相关指标
   if (enabledIndicators.includes('ma')) {
-    const maS = calculateMA(close, ma.s);
-    const maM = calculateMA(close, ma.m);
-    const maL = calculateMA(close, ma.l);
-    const maX = calculateMA(close, ma.x);
+    const maS = Number(ma.s) > 0 ? calculateMA(close, ma.s) : [];
+    const maM = Number(ma.m) > 0 ? calculateMA(close, ma.m) : [];
+    const maL = Number(ma.l) > 0 ? calculateMA(close, ma.l) : [];
+    const maX = Number(ma.x) > 0 ? calculateMA(close, ma.x) : [];
     const position = calculatePosition({maS, maM, maL})
     const sign1 = calculateSign1({position})
     const sign2 = calculateSign2({maS, maM, maL})

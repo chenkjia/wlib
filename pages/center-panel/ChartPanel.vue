@@ -38,6 +38,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import TradeStats from '~/components/TradeStats.vue'
 import { splitData, createChartOption } from './ChartUtils.js'
+import { calculateMA } from '~/utils/chartUtils.js'
 
 const props = defineProps({
   stockCode: {
@@ -155,10 +156,33 @@ function renderChart(data, dayLineWithMetric) {
     formatDateYYYYMMDD, 
     formatDateMMDD,
     props.enabledIndicators,
+    props.ma,
     activeSubChart.value,
     props.simulatedBuyPoints
   )
   myChart.setOption(option)
+}
+
+function updateMaSeriesOnly() {
+  if (!myChart || !props.enabledIndicators.includes('ma')) return
+  const line = props.dayLineWithMetric?.line || []
+  const close = line.map(item => item?.close)
+  const showMaS = Number(props.ma?.s) > 0
+  const showMaM = Number(props.ma?.m) > 0
+  const showMaL = Number(props.ma?.l) > 0
+  const showMaX = Number(props.ma?.x) > 0
+  const maS = showMaS ? calculateMA(close, Number(props.ma?.s)) : []
+  const maM = showMaM ? calculateMA(close, Number(props.ma?.m)) : []
+  const maL = showMaL ? calculateMA(close, Number(props.ma?.l)) : []
+  const maX = showMaX ? calculateMA(close, Number(props.ma?.x)) : []
+  myChart.setOption({
+    series: [
+      { id: 'series-maS', data: maS },
+      { id: 'series-maM', data: maM },
+      { id: 'series-maL', data: maL },
+      { id: 'series-maX', data: maX }
+    ]
+  })
 }
 
 // 统一错误处理
@@ -208,9 +232,14 @@ function focusChartToRange(focusData) {
   }
 }
 
-// 监听数据变化，重新渲染图表
-watch([() => props.dayLineWithMetric, () => props.transactions, () => props.ma, () => props.simulatedBuyPoints], async () => {
+// 监听数据变化，重新渲染图表（不包含 ma 参数，避免整图刷新）
+watch([() => props.dayLineWithMetric, () => props.transactions, () => props.simulatedBuyPoints], async () => {
   await refreshChart()
+})
+
+// 仅在 MA 参数调整时更新 MA 系列，保留当前图表缩放和时间位置
+watch(() => props.ma, () => {
+  updateMaSeriesOnly()
 }, { deep: true })
 
 // 监听聚焦数据变化，调整图表显示范围

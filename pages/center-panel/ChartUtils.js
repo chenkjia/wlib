@@ -312,7 +312,7 @@ function processMacdDeviationPoints(dif = [], dea = [], line = []) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], activeSubChart = 'volume', simulatedBuyPoints = []) {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], maConfig = {}, activeSubChart = 'volume', simulatedBuyPoints = []) {
   const macdEnabled = enabledIndicators.includes('macd')
   const kdjEnabled = enabledIndicators.includes('kdj')
   const biasEnabled = enabledIndicators.includes('bias')
@@ -360,6 +360,11 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     .filter(segment => segment.state === 'bear')
     .map(segment => [{ xAxis: segment.startX }, { xAxis: segment.endX }])
   
+  const showMaS = Number(maConfig?.s) > 0
+  const showMaM = Number(maConfig?.m) > 0
+  const showMaL = Number(maConfig?.l) > 0
+  const showMaX = Number(maConfig?.x) > 0
+
   // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
   const grid = [
     { left: '10%', right: '10%', top: '4%', height: '60%' },
@@ -525,10 +530,10 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     },
     // MA线系列 - 只有启用MA时才显示
     ...(enabledIndicators.includes('ma') ? [
-      { name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
-      { name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
-      { name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false },
-      { name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }
+      ...(showMaS ? [{ id: 'series-maS', name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
+      ...(showMaM ? [{ id: 'series-maM', name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
+      ...(showMaL ? [{ id: 'series-maL', name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
+      ...(showMaX ? [{ id: 'series-maX', name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : [])
     ] : []),
     // 单一副图：成交量/MACD/KDJ 之一
     ...(activeSubChart === 'volume' ? [

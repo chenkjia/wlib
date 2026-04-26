@@ -81,7 +81,7 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { calculateStock, calculateMetric } from '~/utils/chartUtils.js'
+import { calculateStock, calculateMetric, calculateMA } from '~/utils/chartUtils.js'
 import LeftPanel from './left-panel/LeftPanel.vue'
 import ChartPanel from './center-panel/ChartPanel.vue'
 import RightPanel from './right-panel/RightPanel.vue'
@@ -324,6 +324,17 @@ function calculateMetricsOnly() {
   backtestData.value = {}
 }
 
+function refreshMaSeriesForChart() {
+  const dayLine = chartLine.value
+  const metric = dayLineWithMetric.value
+  if (!Array.isArray(dayLine) || dayLine.length === 0 || !metric) return
+  const close = dayLine.map(item => item.close)
+  metric.maS = Number(ma.value.s) > 0 ? calculateMA(close, Number(ma.value.s)) : []
+  metric.maM = Number(ma.value.m) > 0 ? calculateMA(close, Number(ma.value.m)) : []
+  metric.maL = Number(ma.value.l) > 0 ? calculateMA(close, Number(ma.value.l)) : []
+  metric.maX = Number(ma.value.x) > 0 ? calculateMA(close, Number(ma.value.x)) : []
+}
+
 // 计算交易数据
 function calculateTransactions(type = 'page') {
   const {
@@ -367,6 +378,11 @@ watch(() => autoCalculateSignals.value, (value) => {
     localStorage.setItem(`stock_config_autoCalculateSignals`, JSON.stringify(Boolean(value)))
   }
 })
+
+// MA 参数变化时，实时重算指标并刷新图表中的均线显示
+watch(() => ma.value, () => {
+  refreshMaSeriesForChart()
+}, { deep: true })
 
 // 监听数据源变化，重新加载数据
 

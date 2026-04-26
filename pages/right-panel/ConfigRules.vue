@@ -22,7 +22,7 @@
               type="number" 
               v-model="maS" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="1"
+              min="0"
               max="30"
             />
           </div>
@@ -35,7 +35,7 @@
               type="number" 
               v-model="maM" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="5"
+              min="0"
               max="60"
             />
           </div>
@@ -48,7 +48,7 @@
               type="number" 
               v-model="maL" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="10"
+              min="0"
               max="120"
             />
           </div>
@@ -61,7 +61,7 @@
               type="number" 
               v-model="maX" 
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="30"
+              min="0"
               max="250"
             />
           </div>
