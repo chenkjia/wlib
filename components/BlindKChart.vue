@@ -44,11 +44,11 @@ const props = defineProps({
 })
 
 const chartContainer = ref(null)
-const activeSubChart = ref('volume')
+const activeSubChart = ref('macd')
 let chartInstance = null
 
 const availableTabs = computed(() => {
-  const tabs = [{ key: 'volume', label: '成交量' }]
+  const tabs = []
   if (props.enabledIndicators.includes('macd')) tabs.push({ key: 'macd', label: 'MACD' })
   if (props.enabledIndicators.includes('kdj')) tabs.push({ key: 'kdj', label: 'KDJ' })
   if (props.enabledIndicators.includes('bias')) tabs.push({ key: 'bias', label: 'BIAS' })
@@ -85,19 +85,22 @@ function buildOption() {
     props.enabledIndicators,
     props.ma,
     activeSubChart.value,
-    []
+    [],
+    true
   )
 }
 
 function fullRenderChart() {
   if (!chartContainer.value || !chartInstance) return
   const option = buildOption()
-  if (Array.isArray(option?.xAxis) && option.xAxis[1]) {
-    option.xAxis[1] = {
-      ...option.xAxis[1],
-      axisLabel: {
-        ...(option.xAxis[1].axisLabel || {}),
-        show: false
+  if (Array.isArray(option?.xAxis)) {
+    for (let i = 1; i < option.xAxis.length; i++) {
+      option.xAxis[i] = {
+        ...option.xAxis[i],
+        axisLabel: {
+          ...(option.xAxis[i]?.axisLabel || {}),
+          show: false
+        }
       }
     }
   }
@@ -199,12 +202,14 @@ function updateGuideLinesOnly() {
 function updateChartIncrementally() {
   if (!chartInstance) return
   const option = buildOption()
-  if (Array.isArray(option?.xAxis) && option.xAxis[1]) {
-    option.xAxis[1] = {
-      ...option.xAxis[1],
-      axisLabel: {
-        ...(option.xAxis[1].axisLabel || {}),
-        show: false
+  if (Array.isArray(option?.xAxis)) {
+    for (let i = 1; i < option.xAxis.length; i++) {
+      option.xAxis[i] = {
+        ...option.xAxis[i],
+        axisLabel: {
+          ...(option.xAxis[i]?.axisLabel || {}),
+          show: false
+        }
       }
     }
   }

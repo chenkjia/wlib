@@ -181,25 +181,21 @@
               <table class="w-full text-xs">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-2 py-1 text-left">步数</th>
                     <th class="px-2 py-1 text-left">买入价格</th>
                     <th class="px-2 py-1 text-left">卖出价格</th>
                     <th class="px-2 py-1 text-left">股数</th>
-                    <th class="px-2 py-1 text-left">总资产</th>
-                    <th class="px-2 py-1 text-left">备注</th>
+                    <th class="px-2 py-1 text-left">盈亏</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="item in visibleActionLogs" :key="item.id" class="border-b border-gray-100">
-                    <td class="px-2 py-1">{{ item.step }}</td>
                     <td class="px-2 py-1">{{ formatNumber(item.buyPrice) }}</td>
                     <td class="px-2 py-1">{{ formatNumber(item.sellPrice) }}</td>
                     <td class="px-2 py-1">{{ formatNumber(item.shares) }}</td>
-                    <td class="px-2 py-1">{{ formatNumber(item.totalAsset) }}</td>
-                    <td class="px-2 py-1">{{ item.note }}</td>
+                    <td class="px-2 py-1" :class="Number(item.pnl) >= 0 ? 'text-red-600' : 'text-green-600'">{{ formatNumber(item.pnl) }}</td>
                   </tr>
                   <tr v-if="visibleActionLogs.length === 0">
-                    <td class="px-2 py-2 text-gray-400" colspan="6">暂无操作记录</td>
+                    <td class="px-2 py-2 text-gray-400" colspan="4">暂无操作记录</td>
                   </tr>
                 </tbody>
               </table>
@@ -447,10 +443,10 @@ function appendPositionLog(trade, closePrice, note = '') {
   const totalAsset = session.value.cash + session.value.shares * (Number(closePrice) || 0)
   session.value.actionLogs.unshift({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    step: `${trade.buyStep} -> ${trade.sellStep}`,
     buyPrice: Number(trade.buyPrice) || 0,
     sellPrice: Number(trade.sellPrice) || 0,
     shares: trade.shares || 0,
+    pnl: Number(trade.pnl) || 0,
     totalAsset,
     note: note || `买 ${formatNumber(trade.buyPrice)} / 卖 ${formatNumber(trade.sellPrice)} / 盈亏 ${formatNumber(trade.pnl)}`
   })

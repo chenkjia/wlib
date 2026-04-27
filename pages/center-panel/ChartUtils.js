@@ -320,11 +320,10 @@ function processMacdDeviationPoints(dif = [], dea = [], line = []) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], maConfig = {}, activeSubChart = 'volume', simulatedBuyPoints = []) {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], maConfig = {}, activeSubChart = 'volume', simulatedBuyPoints = [], useFixedVolumeSubChart = false) {
   const macdEnabled = enabledIndicators.includes('macd')
   const kdjEnabled = enabledIndicators.includes('kdj')
   const biasEnabled = enabledIndicators.includes('bias')
-  // 仅保留一个副图显示：macd 或 kdj 或 none（成交量始终显示）
   const hasMACD = activeSubChart === 'macd' ? macdEnabled : false
   const hasKDJ = activeSubChart === 'kdj' ? kdjEnabled : false
   const hasBIAS = activeSubChart === 'bias' ? biasEnabled : false
@@ -379,16 +378,19 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const showMaL = Number(maConfig?.l) > 0
   const showMaX = Number(maConfig?.x) > 0
 
-  // 两个网格：主图 + 单一副图（成交量/MACD/KDJ 之一）
-  const grid = [
-    { left: '10%', right: '10%', top: '4%', height: '60%' },
-    { left: '10%', right: '10%', top: '74%', height: '20%' }
-  ]
-  
-  // 副图网格索引统一为 1
-  const subGridIndex = 1
-  
-  // X轴（主图 + 单一副图）
+  const indicatorGridIndex = useFixedVolumeSubChart ? 2 : 1
+  const volumeGridIndex = 1
+  const grid = useFixedVolumeSubChart
+    ? [
+      { left: '10%', right: '10%', top: '4%', height: '52%' },
+      { left: '10%', right: '10%', top: '58%', height: '14%' },
+      { left: '10%', right: '10%', top: '76%', height: '14%' }
+    ]
+    : [
+      { left: '10%', right: '10%', top: '4%', height: '60%' },
+      { left: '10%', right: '10%', top: '74%', height: '20%' }
+    ]
+
   const xAxis = [
     {
       type: 'category',
@@ -398,7 +400,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       splitLine: { show: false },
       min: 'dataMin',
       max: 'dataMax',
-      axisLabel: { 
+      axisLabel: {
         show: true,
         formatter: formatDateMMDD
       },
@@ -411,13 +413,13 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     },
     {
       type: 'category',
-      gridIndex: subGridIndex,
+      gridIndex: volumeGridIndex,
       data: data.categoryData,
       boundaryGap: false,
       axisLine: { onZero: false },
       axisTick: { show: false },
       splitLine: { show: false },
-      axisLabel: { 
+      axisLabel: {
         show: true,
         formatter: formatDateMMDD
       },
@@ -428,10 +430,29 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           formatter: params => formatDateYYYYMMDD(params.value)
         }
       }
-    }
+    },
+    ...(useFixedVolumeSubChart ? [{
+      type: 'category',
+      gridIndex: indicatorGridIndex,
+      data: data.categoryData,
+      boundaryGap: false,
+      axisLine: { onZero: false },
+      axisTick: { show: false },
+      splitLine: { show: false },
+      axisLabel: {
+        show: true,
+        formatter: formatDateMMDD
+      },
+      min: 'dataMin',
+      max: 'dataMax',
+      axisPointer: {
+        label: {
+          formatter: params => formatDateYYYYMMDD(params.value)
+        }
+      }
+    }] : [])
   ]
-  
-  // Y轴（主图 + 单一副图）
+
   const yAxis = [
     {
       scale: true,
@@ -439,7 +460,10 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         show: false
       }
     },
-    { scale: true, gridIndex: subGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }
+    { scale: true, gridIndex: volumeGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } },
+    ...(useFixedVolumeSubChart
+      ? [{ scale: true, gridIndex: indicatorGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }]
+      : [])
   ]
   
   // 如果有换手率，在副图中添加右侧百分比轴
@@ -447,11 +471,11 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   const turnoverFromLine = Array.isArray(dayLineWithMetric?.data) ? dayLineWithMetric.data.map(d => (d?.turn ?? d?.turnoverRate ?? d?.turnover ?? null)) : []
   const turnoverRate = dayLineWithMetric.turn || dayLineWithMetric.turnoverRate || dayLineWithMetric.turnover || turnoverFromLine
   const hasTurnover = Array.isArray(turnoverRate) && turnoverRate.some(v => v != null)
-  if (activeSubChart === 'volume' && hasTurnover) {
+  if (hasTurnover) {
     turnoverYAxisIndex = yAxis.length
     yAxis.push({
       scale: true,
-      gridIndex: subGridIndex,
+      gridIndex: volumeGridIndex,
       position: 'right',
       axisLabel: { show: true, formatter: value => `${value}%` },
       axisLine: { show: true },
@@ -462,8 +486,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   }
   
   // DataZoom 仅联动两个轴
-  const zoomAxisIndex = [0, subGridIndex]
-  const sliderTop = '90%'
+  const zoomAxisIndex = useFixedVolumeSubChart ? [0, volumeGridIndex, indicatorGridIndex] : [0, volumeGridIndex]
+  const sliderTop = useFixedVolumeSubChart ? '92%' : '90%'
   const visibleCount = 60
   const dataLength = Array.isArray(data?.categoryData) ? data.categoryData.length : 0
   const zoomStart = dataLength > visibleCount ? Math.max(0, ((dataLength - visibleCount) / dataLength) * 100) : 0
@@ -550,43 +574,40 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       ...(showMaL ? [{ id: 'series-maL', name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
       ...(showMaX ? [{ id: 'series-maX', name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : [])
     ] : []),
-    // 单一副图：成交量/MACD/KDJ 之一
-    ...(activeSubChart === 'volume' ? [
-      {
-        id: 'series-volume',
-        name: '成交量',
-        type: 'bar',
-        xAxisIndex: subGridIndex,
-        yAxisIndex: subGridIndex,
-        data: data.volumes,
-        itemStyle: {
-          color: params => params.data[2] > 0 ? upColor : downColor
-        }
-      },
-      { id: 'series-vol-ma-s', name: 'VOL-MA-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
-      { id: 'series-vol-ma-l', name: 'VOL-MA-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaL, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false }
-    ] : []),
-    // 如果有换手率，叠加换手率曲线（使用副图的右侧百分比轴）
-    ...(activeSubChart === 'volume' && hasTurnover ? [
-      { name: '换手率', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: turnoverYAxisIndex, data: turnoverRate, smooth: true, lineStyle: { color: '#f6ad55', width: 1 }, showSymbol: false }
+    // 第一副图固定成交量
+    {
+      id: 'series-volume',
+      name: '成交量',
+      type: 'bar',
+      xAxisIndex: volumeGridIndex,
+      yAxisIndex: volumeGridIndex,
+      data: data.volumes,
+      itemStyle: {
+        color: params => params.data[2] > 0 ? upColor : downColor
+      }
+    },
+    { id: 'series-vol-ma-s', name: 'VOL-MA-S', type: 'line', xAxisIndex: volumeGridIndex, yAxisIndex: volumeGridIndex, data: volumeMaS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+    { id: 'series-vol-ma-l', name: 'VOL-MA-L', type: 'line', xAxisIndex: volumeGridIndex, yAxisIndex: volumeGridIndex, data: volumeMaL, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
+    ...(hasTurnover ? [
+      { name: '换手率', type: 'line', xAxisIndex: volumeGridIndex, yAxisIndex: turnoverYAxisIndex, data: turnoverRate, smooth: true, lineStyle: { color: '#f6ad55', width: 1 }, showSymbol: false }
     ] : []),
     ...(activeSubChart === 'macd' && macdEnabled ? [
-      { id: 'series-macd-dif', name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
-      { id: 'series-macd-dea', name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
-      { id: 'series-macd-bar', name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } },
-      { id: 'series-macd-bottom-dev', name: 'MACD底背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.bottomPoints, symbol: 'triangle', symbolSize: 12, itemStyle: { color: '#22c55e' }, label: { show: true, formatter: '底背离', position: 'bottom', color: '#22c55e', fontSize: 10, backgroundColor: '#fff', borderColor: '#22c55e', borderWidth: 1, borderRadius: 2, padding: [1, 3] } },
-      { id: 'series-macd-top-dev', name: 'MACD顶背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.topPoints, symbol: 'triangle', symbolRotate: 180, symbolSize: 12, itemStyle: { color: '#ef4444' }, label: { show: true, formatter: '顶背离', position: 'top', color: '#ef4444', fontSize: 10, backgroundColor: '#fff', borderColor: '#ef4444', borderWidth: 1, borderRadius: 2, padding: [1, 3] } }
+      { id: 'series-macd-dif', name: 'DIF', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
+      { id: 'series-macd-dea', name: 'DEA', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
+      { id: 'series-macd-bar', name: 'BAR', type: 'bar', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } },
+      { id: 'series-macd-bottom-dev', name: 'MACD底背离', type: 'scatter', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: macdDeviations.bottomPoints, symbol: 'triangle', symbolSize: 12, itemStyle: { color: '#22c55e' }, label: { show: true, formatter: '底背离', position: 'bottom', color: '#22c55e', fontSize: 10, backgroundColor: '#fff', borderColor: '#22c55e', borderWidth: 1, borderRadius: 2, padding: [1, 3] } },
+      { id: 'series-macd-top-dev', name: 'MACD顶背离', type: 'scatter', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: macdDeviations.topPoints, symbol: 'triangle', symbolRotate: 180, symbolSize: 12, itemStyle: { color: '#ef4444' }, label: { show: true, formatter: '顶背离', position: 'top', color: '#ef4444', fontSize: 10, backgroundColor: '#fff', borderColor: '#ef4444', borderWidth: 1, borderRadius: 2, padding: [1, 3] } }
     ] : []),
     ...(activeSubChart === 'kdj' && kdjEnabled ? [
-      { id: 'series-kdj-k', name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
-      { id: 'series-kdj-d', name: 'KDJ-D', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
-      { id: 'series-kdj-j', name: 'KDJ-J', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
+      { id: 'series-kdj-k', name: 'KDJ-K', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
+      { id: 'series-kdj-d', name: 'KDJ-D', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
+      { id: 'series-kdj-j', name: 'KDJ-J', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
     ] : []),
     ...(activeSubChart === 'bias' && biasEnabled ? [
-      { id: 'series-bias-s', name: 'BIAS-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
-      { id: 'series-bias-m', name: 'BIAS-M', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasM, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
-      { id: 'series-bias-l', name: 'BIAS-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasL, smooth: true, lineStyle: { color: '#8b5cf6', width: 1.1 }, showSymbol: false },
-      { id: 'series-bias-zero', name: 'BIAS-0', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: data.categoryData.map(() => 0), smooth: false, lineStyle: { color: '#9ca3af', type: 'dashed', width: 1 }, showSymbol: false, silent: true, tooltip: { show: false } }
+      { id: 'series-bias-s', name: 'BIAS-S', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: biasS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+      { id: 'series-bias-m', name: 'BIAS-M', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: biasM, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
+      { id: 'series-bias-l', name: 'BIAS-L', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: biasL, smooth: true, lineStyle: { color: '#8b5cf6', width: 1.1 }, showSymbol: false },
+      { id: 'series-bias-zero', name: 'BIAS-0', type: 'line', xAxisIndex: indicatorGridIndex, yAxisIndex: indicatorGridIndex, data: data.categoryData.map(() => 0), smooth: false, lineStyle: { color: '#9ca3af', type: 'dashed', width: 1 }, showSymbol: false, silent: true, tooltip: { show: false } }
     ] : [])
   ]
   
