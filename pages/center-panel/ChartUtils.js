@@ -22,26 +22,34 @@ function calculateSimpleMA(values = [], period = 60) {
   return result
 }
 
-function getTrendStateByIndex(closeSeries = [], ma60Series = [], difSeries = [], index = 0) {
-  // 数据前段（MA60不足或无法比较前一日）统一归为震荡
-  if (index < 60) return 'range'
-  const close = Number(closeSeries[index])
-  const ma60 = Number(ma60Series[index])
-  const ma60Prev = Number(ma60Series[index - 1])
-  const dif = Number(difSeries[index])
-  if (!Number.isFinite(close) || !Number.isFinite(ma60) || !Number.isFinite(ma60Prev) || !Number.isFinite(dif)) {
+function getTrendStateByIndex(maMiddleSeries = [], maLongSeries = [], index = 0, warmup = 0) {
+  // 使用中期/长期均线关系来判断趋势背景
+  if (index < warmup || index <= 0) return 'range'
+  const maMiddle = Number(maMiddleSeries[index])
+  const maLong = Number(maLongSeries[index])
+  const maMiddlePrev = Number(maMiddleSeries[index - 1])
+  const maLongPrev = Number(maLongSeries[index - 1])
+  if (!Number.isFinite(maMiddle) || !Number.isFinite(maLong) || !Number.isFinite(maMiddlePrev) || !Number.isFinite(maLongPrev)) {
     return 'range'
   }
-  if (close > ma60 && ma60 > ma60Prev && dif > 0) return 'bull'
-  if (close < ma60 && ma60 < ma60Prev && dif < 0) return 'bear'
+  if (maMiddle > maLong && maMiddle >= maMiddlePrev && maLong >= maLongPrev) return 'bull'
+  if (maMiddle < maLong && maMiddle <= maMiddlePrev && maLong <= maLongPrev) return 'bear'
   return 'range'
 }
 
-function buildTrendSegments(lineData = [], difSeries = [], categoryData = []) {
+function buildTrendSegments(lineData = [], maMiddleSeries = [], maLongSeries = [], categoryData = [], maConfig = {}) {
   if (!Array.isArray(lineData) || lineData.length === 0) return []
   const closeSeries = lineData.map(item => (typeof item?.close === 'number' ? item.close : null))
-  const ma60Series = calculateSimpleMA(closeSeries, 60)
-  const states = lineData.map((_, index) => getTrendStateByIndex(closeSeries, ma60Series, difSeries, index))
+  const middlePeriod = Math.max(1, Number(maConfig?.m) || 60)
+  const longPeriod = Math.max(1, Number(maConfig?.l) || 120)
+  const middleSeries = (Array.isArray(maMiddleSeries) && maMiddleSeries.length === lineData.length)
+    ? maMiddleSeries
+    : calculateSimpleMA(closeSeries, middlePeriod)
+  const longSeries = (Array.isArray(maLongSeries) && maLongSeries.length === lineData.length)
+    ? maLongSeries
+    : calculateSimpleMA(closeSeries, longPeriod)
+  const warmup = Math.max(middlePeriod, longPeriod) - 1
+  const states = lineData.map((_, index) => getTrendStateByIndex(middleSeries, longSeries, index, warmup))
   const segments = []
   let start = 0
   let currentState = states[0] || 'range'
@@ -352,7 +360,13 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         label: { show: false }
       }))
     : []
-  const trendSegments = buildTrendSegments(dayLineWithMetric.line || [], dif, data.categoryData || [])
+  const trendSegments = buildTrendSegments(
+    dayLineWithMetric.line || [],
+    maM,
+    maL,
+    data.categoryData || [],
+    maConfig
+  )
   const bullTrendAreas = trendSegments
     .filter(segment => segment.state === 'bull')
     .map(segment => [{ xAxis: segment.startX }, { xAxis: segment.endX }])
@@ -491,6 +505,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       }
     }] : []),
     {
+      id: 'series-kline',
       name: 'K线',
       type: 'candlestick',
       data: data.values,
@@ -538,6 +553,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     // 单一副图：成交量/MACD/KDJ 之一
     ...(activeSubChart === 'volume' ? [
       {
+        id: 'series-volume',
         name: '成交量',
         type: 'bar',
         xAxisIndex: subGridIndex,
@@ -547,30 +563,30 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
           color: params => params.data[2] > 0 ? upColor : downColor
         }
       },
-      { name: 'VOL-MA-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
-      { name: 'VOL-MA-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaL, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false }
+      { id: 'series-vol-ma-s', name: 'VOL-MA-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+      { id: 'series-vol-ma-l', name: 'VOL-MA-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: volumeMaL, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false }
     ] : []),
     // 如果有换手率，叠加换手率曲线（使用副图的右侧百分比轴）
     ...(activeSubChart === 'volume' && hasTurnover ? [
       { name: '换手率', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: turnoverYAxisIndex, data: turnoverRate, smooth: true, lineStyle: { color: '#f6ad55', width: 1 }, showSymbol: false }
     ] : []),
     ...(activeSubChart === 'macd' && macdEnabled ? [
-      { name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
-      { name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
-      { name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } },
-      { name: 'MACD底背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.bottomPoints, symbol: 'triangle', symbolSize: 12, itemStyle: { color: '#22c55e' }, label: { show: true, formatter: '底背离', position: 'bottom', color: '#22c55e', fontSize: 10, backgroundColor: '#fff', borderColor: '#22c55e', borderWidth: 1, borderRadius: 2, padding: [1, 3] } },
-      { name: 'MACD顶背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.topPoints, symbol: 'triangle', symbolRotate: 180, symbolSize: 12, itemStyle: { color: '#ef4444' }, label: { show: true, formatter: '顶背离', position: 'top', color: '#ef4444', fontSize: 10, backgroundColor: '#fff', borderColor: '#ef4444', borderWidth: 1, borderRadius: 2, padding: [1, 3] } }
+      { id: 'series-macd-dif', name: 'DIF', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dif, smooth: true, lineStyle: { color: '#da6ee8', width: 1 }, showSymbol: false },
+      { id: 'series-macd-dea', name: 'DEA', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: dea, smooth: true, lineStyle: { color: '#39afe6', width: 1 }, showSymbol: false },
+      { id: 'series-macd-bar', name: 'BAR', type: 'bar', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: bar, itemStyle: { color: params => params.data > 0 ? upColor : downColor } },
+      { id: 'series-macd-bottom-dev', name: 'MACD底背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.bottomPoints, symbol: 'triangle', symbolSize: 12, itemStyle: { color: '#22c55e' }, label: { show: true, formatter: '底背离', position: 'bottom', color: '#22c55e', fontSize: 10, backgroundColor: '#fff', borderColor: '#22c55e', borderWidth: 1, borderRadius: 2, padding: [1, 3] } },
+      { id: 'series-macd-top-dev', name: 'MACD顶背离', type: 'scatter', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: macdDeviations.topPoints, symbol: 'triangle', symbolRotate: 180, symbolSize: 12, itemStyle: { color: '#ef4444' }, label: { show: true, formatter: '顶背离', position: 'top', color: '#ef4444', fontSize: 10, backgroundColor: '#fff', borderColor: '#ef4444', borderWidth: 1, borderRadius: 2, padding: [1, 3] } }
     ] : []),
     ...(activeSubChart === 'kdj' && kdjEnabled ? [
-      { name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
-      { name: 'KDJ-D', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
-      { name: 'KDJ-J', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
+      { id: 'series-kdj-k', name: 'KDJ-K', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjK, smooth: true, lineStyle: { color: '#ffd166', width: 1 }, showSymbol: false },
+      { id: 'series-kdj-d', name: 'KDJ-D', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjD, smooth: true, lineStyle: { color: '#06d6a0', width: 1 }, showSymbol: false },
+      { id: 'series-kdj-j', name: 'KDJ-J', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: kdjJ, smooth: true, lineStyle: { color: '#ef476f', width: 1 }, showSymbol: false }
     ] : []),
     ...(activeSubChart === 'bias' && biasEnabled ? [
-      { name: 'BIAS-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
-      { name: 'BIAS-M', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasM, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
-      { name: 'BIAS-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasL, smooth: true, lineStyle: { color: '#8b5cf6', width: 1.1 }, showSymbol: false },
-      { name: 'BIAS-0', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: data.categoryData.map(() => 0), smooth: false, lineStyle: { color: '#9ca3af', type: 'dashed', width: 1 }, showSymbol: false, silent: true, tooltip: { show: false } }
+      { id: 'series-bias-s', name: 'BIAS-S', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasS, smooth: true, lineStyle: { color: '#f59e0b', width: 1.2 }, showSymbol: false },
+      { id: 'series-bias-m', name: 'BIAS-M', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasM, smooth: true, lineStyle: { color: '#3b82f6', width: 1.1 }, showSymbol: false },
+      { id: 'series-bias-l', name: 'BIAS-L', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: biasL, smooth: true, lineStyle: { color: '#8b5cf6', width: 1.1 }, showSymbol: false },
+      { id: 'series-bias-zero', name: 'BIAS-0', type: 'line', xAxisIndex: subGridIndex, yAxisIndex: subGridIndex, data: data.categoryData.map(() => 0), smooth: false, lineStyle: { color: '#9ca3af', type: 'dashed', width: 1 }, showSymbol: false, silent: true, tooltip: { show: false } }
     ] : [])
   ]
   
@@ -691,13 +707,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         backgroundColor: '#777'
       }
     },
-    brush: {
-      xAxisIndex: 'all',
-      brushLink: 'all',
-      outOfBrush: {
-        colorAlpha: 0.1
-      }
-    },
+    toolbox: { show: false },
+    brush: { toolbox: [] },
     grid,
     xAxis,
     yAxis,

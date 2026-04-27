@@ -87,6 +87,12 @@ import ChartPanel from './center-panel/ChartPanel.vue'
 import RightPanel from './right-panel/RightPanel.vue'
 
 const route = useRoute()
+const DEFAULT_MA = {
+  s: 24,  // 短期MA
+  m: 60, // 中期MA
+  l: 120, // 长期MA
+  x: 250  // 超长期MA
+}
 
 // 状态变量
 const selectedStockCode = ref('')
@@ -106,6 +112,41 @@ const getLocalConfig = (key, defaultValue) => {
     return stored ? JSON.parse(stored) : defaultValue
   }
   return defaultValue
+}
+
+const getStockMaConfig = (stockCode) => {
+  if (!process.client || !stockCode) return { ...DEFAULT_MA }
+  const stored = localStorage.getItem(`stock_config_ma_${stockCode}`)
+  if (!stored) return { ...DEFAULT_MA }
+  try {
+    const parsed = JSON.parse(stored)
+    const resolveMa = (value, fallback) => {
+      const n = Number(value)
+      return Number.isFinite(n) && n >= 0 ? n : fallback
+    }
+    return {
+      s: resolveMa(parsed?.s, DEFAULT_MA.s),
+      m: resolveMa(parsed?.m, DEFAULT_MA.m),
+      l: resolveMa(parsed?.l, DEFAULT_MA.l),
+      x: resolveMa(parsed?.x, DEFAULT_MA.x)
+    }
+  } catch {
+    return { ...DEFAULT_MA }
+  }
+}
+
+const saveStockMaConfig = (stockCode, value) => {
+  if (!process.client || !stockCode) return
+  const resolveMa = (v, fallback) => {
+    const n = Number(v)
+    return Number.isFinite(n) && n >= 0 ? n : fallback
+  }
+  localStorage.setItem(`stock_config_ma_${stockCode}`, JSON.stringify({
+    s: resolveMa(value?.s, DEFAULT_MA.s),
+    m: resolveMa(value?.m, DEFAULT_MA.m),
+    l: resolveMa(value?.l, DEFAULT_MA.l),
+    x: resolveMa(value?.x, DEFAULT_MA.x)
+  }))
 }
 
 const autoCalculateSignals = ref(getLocalConfig('autoCalculateSignals', true)) // 是否自动计算买卖点
@@ -142,12 +183,7 @@ const saveConfigToLocalStorage = () => {
 }
 
 // MA配置参数
-const ma = ref(getLocalConfig('ma', {
-  s: 7,  // 短期MA
-  m: 50, // 中期MA
-  l: 100, // 长期MA
-  x: 200  // 超长期MA
-}))
+const ma = ref({ ...DEFAULT_MA })
 
 // MACD配置参数
 const macd = ref(getLocalConfig('macd', {
@@ -368,6 +404,7 @@ function handleChangeViewStock(stockCode) {
 // 监听股票代码变化
 watch(() => selectedStockCode.value, async (newCode, oldCode) => {
   if (newCode && newCode !== oldCode) {
+    ma.value = getStockMaConfig(newCode)
     simulatedBuyPoints.value = []
     await loadStockData()
   }
@@ -378,6 +415,10 @@ watch(() => autoCalculateSignals.value, (value) => {
     localStorage.setItem(`stock_config_autoCalculateSignals`, JSON.stringify(Boolean(value)))
   }
 })
+
+watch(() => ma.value, (value) => {
+  saveStockMaConfig(selectedStockCode.value, value)
+}, { deep: true })
 
 // MA 参数变化时，实时重算指标并刷新图表中的均线显示
 watch(() => ma.value, () => {
