@@ -138,6 +138,47 @@ function updateIndicatorSeriesOnly() {
 function updateGuideLinesOnly() {
   if (!chartInstance) return
   const lineData = []
+  const line = props.lineWithMetric?.line || []
+  const lineByTime = new Map(line.map(item => [item.time, item]))
+
+  // 交易点引导线：蓝色虚线，买在下方，卖在上方
+  for (const tx of (props.transactions || [])) {
+    const buyLine = lineByTime.get(tx.buyTime)
+    const sellLine = lineByTime.get(tx.sellTime)
+    const buyPrice = Number(tx.buyPrice)
+    const sellPrice = Number(tx.sellPrice)
+    if (buyLine && Number.isFinite(buyPrice)) {
+      const buyLow = Number(buyLine.low)
+      const buyLineTopY = Number.isFinite(buyLow) ? buyLow * 0.995 : buyPrice * 0.995
+      const buyLabelY = Number.isFinite(buyLow) ? buyLow * 0.97 : buyPrice * 0.97
+      lineData.push([
+        {
+          coord: [tx.buyTime, buyLineTopY],
+          lineStyle: { color: '#2563eb', type: 'dashed', width: 1.2 }
+        },
+        {
+          coord: [tx.buyTime, buyLabelY],
+          label: { show: true, formatter: '买', color: '#ffffff', backgroundColor: '#2563eb', padding: [1, 4], borderRadius: 2 }
+        }
+      ])
+    }
+    if (sellLine && Number.isFinite(sellPrice)) {
+      const sellHigh = Number(sellLine.high)
+      const sellLineBottomY = Number.isFinite(sellHigh) ? sellHigh * 1.005 : sellPrice * 1.005
+      const sellLabelY = Number.isFinite(sellHigh) ? sellHigh * 1.03 : sellPrice * 1.03
+      lineData.push([
+        {
+          coord: [tx.sellTime, sellLineBottomY],
+          lineStyle: { color: '#2563eb', type: 'dashed', width: 1.2 }
+        },
+        {
+          coord: [tx.sellTime, sellLabelY],
+          label: { show: true, formatter: '卖', color: '#ffffff', backgroundColor: '#2563eb', padding: [1, 4], borderRadius: 2 }
+        }
+      ])
+    }
+  }
+
   if (props.markers?.startTime) {
     lineData.push({
       name: '开始',

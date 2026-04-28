@@ -114,18 +114,18 @@ function processTrendPoints(trendData) {
       coord: [transaction[type + 'Index'], transaction[type + 'Price']],
       value: `${type.toUpperCase()}: ${transaction[type + 'Price']}`,
       itemStyle: { color: type === 'buy' ? '#00da3c' : '#ec0000' },
-      symbol: 'pin',
-      symbolSize: 30,
+      symbol: 'circle',
+      symbolSize: 1,
       label: {
-        show: true,
-        position: 'top',
-        distance: 10,
+        show: false,
+        position: type === 'buy' ? 'bottom' : 'top',
+        distance: 24,
         formatter: type === 'buy' ? '买' : '卖',
         fontSize: 12,
-        color: '#fff',
-        backgroundColor: type === 'buy' ? '#00da3c' : '#ec0000',
-        padding: 3,
-        borderRadius: 3
+        color: '#ffffff',
+        backgroundColor: '#2563eb',
+        padding: [1, 4],
+        borderRadius: 2
       }
     }))
   ]), [])
@@ -540,8 +540,8 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         borderColor0: downColor
       },
       markPoint: {
-        symbol: 'pin',
-        symbolSize: 40,
+        symbol: 'circle',
+        symbolSize: 1,
         data: [...trendPoints, ...simulationPoints],
         label: {
           formatter: function(params) {
