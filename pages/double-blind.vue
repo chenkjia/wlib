@@ -7,13 +7,16 @@
             <div class="text-base font-semibold text-gray-800">股票双盲训练</div>
             <div class="text-xs text-gray-500 mt-1">从这里开始新测试，历史测试记录也在这里查看与复盘。</div>
           </div>
-          <button
-            class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-            :disabled="loading"
-            @click="startRandomSession"
-          >
-            {{ loading ? '抽样中...' : '开始随机测试' }}
-          </button>
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-600">用户总现金：<span class="font-semibold text-blue-600">{{ formatNumber(user.cash) }}</span></div>
+            <button
+              class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
+              :disabled="loading"
+              @click="startRandomSession"
+            >
+              {{ loading ? '抽样中...' : '开始随机测试' }}
+            </button>
+          </div>
         </div>
         <div v-if="errorMessage" class="mt-2 text-xs text-red-600">{{ errorMessage }}</div>
       </div>
@@ -216,6 +219,7 @@ import { calculateMetric } from '~/utils/chartUtils.js'
 const INITIAL_CAPITAL = 100000
 const FEE_RATE = 0.003
 const RECORD_KEY = 'double_blind_records_v1'
+const USER_KEY = 'double_blind_user'
 
 const ma = ref(loadConfig('ma', { s: 24, m: 60, l: 120, x: 250 }))
 const macd = ref(loadConfig('macd', { s: 12, l: 26, d: 9 }))
@@ -229,6 +233,24 @@ const errorMessage = ref('')
 const session = ref(null)
 const records = ref([])
 const replayRecord = ref(null)
+const user = ref({ cash: INITIAL_CAPITAL, createdAt: Date.now() })
+
+function loadUser() {
+  if (!process.client) return { cash: INITIAL_CAPITAL, createdAt: Date.now() }
+  try {
+    const stored = localStorage.getItem(USER_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return { cash: Number(parsed.cash) || INITIAL_CAPITAL, createdAt: Number(parsed.createdAt) || Date.now() }
+    }
+  } catch {}
+  return { cash: INITIAL_CAPITAL, createdAt: Date.now() }
+}
+
+function saveUser() {
+  if (!process.client) return
+  localStorage.setItem(USER_KEY, JSON.stringify({ cash: user.value.cash, createdAt: user.value.createdAt }))
+}
 
 function loadConfig(key, fallback) {
   if (!process.client) return fallback
@@ -584,7 +606,7 @@ function finishSession(reason = 'manual') {
   const intervalReturn = startAdjusted > 0 ? endAdjusted / startAdjusted - 1 : 0
 
   const finalAsset = session.value.cash
-  const profit = finalAsset - INITIAL_CAPITAL
+  const profit = finalAsset - session.value.startingCash
   const winCount = session.value.closedTrades.filter(t => Number(t.pnl) > 0).length
   const winRate = session.value.closedTrades.length > 0 ? winCount / session.value.closedTrades.length : 0
   const avgHoldingRate = session.value.avgHoldingRateCount > 0
@@ -616,6 +638,9 @@ function finishSession(reason = 'manual') {
   }
   records.value.unshift(record)
   saveRecords()
+
+  user.value.cash = session.value.cash
+  saveUser()
 }
 
 async function startRandomSession() {
@@ -636,15 +661,16 @@ async function startRandomSession() {
       line: Array.isArray(data.line) ? data.line : [],
       revealedSteps: 0,
       status: 'running',
-      cash: INITIAL_CAPITAL,
+      cash: user.value.cash,
       shares: 0,
       openPosition: null,
       closedTrades: [],
       actionLogs: [],
       avgHoldingRateSum: 0,
       avgHoldingRateCount: 0,
-      peakAsset: INITIAL_CAPITAL,
-      maxDrawdown: 0
+      peakAsset: user.value.cash,
+      maxDrawdown: 0,
+      startingCash: user.value.cash
     }
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '启动失败'
@@ -666,6 +692,7 @@ watch([ma, macd, kdj, volumeMa, bias, enabledIndicators], () => {
 }, { deep: true })
 
 onMounted(() => {
+  user.value = loadUser()
   loadRecords()
 })
 </script>

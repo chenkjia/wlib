@@ -84,6 +84,10 @@ const props = defineProps({
   enabledIndicators: {
     type: Array,
     default: () => ['ma', 'macd']
+  },
+  useFixedVolumeSubChart: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -94,8 +98,15 @@ const chartContainer = ref(null)
 let myChart = null
 
 // 新增：副图切换状态
-const activeSubChart = ref('volume') // volume | macd | kdj | bias
+const activeSubChart = ref(props.useFixedVolumeSubChart ? 'macd' : 'volume') // volume | macd | kdj | bias
 const availableTabs = computed(() => {
+  if (props.useFixedVolumeSubChart) {
+    const tabs = []
+    if (props.enabledIndicators.includes('macd')) tabs.push({ key: 'macd', label: 'MACD' })
+    if (props.enabledIndicators.includes('kdj')) tabs.push({ key: 'kdj', label: 'KDJ' })
+    if (props.enabledIndicators.includes('bias')) tabs.push({ key: 'bias', label: 'BIAS' })
+    return tabs
+  }
   const tabs = [{ key: 'volume', label: '成交量' }]
   if (props.enabledIndicators.includes('macd')) tabs.push({ key: 'macd', label: 'MACD' })
   if (props.enabledIndicators.includes('kdj')) tabs.push({ key: 'kdj', label: 'KDJ' })
@@ -158,7 +169,8 @@ function renderChart(data, dayLineWithMetric) {
     props.enabledIndicators,
     props.ma,
     activeSubChart.value,
-    props.simulatedBuyPoints
+    props.simulatedBuyPoints,
+    props.useFixedVolumeSubChart
   )
   myChart.setOption(option)
 }

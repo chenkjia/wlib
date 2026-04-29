@@ -420,7 +420,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: {
-        show: true,
+        show: !useFixedVolumeSubChart,
         formatter: formatDateMMDD
       },
       min: 'dataMin',
@@ -440,8 +440,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       axisTick: { show: false },
       splitLine: { show: false },
       axisLabel: {
-        show: true,
-        formatter: formatDateMMDD
+        show: false
       },
       min: 'dataMin',
       max: 'dataMax',

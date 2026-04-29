@@ -42,6 +42,7 @@
           :sellConditions="sellConditions"
           :focusData="chartFocusData"
           :enabledIndicators="enabledIndicators"
+          :useFixedVolumeSubChart="true"
           @error="handleError"
         />
       </div>
