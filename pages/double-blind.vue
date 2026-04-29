@@ -126,33 +126,35 @@
         </div>
 
         <div class="bg-gray-100 px-3 py-2">
-          <div class="flex flex-wrap items-center justify-center gap-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex flex-wrap gap-2">
+              <button
+                class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+                :disabled="!canBuy"
+                @click="handleAction('buy')"
+              >
+                买入（全仓）
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
+                :disabled="!canSell"
+                @click="handleAction('sell')"
+              >
+                卖出（平仓）
+              </button>
+            </div>
+            <button
+              class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
+              @click="expandedMode = !expandedMode"
+            >
+              {{ expandedMode ? '缩小交易图' : '放大交易图' }}
+            </button>
             <button
               class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
               :disabled="!canOperate"
               @click="handleAction('observe')"
             >
               观察
-            </button>
-            <button
-              class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
-              :disabled="!canOperate"
-              @click="handleAction('buy')"
-            >
-              买入（全仓）
-            </button>
-            <button
-              class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
-              :disabled="!canOperate"
-              @click="handleAction('sell')"
-            >
-              卖出（平仓）
-            </button>
-            <button
-              class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
-              @click="expandedMode = !expandedMode"
-            >
-              缩小交易图
             </button>
           </div>
         </div>
@@ -175,34 +177,32 @@
               <div class="flex flex-wrap gap-2">
                 <button
                   class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
-                  :disabled="!canOperate"
+                  :disabled="!canBuy"
                   @click="handleAction('buy')"
                 >
                   买入（全仓）
                 </button>
                 <button
                   class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
-                  :disabled="!canOperate"
+                  :disabled="!canSell"
                   @click="handleAction('sell')"
                 >
                   卖出（平仓）
                 </button>
               </div>
-              <div class="flex flex-wrap gap-2">
-                <button
-                  class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
-                  @click="expandedMode = !expandedMode"
-                >
-                  {{ expandedMode ? '缩小交易图' : '放大交易图' }}
-                </button>
-                <button
-                  class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
-                  :disabled="!canOperate"
-                  @click="handleAction('observe')"
-                >
-                  观察
-                </button>
-              </div>
+              <button
+                class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
+                @click="expandedMode = !expandedMode"
+              >
+                {{ expandedMode ? '缩小交易图' : '放大交易图' }}
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
+                :disabled="!canOperate"
+                @click="handleAction('observe')"
+              >
+                观察
+              </button>
             </div>
           </div>
         </div>
@@ -410,6 +410,14 @@ const chartTransactions = computed(() => {
 
 const canOperate = computed(() => {
   return Boolean(session.value && session.value.status === 'running' && session.value.revealedSteps < session.value.testBars)
+})
+
+const canBuy = computed(() => {
+  return canOperate.value && session.value?.shares <= 0
+})
+
+const canSell = computed(() => {
+  return canOperate.value && session.value?.shares > 0
 })
 
 const visibleActionLogs = computed(() => session.value?.actionLogs || [])
