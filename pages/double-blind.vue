@@ -1,6 +1,6 @@
 <template>
-  <div class="h-screen w-full bg-gray-100 p-3">
-    <div v-if="!session" class="h-full flex flex-col gap-3">
+  <div class="h-screen w-full bg-gray-100" :class="expandedMode ? 'p-0' : 'p-3'">
+    <div v-if="!session" class="h-full flex flex-col gap-3 p-3">
       <div class="rounded-lg border border-gray-200 bg-white p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
@@ -85,9 +85,17 @@
     </div>
 
     <div v-else class="h-full flex flex-col gap-3">
-      <div class="rounded-lg border border-gray-200 bg-white p-3">
+      <div v-show="!expandedMode" class="rounded-lg border border-gray-200 bg-white p-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
-          <div class="text-sm text-gray-700 font-semibold">股票双盲训练</div>
+          <div class="flex flex-wrap gap-4 text-xs text-gray-600">
+            <span>进度：{{ session.revealedSteps }} / {{ session.testBars }}</span>
+            <span>显示K线：{{ visibleRawLine.length }}</span>
+            <span>状态：{{ session.status === 'finished' ? '已结束' : '进行中' }}</span>
+            <span>现金：{{ formatNumber(session.cash || 0) }}</span>
+            <span>持仓股数：{{ formatNumber(session.shares || 0) }}</span>
+            <span>总资产：{{ formatNumber(currentTotalAsset) }}</span>
+            <span>最大回撤：{{ formatPercent(session.maxDrawdown || 0) }}</span>
+          </div>
           <div class="flex flex-wrap gap-2">
             <button
               class="px-3 py-1.5 rounded-md bg-slate-600 text-white text-sm hover:bg-slate-700"
@@ -104,19 +112,53 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <div class="mt-2 text-xs text-gray-600 flex flex-wrap gap-x-4 gap-y-1">
-          <span>进度：{{ session.revealedSteps }} / {{ session.testBars }}</span>
-          <span>显示K线：{{ visibleRawLine.length }}</span>
-          <span>状态：{{ session.status === 'finished' ? '已结束' : '进行中' }}</span>
-          <span>现金：{{ formatNumber(session.cash || 0) }}</span>
-          <span>持仓股数：{{ formatNumber(session.shares || 0) }}</span>
-          <span>总资产：{{ formatNumber(currentTotalAsset) }}</span>
-          <span>最大回撤：{{ formatPercent(session.maxDrawdown || 0) }}</span>
+      <div v-if="expandedMode" class="min-h-0 flex-1 flex flex-col gap-0">
+        <div class="flex-1 min-h-0 bg-white">
+          <BlindKChart
+            :lineWithMetric="visibleLineWithMetric"
+            :transactions="chartTransactions"
+            :enabledIndicators="enabledIndicators"
+            :ma="ma"
+            :markers="blindMarkers"
+          />
+        </div>
+
+        <div class="bg-gray-100 px-3 py-2">
+          <div class="flex flex-wrap items-center justify-center gap-2">
+            <button
+              class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
+              :disabled="!canOperate"
+              @click="handleAction('observe')"
+            >
+              观察
+            </button>
+            <button
+              class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+              :disabled="!canOperate"
+              @click="handleAction('buy')"
+            >
+              买入（全仓）
+            </button>
+            <button
+              class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
+              :disabled="!canOperate"
+              @click="handleAction('sell')"
+            >
+              卖出（平仓）
+            </button>
+            <button
+              class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
+              @click="expandedMode = !expandedMode"
+            >
+              缩小交易图
+            </button>
+          </div>
         </div>
       </div>
 
-      <div class="grid grid-cols-1 xl:grid-cols-4 gap-3 min-h-0 flex-1">
+      <div v-else class="grid grid-cols-1 xl:grid-cols-4 gap-3 min-h-0 flex-1">
         <div class="xl:col-span-3 min-h-0 flex flex-col gap-3">
           <div class="rounded-lg border border-gray-200 bg-white p-2 min-h-0 flex-1">
             <BlindKChart
@@ -129,34 +171,43 @@
           </div>
 
           <div class="rounded-lg border border-gray-200 bg-white p-3">
-            <div class="text-sm font-medium text-gray-700 mb-2">操作按钮</div>
-            <div class="flex flex-wrap gap-2">
-              <button
-                class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
-                :disabled="!canOperate"
-                @click="handleAction('observe')"
-              >
-                观察
-              </button>
-              <button
-                class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
-                :disabled="!canOperate"
-                @click="handleAction('buy')"
-              >
-                买入（全仓）
-              </button>
-              <button
-                class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
-                :disabled="!canOperate"
-                @click="handleAction('sell')"
-              >
-                卖出（平仓）
-              </button>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="px-3 py-1.5 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50"
+                  :disabled="!canOperate"
+                  @click="handleAction('buy')"
+                >
+                  买入（全仓）
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
+                  :disabled="!canOperate"
+                  @click="handleAction('sell')"
+                >
+                  卖出（平仓）
+                </button>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700"
+                  @click="expandedMode = !expandedMode"
+                >
+                  {{ expandedMode ? '缩小交易图' : '放大交易图' }}
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-800 disabled:opacity-50"
+                  :disabled="!canOperate"
+                  @click="handleAction('observe')"
+                >
+                  观察
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="rounded-lg border border-gray-200 bg-white p-2 flex flex-col min-h-0">
+        <div v-show="!expandedMode" class="rounded-lg border border-gray-200 bg-white p-2 flex flex-col min-h-0">
           <div class="flex-1 min-h-0 overflow-auto">
             <div class="px-2 pb-1 text-sm font-medium text-gray-700">指标配置</div>
             <ConfigRules
@@ -234,6 +285,7 @@ const session = ref(null)
 const records = ref([])
 const replayRecord = ref(null)
 const user = ref({ cash: INITIAL_CAPITAL, createdAt: Date.now() })
+const expandedMode = ref(false)
 
 function loadUser() {
   if (!process.client) return { cash: INITIAL_CAPITAL, createdAt: Date.now() }
