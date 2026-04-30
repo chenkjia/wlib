@@ -69,10 +69,24 @@ export default defineEventHandler(async () => {
 
     const startPos = randomInt(minStartPos, maxStartPos)
     const selectedPositions = tradableIndices.slice(startPos - HISTORY_BARS, startPos + TEST_BARS)
+    const afterTestPositions = tradableIndices.slice(startPos + TEST_BARS, startPos + TEST_BARS + 100)
     if (selectedPositions.length < MIN_VALID_BARS) continue
 
     const getFactorAt = resolveForeFactorMap(candidate.adjustFactor || [])
     const line = selectedPositions.map((sourceIndex) => {
+      const item = rawLine[sourceIndex]
+      return {
+        time: item.time,
+        open: Number(item.open),
+        high: Number(item.high),
+        low: Number(item.low),
+        close: Number(item.close),
+        volume: Number(item.volume),
+        amount: Number(item.amount),
+        foreAdjustFactor: getFactorAt(item.time)
+      }
+    })
+    const afterTestLine = afterTestPositions.map((sourceIndex) => {
       const item = rawLine[sourceIndex]
       return {
         time: item.time,
@@ -94,6 +108,7 @@ export default defineEventHandler(async () => {
       historyBars: HISTORY_BARS,
       testBars: TEST_BARS,
       line,
+      afterTestLine,
       startTime: line[HISTORY_BARS]?.time || null,
       endTime: line[line.length - 1]?.time || null
     }

@@ -40,6 +40,10 @@ const props = defineProps({
   markers: {
     type: Object,
     default: () => ({})
+  },
+  useRealDate: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -74,14 +78,36 @@ function formatBlindIndexDetail(value) {
   return index ? `第${index}根K线` : ''
 }
 
+function formatRealDate(value) {
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+function formatRealDateDetail(value) {
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return ''
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${d} ${h}:${min}`
+}
+
 function buildOption() {
   const line = props.lineWithMetric?.line || []
   const data = splitData(line, props.transactions)
+  const labelFormatter = props.useRealDate ? formatRealDateDetail : formatBlindIndexDetail
+  const axisLabelFormatter = props.useRealDate ? formatRealDate : formatBlindIndex
   return createChartOption(
     data,
     props.lineWithMetric || { line: [] },
-    formatBlindIndexDetail,
-    formatBlindIndex,
+    labelFormatter,
+    axisLabelFormatter,
     props.enabledIndicators,
     props.ma,
     activeSubChart.value,
@@ -179,18 +205,18 @@ function updateGuideLinesOnly() {
     }
   }
 
-  if (props.markers?.startTime) {
+  if (typeof props.markers?.startIndex === 'number' && Number.isFinite(props.markers.startIndex)) {
     lineData.push({
       name: '开始',
-      xAxis: props.markers.startTime,
+      xAxis: props.markers.startIndex,
       lineStyle: { color: '#f59e0b', type: 'dashed', width: 1.2 },
       label: { show: true, formatter: '开始', color: '#f59e0b', backgroundColor: '#fff', padding: [1, 3], borderRadius: 2 }
     })
   }
-  if (props.markers?.endTime) {
+  if (typeof props.markers?.endIndex === 'number' && Number.isFinite(props.markers.endIndex)) {
     lineData.push({
       name: '结束',
-      xAxis: props.markers.endTime,
+      xAxis: props.markers.endIndex,
       lineStyle: { color: '#f59e0b', type: 'dashed', width: 1.2 },
       label: { show: true, formatter: '结束', color: '#f59e0b', backgroundColor: '#fff', padding: [1, 3], borderRadius: 2 }
     })

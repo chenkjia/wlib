@@ -76,6 +76,7 @@
                 :enabledIndicators="replayRecord.snapshot.enabledIndicators"
                 :ma="replayRecord.snapshot.ma"
                 :markers="replayMarkers"
+                :useRealDate="true"
               />
             </div>
           </div>
@@ -430,7 +431,11 @@ const currentTotalAsset = computed(() => {
 
 const replayLineWithMetric = computed(() => {
   if (!replayRecord.value) return { line: [] }
-  const adjustedLine = buildAdjustedLine(replayRecord.value.snapshot.line || [])
+  const fullLine = [
+    ...(replayRecord.value.snapshot.line || []),
+    ...(replayRecord.value.snapshot.afterTestLine || [])
+  ]
+  const adjustedLine = buildAdjustedLine(fullLine)
   return calculateMetric(adjustedLine, {
     ma: replayRecord.value.snapshot.ma,
     macd: replayRecord.value.snapshot.macd,
@@ -469,7 +474,9 @@ const blindMarkers = computed(() => {
   }
   return {
     startTime: startLine?.time || null,
+    startIndex: session.value.historyBars - 1,
     endTime: endLine?.time || null,
+    endIndex: session.value.historyBars + session.value.testBars,
     currentPrice: Number.isFinite(currentPrice) ? currentPrice : null,
     positionPrice: Number.isFinite(positionPrice) ? positionPrice : null
   }
@@ -486,7 +493,9 @@ const replayMarkers = computed(() => {
   const currentPrice = Number(replayLineWithMetric.value?.line?.[replayLineWithMetric.value.line.length - 1]?.close)
   return {
     startTime: startLine?.time || null,
+    startIndex: historyBars,
     endTime: endLine?.time || null,
+    endIndex: historyBars + testBars,
     currentPrice: Number.isFinite(currentPrice) ? currentPrice : null,
     positionPrice: null
   }
@@ -686,6 +695,7 @@ function finishSession(reason = 'manual') {
     maxDrawdown: session.value.maxDrawdown,
     snapshot: {
       line: session.value.line,
+      afterTestLine: session.value.afterTestLine || [],
       closedTrades: session.value.closedTrades,
       actionLogs: session.value.actionLogs,
       enabledIndicators: enabledIndicators.value,
@@ -719,6 +729,7 @@ async function startRandomSession() {
       historyBars: Number(data.historyBars) || 300,
       testBars: Number(data.testBars) || 300,
       line: Array.isArray(data.line) ? data.line : [],
+      afterTestLine: Array.isArray(data.afterTestLine) ? data.afterTestLine : [],
       revealedSteps: 0,
       status: 'running',
       cash: user.value.cash,
