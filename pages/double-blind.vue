@@ -595,7 +595,36 @@ function loadRecords() {
 
 function saveRecords() {
   if (!process.client) return
-  localStorage.setItem(RECORD_KEY, JSON.stringify(records.value.slice(0, 200)))
+  const source = Array.isArray(records.value) ? records.value : []
+  const compactRecords = (list = [], keepSnapshotCount = 20) => {
+    return list.map((record, index) => {
+      if (index < keepSnapshotCount) return record
+      return {
+        ...record,
+        snapshot: null
+      }
+    })
+  }
+
+  const saveCandidates = [
+    source.slice(0, 200),
+    source.slice(0, 120),
+    compactRecords(source.slice(0, 80), 20),
+    compactRecords(source.slice(0, 50), 10),
+    compactRecords(source.slice(0, 30), 5)
+  ]
+
+  for (const candidate of saveCandidates) {
+    try {
+      localStorage.setItem(RECORD_KEY, JSON.stringify(candidate))
+      records.value = candidate
+      return
+    } catch (error) {
+      // 继续降级尝试，直到可落盘
+    }
+  }
+
+  console.warn('测试记录存储空间不足，未能完整保存更多记录')
 }
 
 function normalizeRecordsWithProfitRate(list = []) {

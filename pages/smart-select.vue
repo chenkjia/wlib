@@ -52,6 +52,14 @@
             <span>{{ tag.label }}</span>
           </label>
         </div>
+        <label class="mt-3 flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700">
+          <input
+            v-model="excludeST"
+            type="checkbox"
+            class="h-4 w-4"
+          >
+          <span>过滤ST股</span>
+        </label>
       </div>
 
       <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
@@ -60,10 +68,17 @@
           <div class="flex items-center gap-2">
             <button
               class="rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
-              :disabled="loading || stocks.length === 0 || addingToWatchlist"
+              :disabled="loading || displayStocks.length === 0 || addingToWatchlist"
               @click="addAllToWatchlist"
             >
               {{ addingToWatchlist ? '添加中...' : '一键加入观察列表' }}
+            </button>
+            <button
+              class="rounded bg-emerald-600 px-3 py-1.5 text-xs text-white hover:bg-emerald-700 disabled:opacity-50"
+              :disabled="loading || nonStStocks.length === 0 || addingNonStToWatchlist"
+              @click="addNonStToWatchlist"
+            >
+              {{ addingNonStToWatchlist ? '添加中...' : '一键添加非ST股' }}
             </button>
             <div class="text-xs text-gray-500">共 {{ stocks.length }} 只</div>
           </div>
@@ -84,7 +99,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="stock in stocks"
+                v-for="stock in displayStocks"
                 :key="stock.code"
                 class="hover:bg-gray-50"
               >
@@ -129,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 const macdDayTagOptions = [
   { value: 'macd_day_bar_green_to_red', label: '日线绿柱转红柱' },
@@ -158,7 +173,23 @@ const stocks = ref([])
 const loading = ref(false)
 const error = ref('')
 const addingToWatchlist = ref(false)
+const addingNonStToWatchlist = ref(false)
+const excludeST = ref(false)
 let searchTimer = null
+
+function isSTStock(stock) {
+  const name = String(stock?.name || '')
+  return /(^|\s|\*)st/i.test(name)
+}
+
+const displayStocks = computed(() => {
+  if (!excludeST.value) return stocks.value
+  return stocks.value.filter(stock => !isSTStock(stock))
+})
+
+const nonStStocks = computed(() => {
+  return stocks.value.filter(stock => !isSTStock(stock))
+})
 
 function formatDayTag(tag) {
   const match = macdDayTagOptions.find(item => item.value === tag)
@@ -203,10 +234,10 @@ async function loadStocks() {
 }
 
 async function addAllToWatchlist() {
-  if (stocks.value.length === 0) return
+  if (displayStocks.value.length === 0) return
   addingToWatchlist.value = true
   try {
-    const codes = stocks.value.map(item => item.code).filter(Boolean)
+    const codes = displayStocks.value.map(item => item.code).filter(Boolean)
     const result = await $fetch('/api/stocks/watchlist', {
       method: 'POST',
       body: { action: 'add', codes }
@@ -219,6 +250,26 @@ async function addAllToWatchlist() {
     alert(err?.message || '加入观察列表失败')
   } finally {
     addingToWatchlist.value = false
+  }
+}
+
+async function addNonStToWatchlist() {
+  if (nonStStocks.value.length === 0) return
+  addingNonStToWatchlist.value = true
+  try {
+    const codes = nonStStocks.value.map(item => item.code).filter(Boolean)
+    const result = await $fetch('/api/stocks/watchlist', {
+      method: 'POST',
+      body: { action: 'add', codes }
+    })
+    if (!result?.success) {
+      throw new Error(result?.message || '添加非ST股失败')
+    }
+    alert(`已加入非ST股票：${codes.length} 只`)
+  } catch (err) {
+    alert(err?.message || '添加非ST股失败')
+  } finally {
+    addingNonStToWatchlist.value = false
   }
 }
 
