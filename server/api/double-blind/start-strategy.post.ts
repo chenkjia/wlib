@@ -81,6 +81,21 @@ function buildDatasets(line: any[], indicatorConfig: any) {
   return { dayData, weekData, hourData }
 }
 
+function buildForwardAdjustedLine(line: any[] = [], adjustFactor: any[] = []) {
+  const dayLine = normalizeLine(line)
+  const getFactorAt = resolveForeFactorMap(adjustFactor || [])
+  return dayLine.map((item) => {
+    const factor = Number(getFactorAt(item.time)) || 1
+    return {
+      ...item,
+      open: Number(item.open) * factor,
+      high: Number(item.high) * factor,
+      low: Number(item.low) * factor,
+      close: Number(item.close) * factor
+    }
+  })
+}
+
 function evaluateGroupAtIndex(group: any, index: number, datasets: any) {
   const dayData = datasets.dayData
   const weekData = datasets.weekData
@@ -221,7 +236,9 @@ export default defineEventHandler(async (event) => {
     const tradablePosMap = new Map<number, number>()
     tradableIndices.forEach((rawIndex, pos) => tradablePosMap.set(rawIndex, pos))
 
-    const datasets = buildDatasets(rawLine, indicatorConfig)
+    // 策略匹配口径与训练页展示一致：使用前复权后的序列计算信号
+    const adjustedLineForSignal = buildForwardAdjustedLine(rawLine, candidate.adjustFactor || [])
+    const datasets = buildDatasets(adjustedLineForSignal, indicatorConfig)
     const signalRawIndices = findSignalIndices(buyConditions, datasets)
     if (signalRawIndices.length === 0) continue
 

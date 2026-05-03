@@ -46,6 +46,7 @@
                     <th class="px-2 py-1 text-left">开仓胜率</th>
                     <th class="px-2 py-1 text-left">区间涨跌幅</th>
                     <th class="px-2 py-1 text-left">盈亏</th>
+                    <th class="px-2 py-1 text-left">盈亏率</th>
                     <th class="px-2 py-1 text-left">最大回撤</th>
                     <th class="px-2 py-1 text-left">操作</th>
                   </tr>
@@ -60,13 +61,14 @@
                     <td class="px-2 py-1">{{ formatPercent(record.winRate) }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.intervalReturn) }}</td>
                     <td class="px-2 py-1" :class="record.profit >= 0 ? 'text-red-600' : 'text-green-600'">{{ formatNumber(record.profit) }}</td>
+                    <td class="px-2 py-1" :class="record.profit >= 0 ? 'text-red-600' : 'text-green-600'">{{ formatPercent(record.profitRate || 0) }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.maxDrawdown) }}</td>
                     <td class="px-2 py-1">
                       <button class="px-2 py-0.5 rounded bg-indigo-600 text-white" @click="openReplay(record.id)">复盘</button>
                     </td>
                   </tr>
                   <tr v-if="records.length === 0">
-                    <td class="px-2 py-2 text-gray-400" colspan="10">暂无测试记录</td>
+                    <td class="px-2 py-2 text-gray-400" colspan="11">暂无测试记录</td>
                   </tr>
                 </tbody>
               </table>
@@ -582,7 +584,9 @@ function loadRecords() {
   if (!process.client) return
   try {
     const raw = localStorage.getItem(RECORD_KEY)
-    records.value = raw ? JSON.parse(raw) : []
+    const parsed = raw ? JSON.parse(raw) : []
+    records.value = normalizeRecordsWithProfitRate(parsed)
+    saveRecords()
   } catch {
     records.value = []
   }
@@ -591,6 +595,35 @@ function loadRecords() {
 function saveRecords() {
   if (!process.client) return
   localStorage.setItem(RECORD_KEY, JSON.stringify(records.value.slice(0, 200)))
+}
+
+function normalizeRecordsWithProfitRate(list = []) {
+  const source = Array.isArray(list) ? list : []
+  if (source.length === 0) return []
+
+  // 按时间从旧到新回放，补齐 startingCash 并重算 profitRate
+  const asc = [...source].sort((a, b) => {
+    const ta = new Date(a?.startedAt || a?.createdAt || 0).getTime()
+    const tb = new Date(b?.startedAt || b?.createdAt || 0).getTime()
+    return ta - tb
+  })
+
+  let rollingStartCash = INITIAL_CAPITAL
+  const normalizedAsc = asc.map((record) => {
+    const profit = Number(record?.profit) || 0
+    const explicitStart = Number(record?.startingCash)
+    const startingCash = Number.isFinite(explicitStart) && explicitStart > 0 ? explicitStart : rollingStartCash
+    const profitRate = startingCash > 0 ? profit / startingCash : 0
+    rollingStartCash = startingCash + profit
+    return {
+      ...record,
+      startingCash,
+      profitRate
+    }
+  })
+
+  const normalizedMap = new Map(normalizedAsc.map(item => [item.id, item]))
+  return source.map((record) => normalizedMap.get(record.id) || record)
 }
 
 function updateSessionMetrics(price) {
@@ -795,6 +828,7 @@ function finishSession(reason = 'manual') {
 
   const finalAsset = session.value.cash
   const profit = finalAsset - session.value.startingCash
+  const profitRate = session.value.startingCash > 0 ? profit / session.value.startingCash : 0
   const winCount = session.value.closedTrades.filter(t => Number(t.pnl) > 0).length
   const winRate = session.value.closedTrades.length > 0 ? winCount / session.value.closedTrades.length : 0
   const avgHoldingRate = session.value.avgHoldingRateCount > 0
@@ -824,6 +858,8 @@ function finishSession(reason = 'manual') {
     winRate,
     intervalReturn,
     profit,
+    startingCash: session.value.startingCash,
+    profitRate,
     maxDrawdown: session.value.maxDrawdown,
     snapshot: {
       line: session.value.line,
