@@ -587,6 +587,7 @@ function loadRecords() {
     const parsed = raw ? JSON.parse(raw) : []
     records.value = normalizeRecordsWithProfitRate(parsed)
     saveRecords()
+    syncUserCashFromRecords()
   } catch {
     records.value = []
   }
@@ -624,6 +625,18 @@ function normalizeRecordsWithProfitRate(list = []) {
 
   const normalizedMap = new Map(normalizedAsc.map(item => [item.id, item]))
   return source.map((record) => normalizedMap.get(record.id) || record)
+}
+
+function syncUserCashFromRecords() {
+  if (!Array.isArray(records.value) || records.value.length === 0) return
+  const latest = records.value[0]
+  const startingCash = Number(latest?.startingCash)
+  const profit = Number(latest?.profit)
+  if (!Number.isFinite(startingCash) || !Number.isFinite(profit)) return
+  const derivedCash = startingCash + profit
+  if (!Number.isFinite(derivedCash) || derivedCash <= 0) return
+  user.value.cash = derivedCash
+  saveUser()
 }
 
 function updateSessionMetrics(price) {
@@ -877,8 +890,9 @@ function finishSession(reason = 'manual') {
   records.value.unshift(record)
   saveRecords()
 
-  user.value.cash = session.value.cash
+  user.value.cash = Number.isFinite(Number(finalAsset)) ? Number(finalAsset) : (Number(record.startingCash) + Number(record.profit))
   saveUser()
+  syncUserCashFromRecords()
 }
 
 async function startRandomSession() {
@@ -995,6 +1009,14 @@ async function startStrategySession() {
 function backToStartPage() {
   if (session.value?.status === 'running' && Number(session.value?.tradeOperationCount || 0) > 0) {
     finishSession('manual_exit')
+  }
+  if (session.value?.status === 'finished') {
+    const finishedCash = Number(session.value?.cash)
+    if (Number.isFinite(finishedCash) && finishedCash > 0) {
+      user.value.cash = finishedCash
+      saveUser()
+    }
+    syncUserCashFromRecords()
   }
   session.value = null
 }

@@ -141,7 +141,8 @@ const macdDayTagOptions = [
   { value: 'macd_day_close_above_ma20', label: '日线收盘价高于 MA20' },
   { value: 'macd_day_ma20_up', label: '日线 MA20 高于前一日' },
   { value: 'macd_day_ma20_above_ma60', label: '日线 MA20 大于 MA60' },
-  { value: 'macd_day_oversold_signal_in_5d', label: '5天内出现超跌信号' },
+  { value: 'macd_day_oversold_signal_in_5d', label: '5天内出现绝对超跌信号' },
+  { value: 'macd_day_oversold_signal_soft_in_5d', label: '5天内出现超跌信号' },
   { value: 'macd_day_drop_50_in_10d', label: '10个交易日内跌幅≥50%' }
 ]
 

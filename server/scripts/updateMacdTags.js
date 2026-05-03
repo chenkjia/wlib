@@ -182,20 +182,28 @@ function buildMacdFields({ dayLine = [], hourLine = [], macdConfig = { s: 12, l:
         if (Number.isFinite(ma20Last) && Number.isFinite(ma60Last) && ma20Last > ma60Last) {
             dayTags.push('macd_day_ma20_above_ma60')
         }
-        // 最近5个交易日内出现超跌信号：BIAS短期<-10 且 中期<-20 且 长期<-25
+        // 最近5个交易日内出现绝对超跌信号：BIAS短期<-10 且 中期<-20 且 长期<-25
         const oversoldStart = Math.max(0, dayLastIndex - 4)
+        let hasAbsoluteOversoldSignalIn5d = false
         let hasOversoldSignalIn5d = false
         for (let i = oversoldStart; i <= dayLastIndex; i++) {
             const s = Number(biasS[i])
             const m = Number(biasM[i])
             const l = Number(biasL[i])
-            if (Number.isFinite(s) && Number.isFinite(m) && Number.isFinite(l) && s < -10 && m < -20 && l < -25) {
-                hasOversoldSignalIn5d = true
-                break
+            if (!Number.isFinite(s) || !Number.isFinite(m) || !Number.isFinite(l)) continue
+            if (s < -10 && m < -20 && l < -25) {
+                hasAbsoluteOversoldSignalIn5d = true
             }
+            if (s < -10 && m < -15 && l < -15) {
+                hasOversoldSignalIn5d = true
+            }
+            if (hasAbsoluteOversoldSignalIn5d && hasOversoldSignalIn5d) break
+        }
+        if (hasAbsoluteOversoldSignalIn5d) {
+            dayTags.push('macd_day_oversold_signal_in_5d')
         }
         if (hasOversoldSignalIn5d) {
-            dayTags.push('macd_day_oversold_signal_in_5d')
+            dayTags.push('macd_day_oversold_signal_soft_in_5d')
         }
         // 最近10个交易日内（以最新收盘相对10日前收盘）跌幅达到50%
         if (dayLastIndex >= 10) {

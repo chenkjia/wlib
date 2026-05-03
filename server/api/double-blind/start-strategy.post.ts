@@ -249,12 +249,25 @@ export default defineEventHandler(async (event) => {
     })
     if (validSignalRawIndices.length === 0) continue
 
-    const chosenSignalRawIndex = validSignalRawIndices[randomInt(0, validSignalRawIndices.length - 1)]
-    const startPos = tradablePosMap.get(chosenSignalRawIndex) as number
+    // 每个命中点都先应用“向前10日回看命中则前移”规则，再在可用开始点里随机一个
+    const startCandidates = validSignalRawIndices.map((rawIndex) => {
+      const pos = tradablePosMap.get(rawIndex) as number
+      const lookbackStartPos = Math.max(HISTORY_BARS, pos - 10)
+      const previousSignalsInWindow = validSignalRawIndices
+        .filter((candidateRawIndex) => {
+          const candidatePos = tradablePosMap.get(candidateRawIndex)
+          return typeof candidatePos === 'number' && candidatePos >= lookbackStartPos && candidatePos < pos
+        })
+        .sort((a, b) => (tradablePosMap.get(a) as number) - (tradablePosMap.get(b) as number))
+      return previousSignalsInWindow.length > 0 ? previousSignalsInWindow[0] : rawIndex
+    })
+    const uniqueStartCandidates = Array.from(new Set(startCandidates))
+    const finalSignalRawIndex = uniqueStartCandidates[randomInt(0, uniqueStartCandidates.length - 1)]
+    const startPos = tradablePosMap.get(finalSignalRawIndex) as number
     const selectedPositions = tradableIndices.slice(startPos - HISTORY_BARS, startPos + TEST_BARS)
     const afterTestPositions = tradableIndices.slice(startPos + TEST_BARS, startPos + TEST_BARS + 100)
     if (selectedPositions.length < MIN_VALID_BARS) continue
-    const signalTime = rawLine[chosenSignalRawIndex]?.time || null
+    const signalTime = rawLine[finalSignalRawIndex]?.time || null
 
     const getFactorAt = resolveForeFactorMap(candidate.adjustFactor || [])
     const line = selectedPositions.map((sourceIndex) => {
