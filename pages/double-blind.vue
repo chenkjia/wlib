@@ -10,8 +10,15 @@
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-600">用户总现金：<span class="font-semibold text-blue-600">{{ formatNumber(user.cash) }}</span></div>
             <button
+              class="px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-50"
+              :disabled="loading || strategyLoading"
+              @click="showStrategyModal = true"
+            >
+              策略训练
+            </button>
+            <button
               class="px-3 py-1.5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50"
-              :disabled="loading"
+              :disabled="loading || strategyLoading"
               @click="startRandomSession"
             >
               {{ loading ? '抽样中...' : '开始随机测试' }}
@@ -71,7 +78,7 @@
       </div>
     </div>
 
-    <div v-else class="h-full flex flex-col gap-3">
+    <div id="training-session-root" v-else class="h-full flex flex-col gap-3">
       <div v-show="!expandedMode" class="rounded-lg border border-gray-200 bg-white p-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex flex-wrap gap-4 text-xs text-gray-600">
@@ -273,13 +280,59 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showStrategyModal && !session" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div class="w-full max-w-4xl rounded-lg border border-gray-200 bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+          <div>
+            <div class="text-base font-semibold text-gray-800">策略训练</div>
+            <div class="text-xs text-gray-500 mt-1">选择与买点模拟器一致的买入条件，系统将随机股票并以命中信号当天开测。</div>
+          </div>
+          <button
+            class="px-2 py-1 text-sm text-gray-500 hover:text-gray-700"
+            :disabled="strategyLoading"
+            @click="showStrategyModal = false"
+          >
+            关闭
+          </button>
+        </div>
+        <div class="max-h-[70vh] overflow-auto p-4">
+          <div class="mb-3 text-xs text-gray-500">
+            说明：仅使用买入条件定位训练起点；若随机 5 只股票都找不到信号，会提示“这个策略找不到训练数据”。
+          </div>
+          <AlgorithmConfig
+            type="buy"
+            :initialValue="strategyBuyConditions"
+            :enabledIndicators="enabledIndicators"
+            @update:value="(v) => strategyBuyConditions = Array.isArray(v) ? v : []"
+          />
+        </div>
+        <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-4 py-3">
+          <button
+            class="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            :disabled="strategyLoading"
+            @click="showStrategyModal = false"
+          >
+            取消
+          </button>
+          <button
+            class="px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-50"
+            :disabled="strategyLoading"
+            @click="startStrategySession"
+          >
+            {{ strategyLoading ? '匹配中...' : '开始策略训练' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import BlindKChart from '~/components/BlindKChart.vue'
 import ConfigRules from '~/pages/right-panel/ConfigRules.vue'
+import AlgorithmConfig from '~/pages/right-panel/AlgorithmConfig.vue'
 import { calculateMetric } from '~/utils/chartUtils.js'
 
 const INITIAL_CAPITAL = 100000
@@ -295,11 +348,16 @@ const bias = ref(loadConfig('bias', { s: 6, m: 12, l: 24 }))
 const enabledIndicators = ref(normalizeEnabledIndicators(loadConfig('enabledIndicators', ['ma', 'macd', 'kdj', 'bias'])))
 
 const loading = ref(false)
+const strategyLoading = ref(false)
 const errorMessage = ref('')
 const session = ref(null)
 const records = ref([])
 const user = ref({ cash: INITIAL_CAPITAL, createdAt: Date.now() })
 const expandedMode = ref(false)
+const showStrategyModal = ref(false)
+const strategyBuyConditions = ref(loadConfig('buyConditions', [
+  ['MAM_CROSS_UP_MAL']
+]))
 
 function loadUser() {
   if (!process.client) return { cash: INITIAL_CAPITAL, createdAt: Date.now() }
@@ -408,6 +466,17 @@ function formatHoldingBars(bars = 0) {
   return `${n}天`
 }
 
+async function jumpToTrainingView() {
+  await nextTick()
+  if (!process.client) return
+  const root = document.getElementById('training-session-root')
+  if (root) {
+    root.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+}
+
 const visibleRawLine = computed(() => {
   if (!session.value) return []
   const count = session.value.historyBars + session.value.revealedSteps
@@ -481,7 +550,12 @@ const currentTotalAsset = computed(() => {
 
 const blindMarkers = computed(() => {
   if (!session.value || visibleRawLine.value.length === 0) return {}
-  const startLine = session.value.line[session.value.historyBars]
+  const signalTs = new Date(session.value.signalTime || '').getTime()
+  const signalIndex = Number.isFinite(signalTs)
+    ? session.value.line.findIndex(item => new Date(item?.time).getTime() === signalTs)
+    : -1
+  const startIndex = signalIndex >= 0 ? signalIndex : session.value.historyBars
+  const startLine = session.value.line[startIndex]
   const endLine = session.value.line[session.value.historyBars + session.value.testBars - 1]
   const currentLine = visibleRawLine.value[visibleRawLine.value.length - 1]
   const currentPrice = Number(visibleLineWithMetric.value?.line?.[visibleLineWithMetric.value.line.length - 1]?.close)
@@ -495,7 +569,7 @@ const blindMarkers = computed(() => {
   }
   return {
     startTime: startLine?.time || null,
-    startIndex: session.value.historyBars - 1,
+    startIndex,
     endTime: endLine?.time || null,
     endIndex: session.value.historyBars + session.value.testBars,
     currentPrice: Number.isFinite(currentPrice) ? currentPrice : null,
@@ -790,6 +864,7 @@ async function startRandomSession() {
       startedAt: Date.now(),
       revealedSteps: 0,
       status: 'running',
+      signalTime: data.startTime || null,
       cash: user.value.cash,
       shares: 0,
       openPosition: null,
@@ -802,10 +877,82 @@ async function startRandomSession() {
       maxDrawdown: 0,
       startingCash: user.value.cash
     }
+    await jumpToTrainingView()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : '启动失败'
   } finally {
     loading.value = false
+  }
+}
+
+async function startStrategySession() {
+  strategyLoading.value = true
+  errorMessage.value = ''
+  try {
+    const response = await fetch('/api/double-blind/start-strategy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ma: ma.value,
+        macd: macd.value,
+        kdj: kdj.value,
+        volumeMa: volumeMa.value,
+        bias: bias.value,
+        enabledIndicators: enabledIndicators.value,
+        buyConditions: strategyBuyConditions.value
+      })
+    })
+    let payload = null
+    try {
+      payload = await response.json()
+    } catch {
+      payload = null
+    }
+    if (!response.ok) {
+      const code = Number(payload?.statusCode || response.status || 0)
+      const message = payload?.statusMessage || payload?.message || ''
+      if (code === 404) {
+        throw new Error('没命中：这个策略找不到训练数据')
+      }
+      throw new Error(message || '策略训练启动失败')
+    }
+    const data = payload
+    if (!data || !Array.isArray(data.line) || data.line.length === 0) {
+      throw new Error('没命中：这个策略找不到训练数据')
+    }
+    session.value = {
+      stock: data.stock,
+      historyBars: Number(data.historyBars) || 300,
+      testBars: Number(data.testBars) || 300,
+      line: Array.isArray(data.line) ? data.line : [],
+      afterTestLine: Array.isArray(data.afterTestLine) ? data.afterTestLine : [],
+      startedAt: Date.now(),
+      revealedSteps: 0,
+      status: 'running',
+      signalTime: data.signalTime || data.startTime || null,
+      cash: user.value.cash,
+      shares: 0,
+      openPosition: null,
+      closedTrades: [],
+      actionLogs: [],
+      tradeOperationCount: 0,
+      avgHoldingRateSum: 0,
+      avgHoldingRateCount: 0,
+      peakAsset: user.value.cash,
+      maxDrawdown: 0,
+      startingCash: user.value.cash
+    }
+    showStrategyModal.value = false
+    await jumpToTrainingView()
+  } catch (error) {
+    const rawMessage = error instanceof Error ? error.message : '策略训练启动失败'
+    if (rawMessage.includes('没命中')) {
+      errorMessage.value = '没命中：这个策略找不到训练数据'
+    } else {
+      errorMessage.value = rawMessage
+    }
+  } finally {
+    strategyLoading.value = false
   }
 }
 
@@ -822,6 +969,11 @@ function openReplay(recordId) {
 
 watch([ma, macd, kdj, volumeMa, bias, enabledIndicators], () => {
   saveIndicatorConfig()
+}, { deep: true })
+
+watch(() => strategyBuyConditions.value, (value) => {
+  if (!process.client) return
+  localStorage.setItem('stock_config_buyConditions', JSON.stringify(value))
 }, { deep: true })
 
 onMounted(() => {

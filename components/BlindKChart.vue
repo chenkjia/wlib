@@ -121,8 +121,19 @@ function buildOption() {
   )
 }
 
+function getCurrentZoomWindow() {
+  if (!chartInstance) return null
+  const currentOption = chartInstance.getOption?.()
+  const zoom = Array.isArray(currentOption?.dataZoom) ? currentOption.dataZoom[0] : null
+  const start = Number(zoom?.start)
+  const end = Number(zoom?.end)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return null
+  return { start, end }
+}
+
 function fullRenderChart() {
   if (!chartContainer.value || !chartInstance) return
+  const zoomWindow = getCurrentZoomWindow()
   const option = buildOption()
   if (Array.isArray(option?.xAxis)) {
     for (let i = 1; i < option.xAxis.length; i++) {
@@ -134,6 +145,13 @@ function fullRenderChart() {
         }
       }
     }
+  }
+  if (zoomWindow && Array.isArray(option?.dataZoom)) {
+    option.dataZoom = option.dataZoom.map((item) => ({
+      ...item,
+      start: zoomWindow.start,
+      end: zoomWindow.end
+    }))
   }
   chartInstance.setOption(option, { notMerge: true, lazyUpdate: true })
 }
