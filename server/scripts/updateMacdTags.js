@@ -3,7 +3,7 @@
 import MongoConnection from '../database/connection.js'
 import MongoDB from '../database/mongo.js'
 import logger from '~/utils/logger.js'
-import { calculateEMA, calculateMA, aggregateDayToWeek } from '~/utils/chartUtils.js'
+import { calculateEMA, calculateMA, aggregateDayToWeek, calculateForwardAdjusted } from '~/utils/chartUtils.js'
 
 // 将日线聚合为月线
 function aggregateDayToMonth(dayLine = []) {
@@ -48,6 +48,17 @@ function aggregateDayToMonth(dayLine = []) {
 function normalizeLine(line = []) {
     if (!Array.isArray(line)) return []
     return [...line].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+}
+
+function calculateBIAS(closeSeries = [], period = 6) {
+    if (!Array.isArray(closeSeries) || closeSeries.length === 0) return []
+    const ma = calculateMA(closeSeries, period)
+    return closeSeries.map((close, index) => {
+        const c = Number(close)
+        const m = Number(ma[index])
+        if (!Number.isFinite(c) || !Number.isFinite(m) || m === 0) return null
+        return ((c - m) / m) * 100
+    })
 }
 
 // 计算单周期 MACD 序列，并返回与序列一一对应的时间轴
@@ -136,6 +147,9 @@ function buildMacdFields({ dayLine = [], hourLine = [], macdConfig = { s: 12, l:
         const closeSeries = normalizedDayLine.map(item => Number(item.close))
         const ma20 = calculateMA(closeSeries, 20)
         const ma60 = calculateMA(closeSeries, 60)
+        const biasS = calculateBIAS(closeSeries, 6)
+        const biasM = calculateBIAS(closeSeries, 12)
+        const biasL = calculateBIAS(closeSeries, 24)
         const closeLast = Number(closeSeries[dayLastIndex])
         const ma20Last = Number(ma20[dayLastIndex])
         const ma20Prev = Number(ma20[dayLastIndex - 1])
@@ -167,6 +181,31 @@ function buildMacdFields({ dayLine = [], hourLine = [], macdConfig = { s: 12, l:
         }
         if (Number.isFinite(ma20Last) && Number.isFinite(ma60Last) && ma20Last > ma60Last) {
             dayTags.push('macd_day_ma20_above_ma60')
+        }
+        // 最近5个交易日内出现超跌信号：BIAS短期<-10 且 中期<-20 且 长期<-25
+        const oversoldStart = Math.max(0, dayLastIndex - 4)
+        let hasOversoldSignalIn5d = false
+        for (let i = oversoldStart; i <= dayLastIndex; i++) {
+            const s = Number(biasS[i])
+            const m = Number(biasM[i])
+            const l = Number(biasL[i])
+            if (Number.isFinite(s) && Number.isFinite(m) && Number.isFinite(l) && s < -10 && m < -20 && l < -25) {
+                hasOversoldSignalIn5d = true
+                break
+            }
+        }
+        if (hasOversoldSignalIn5d) {
+            dayTags.push('macd_day_oversold_signal_in_5d')
+        }
+        // 最近10个交易日内（以最新收盘相对10日前收盘）跌幅达到50%
+        if (dayLastIndex >= 10) {
+            const close10DaysAgo = Number(closeSeries[dayLastIndex - 10])
+            if (Number.isFinite(close10DaysAgo) && close10DaysAgo > 0 && Number.isFinite(closeLast)) {
+                const dropRatio = (close10DaysAgo - closeLast) / close10DaysAgo
+                if (dropRatio >= 0.5) {
+                    dayTags.push('macd_day_drop_50_in_10d')
+                }
+            }
         }
     }
 
@@ -204,8 +243,12 @@ async function updateMacdTags() {
             console.log(`[${i + 1}/${totalStocks}] ${code} 不存在，跳过`)
             continue
         }
+        const adjustFactor = Array.isArray(stock.adjustFactor)
+            ? [...stock.adjustFactor].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
+            : []
+        const adjustedDayLine = calculateForwardAdjusted(stock.dayLine || [], adjustFactor)
         const macdFields = buildMacdFields({
-            dayLine: stock.dayLine || [],
+            dayLine: adjustedDayLine,
             hourLine: stock.hourLine || [],
             macdConfig,
             dayLowThreshold

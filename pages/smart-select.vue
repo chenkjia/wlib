@@ -57,7 +57,16 @@
       <div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div class="mb-3 flex items-center justify-between">
           <div class="text-sm font-medium text-gray-700">股票列表</div>
-          <div class="text-xs text-gray-500">共 {{ stocks.length }} 只</div>
+          <div class="flex items-center gap-2">
+            <button
+              class="rounded bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-700 disabled:opacity-50"
+              :disabled="loading || stocks.length === 0 || addingToWatchlist"
+              @click="addAllToWatchlist"
+            >
+              {{ addingToWatchlist ? '添加中...' : '一键加入观察列表' }}
+            </button>
+            <div class="text-xs text-gray-500">共 {{ stocks.length }} 只</div>
+          </div>
         </div>
         <div v-if="loading" class="py-8 text-center text-sm text-gray-500">加载中...</div>
         <div v-else-if="error" class="py-8 text-center text-sm text-red-600">{{ error }}</div>
@@ -131,7 +140,9 @@ const macdDayTagOptions = [
   { value: 'macd_day_ma60_up', label: '日线 MA60 高于前一日' },
   { value: 'macd_day_close_above_ma20', label: '日线收盘价高于 MA20' },
   { value: 'macd_day_ma20_up', label: '日线 MA20 高于前一日' },
-  { value: 'macd_day_ma20_above_ma60', label: '日线 MA20 大于 MA60' }
+  { value: 'macd_day_ma20_above_ma60', label: '日线 MA20 大于 MA60' },
+  { value: 'macd_day_oversold_signal_in_5d', label: '5天内出现超跌信号' },
+  { value: 'macd_day_drop_50_in_10d', label: '10个交易日内跌幅≥50%' }
 ]
 
 const macdHourTagOptions = [
@@ -145,6 +156,7 @@ const searchKeyword = ref('')
 const stocks = ref([])
 const loading = ref(false)
 const error = ref('')
+const addingToWatchlist = ref(false)
 let searchTimer = null
 
 function formatDayTag(tag) {
@@ -186,6 +198,26 @@ async function loadStocks() {
     stocks.value = []
   } finally {
     loading.value = false
+  }
+}
+
+async function addAllToWatchlist() {
+  if (stocks.value.length === 0) return
+  addingToWatchlist.value = true
+  try {
+    const codes = stocks.value.map(item => item.code).filter(Boolean)
+    const result = await $fetch('/api/stocks/watchlist', {
+      method: 'POST',
+      body: { action: 'add', codes }
+    })
+    if (!result?.success) {
+      throw new Error(result?.message || '加入观察列表失败')
+    }
+    alert(`已加入观察列表：${codes.length} 只`)
+  } catch (err) {
+    alert(err?.message || '加入观察列表失败')
+  } finally {
+    addingToWatchlist.value = false
   }
 }
 

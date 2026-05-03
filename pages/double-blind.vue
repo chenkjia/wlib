@@ -33,6 +33,8 @@
                   <tr>
                     <th class="px-2 py-1 text-left">股票</th>
                     <th class="px-2 py-1 text-left">时间</th>
+                    <th class="px-2 py-1 text-left">训练时间</th>
+                    <th class="px-2 py-1 text-left">持仓时长</th>
                     <th class="px-2 py-1 text-left">平均持仓率</th>
                     <th class="px-2 py-1 text-left">开仓胜率</th>
                     <th class="px-2 py-1 text-left">区间涨跌幅</th>
@@ -45,41 +47,25 @@
                   <tr v-for="record in records" :key="record.id" class="border-b border-gray-100">
                     <td class="px-2 py-1">{{ record.stockName }} ({{ record.stockCode }})</td>
                     <td class="px-2 py-1">{{ record.timeRange }}</td>
+                    <td class="px-2 py-1">{{ record.trainingTimeText || '-' }}</td>
+                    <td class="px-2 py-1">{{ record.holdingDurationText || '-' }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.avgHoldingRate) }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.winRate) }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.intervalReturn) }}</td>
                     <td class="px-2 py-1" :class="record.profit >= 0 ? 'text-red-600' : 'text-green-600'">{{ formatNumber(record.profit) }}</td>
                     <td class="px-2 py-1">{{ formatPercent(record.maxDrawdown) }}</td>
                     <td class="px-2 py-1">
-                      <button class="px-2 py-0.5 rounded bg-indigo-600 text-white" @click="openReplay(record)">复盘</button>
+                      <button class="px-2 py-0.5 rounded bg-indigo-600 text-white" @click="openReplay(record.id)">复盘</button>
                     </td>
                   </tr>
                   <tr v-if="records.length === 0">
-                    <td class="px-2 py-2 text-gray-400" colspan="8">暂无测试记录</td>
+                    <td class="px-2 py-2 text-gray-400" colspan="10">暂无测试记录</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
-          <div v-if="replayRecord" class="rounded-lg border border-indigo-200 bg-indigo-50 p-3 min-h-0 flex-1">
-            <div class="flex items-center justify-between">
-              <div class="text-sm font-medium text-indigo-800">
-                复盘：{{ replayRecord.stockName }} ({{ replayRecord.stockCode }})
-              </div>
-              <button class="px-2 py-1 rounded bg-indigo-600 text-white text-xs" @click="replayRecord = null">关闭</button>
-            </div>
-            <div class="mt-2 h-full min-h-[380px]">
-              <BlindKChart
-                :lineWithMetric="replayLineWithMetric"
-                :transactions="replayTransactions"
-                :enabledIndicators="replayRecord.snapshot.enabledIndicators"
-                :ma="replayRecord.snapshot.ma"
-                :markers="replayMarkers"
-                :useRealDate="true"
-              />
-            </div>
-          </div>
         </div>
 
       </div>
@@ -137,11 +123,25 @@
                 买入（全仓）
               </button>
               <button
+                class="px-3 py-1.5 rounded-md bg-rose-500 text-white text-sm hover:bg-rose-600 disabled:opacity-50"
+                :disabled="!canBuyHalf"
+                @click="handleAction('buy_half')"
+              >
+                买入（半仓）
+              </button>
+              <button
                 class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
                 :disabled="!canSell"
                 @click="handleAction('sell')"
               >
                 卖出（平仓）
+              </button>
+              <button
+                class="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-sm hover:bg-emerald-600 disabled:opacity-50"
+                :disabled="!canSellHalf"
+                @click="handleAction('sell_half')"
+              >
+                卖出（半仓）
               </button>
             </div>
             <button
@@ -184,11 +184,25 @@
                   买入（全仓）
                 </button>
                 <button
+                  class="px-3 py-1.5 rounded-md bg-rose-500 text-white text-sm hover:bg-rose-600 disabled:opacity-50"
+                  :disabled="!canBuyHalf"
+                  @click="handleAction('buy_half')"
+                >
+                  买入（半仓）
+                </button>
+                <button
                   class="px-3 py-1.5 rounded-md bg-green-600 text-white text-sm hover:bg-green-700 disabled:opacity-50"
                   :disabled="!canSell"
                   @click="handleAction('sell')"
                 >
                   卖出（平仓）
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md bg-emerald-500 text-white text-sm hover:bg-emerald-600 disabled:opacity-50"
+                  :disabled="!canSellHalf"
+                  @click="handleAction('sell_half')"
+                >
+                  卖出（半仓）
                 </button>
               </div>
               <button
@@ -263,7 +277,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import BlindKChart from '~/components/BlindKChart.vue'
 import ConfigRules from '~/pages/right-panel/ConfigRules.vue'
 import { calculateMetric } from '~/utils/chartUtils.js'
@@ -284,7 +298,6 @@ const loading = ref(false)
 const errorMessage = ref('')
 const session = ref(null)
 const records = ref([])
-const replayRecord = ref(null)
 const user = ref({ cash: INITIAL_CAPITAL, createdAt: Date.now() })
 const expandedMode = ref(false)
 
@@ -379,6 +392,22 @@ function toDateText(value) {
   return `${y}-${m}-${day}`
 }
 
+function formatDateTimeMinute(value) {
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return '-'
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${y}-${m}-${day} ${hh}:${mm}`
+}
+
+function formatHoldingBars(bars = 0) {
+  const n = Math.max(0, Number(bars) || 0)
+  return `${n}天`
+}
+
 const visibleRawLine = computed(() => {
   if (!session.value) return []
   const count = session.value.historyBars + session.value.revealedSteps
@@ -413,11 +442,31 @@ const canOperate = computed(() => {
   return Boolean(session.value && session.value.status === 'running' && session.value.revealedSteps < session.value.testBars)
 })
 
+function canAffordBuy(portion = 1) {
+  if (!canOperate.value || !session.value) return false
+  const currentLine = visibleRawLine.value[visibleRawLine.value.length - 1]
+  const closePrice = Number(currentLine?.close) || 0
+  if (!Number.isFinite(closePrice) || closePrice <= 0) return false
+  const normalizedPortion = Math.max(0, Math.min(1, Number(portion) || 0))
+  if (normalizedPortion <= 0) return false
+  const budget = Number(session.value.cash || 0) * normalizedPortion
+  const unitCost = closePrice * (1 + FEE_RATE) * 100
+  return budget >= unitCost
+}
+
 const canBuy = computed(() => {
-  return canOperate.value && session.value?.shares <= 0
+  return canAffordBuy(1)
+})
+
+const canBuyHalf = computed(() => {
+  return canAffordBuy(0.5)
 })
 
 const canSell = computed(() => {
+  return canOperate.value && session.value?.shares > 0
+})
+
+const canSellHalf = computed(() => {
   return canOperate.value && session.value?.shares > 0
 })
 
@@ -429,34 +478,6 @@ const currentTotalAsset = computed(() => {
   return session.value.cash + session.value.shares * currentClose
 })
 
-const replayLineWithMetric = computed(() => {
-  if (!replayRecord.value) return { line: [] }
-  const fullLine = [
-    ...(replayRecord.value.snapshot.line || []),
-    ...(replayRecord.value.snapshot.afterTestLine || [])
-  ]
-  const adjustedLine = buildAdjustedLine(fullLine)
-  return calculateMetric(adjustedLine, {
-    ma: replayRecord.value.snapshot.ma,
-    macd: replayRecord.value.snapshot.macd,
-    kdj: replayRecord.value.snapshot.kdj,
-    bias: replayRecord.value.snapshot.bias,
-    volumeMa: replayRecord.value.snapshot.volumeMa,
-    enabledIndicators: replayRecord.value.snapshot.enabledIndicators
-  })
-})
-
-const replayTransactions = computed(() => {
-  if (!replayRecord.value) return []
-  const line = replayRecord.value.snapshot.line || []
-  const anchorFactor = Number(line[line.length - 1]?.foreAdjustFactor) || 1
-  return (replayRecord.value.snapshot.closedTrades || []).map(item => ({
-    buyTime: item.buyTime,
-    buyPrice: toForwardAdjustedPrice(item.buyPrice, item.buyFactor || anchorFactor, anchorFactor),
-    sellTime: item.sellTime,
-    sellPrice: toForwardAdjustedPrice(item.sellPrice, item.sellFactor || anchorFactor, anchorFactor)
-  }))
-})
 
 const blindMarkers = computed(() => {
   if (!session.value || visibleRawLine.value.length === 0) return {}
@@ -482,24 +503,6 @@ const blindMarkers = computed(() => {
   }
 })
 
-const replayMarkers = computed(() => {
-  if (!replayRecord.value) return {}
-  const line = replayRecord.value.snapshot.line || []
-  if (line.length === 0) return {}
-  const historyBars = 300
-  const testBars = 300
-  const startLine = line[historyBars]
-  const endLine = line[historyBars + testBars - 1] || line[line.length - 1]
-  const currentPrice = Number(replayLineWithMetric.value?.line?.[replayLineWithMetric.value.line.length - 1]?.close)
-  return {
-    startTime: startLine?.time || null,
-    startIndex: historyBars,
-    endTime: endLine?.time || null,
-    endIndex: historyBars + testBars,
-    currentPrice: Number.isFinite(currentPrice) ? currentPrice : null,
-    positionPrice: null
-  }
-})
 
 function loadRecords() {
   if (!process.client) return
@@ -543,42 +546,72 @@ function appendPositionLog(trade, closePrice, note = '') {
   })
 }
 
-function executeBuy(closePrice) {
+function executeBuy(closePrice, portion = 1) {
   if (!session.value) return '会话不存在'
-  if (session.value.shares > 0) return '已有持仓，买入忽略'
+  const normalizedPortion = Math.max(0, Math.min(1, Number(portion) || 0))
+  if (normalizedPortion <= 0) return '买入比例无效'
 
+  const budget = session.value.cash * normalizedPortion
   const unitCost = closePrice * (1 + FEE_RATE)
-  const lotCount = Math.floor(session.value.cash / (unitCost * 100))
+  const lotCount = Math.floor(budget / (unitCost * 100))
   if (lotCount <= 0) return '资金不足1手，买入失败'
 
   const shares = lotCount * 100
   const amount = shares * closePrice
   const fee = amount * FEE_RATE
   session.value.cash -= amount + fee
-  session.value.shares = shares
-  session.value.openPosition = {
-    buyTime: visibleRawLine.value[visibleRawLine.value.length - 1]?.time,
-    buyPrice: closePrice,
-    buyFactor: visibleRawLine.value[visibleRawLine.value.length - 1]?.foreAdjustFactor || 1,
-    buyStep: session.value.revealedSteps,
-    shares,
-    cost: amount + fee
+  const currentLine = visibleRawLine.value[visibleRawLine.value.length - 1] || {}
+  const buyTime = currentLine?.time
+  const buyFactor = Number(currentLine?.foreAdjustFactor) || 1
+  const buyStep = session.value.revealedSteps
+  const buyCost = amount + fee
+  const prevShares = Number(session.value.shares) || 0
+  session.value.shares = prevShares + shares
+  if (session.value.openPosition) {
+    const prevCost = Number(session.value.openPosition.cost) || 0
+    const prevBuyPrice = Number(session.value.openPosition.buyPrice) || 0
+    const weightedBuyPrice = (prevBuyPrice * prevShares + closePrice * shares) / (prevShares + shares)
+    session.value.openPosition.cost = prevCost + buyCost
+    session.value.openPosition.shares = prevShares + shares
+    session.value.openPosition.buyPrice = Number.isFinite(weightedBuyPrice) ? weightedBuyPrice : closePrice
+    session.value.openPosition.buyFactor = buyFactor
+    session.value.openPosition.buyStep = buyStep
+    session.value.openPosition.buyTime = buyTime
+  } else {
+    session.value.openPosition = {
+      buyTime,
+      buyPrice: closePrice,
+      buyFactor,
+      buyStep,
+      shares,
+      cost: buyCost
+    }
   }
-  return `买入${shares}股`
+  return `${prevShares > 0 ? '加仓' : '买入'}${shares}股${normalizedPortion < 1 ? '（半仓）' : ''}`
 }
 
-function executeSell(closePrice, reason = 'normal') {
+function executeSell(closePrice, reason = 'normal', portion = 1) {
   if (!session.value) return '会话不存在'
   if (session.value.shares <= 0 || !session.value.openPosition) return '当前无持仓'
+  const normalizedPortion = Math.max(0, Math.min(1, Number(portion) || 0))
+  if (normalizedPortion <= 0) return '卖出比例无效'
 
-  const shares = session.value.shares
+  const currentShares = Number(session.value.shares) || 0
+  let shares = currentShares * normalizedPortion
+  if (!Number.isFinite(shares) || shares <= 0) return '当前无可卖股数'
+  if (normalizedPortion < 1 && shares < 1) {
+    shares = currentShares
+  }
+  shares = Math.min(currentShares, shares)
   const amount = shares * closePrice
   const fee = amount * FEE_RATE
   const income = amount - fee
   session.value.cash += income
 
-  const pnl = income - session.value.openPosition.cost
-  const returnRate = session.value.openPosition.cost > 0 ? pnl / session.value.openPosition.cost : 0
+  const openCost = Number(session.value.openPosition.cost) || 0
+  const costPart = currentShares > 0 ? openCost * (shares / currentShares) : 0
+  const pnl = income - costPart
+  const returnRate = costPart > 0 ? pnl / costPart : 0
   session.value.closedTrades.push({
     buyTime: session.value.openPosition.buyTime,
     buyPrice: session.value.openPosition.buyPrice,
@@ -593,9 +626,16 @@ function executeSell(closePrice, reason = 'normal') {
     returnRate,
     reason
   })
-  session.value.shares = 0
-  session.value.openPosition = null
-  return `卖出${shares}股`
+  const remainingShares = currentShares - shares
+  if (remainingShares > 0) {
+    session.value.shares = remainingShares
+    session.value.openPosition.shares = remainingShares
+    session.value.openPosition.cost = Math.max(0, openCost - costPart)
+  } else {
+    session.value.shares = 0
+    session.value.openPosition = null
+  }
+  return `卖出${formatNumber(shares)}股${normalizedPortion < 1 ? '（半仓）' : ''}`
 }
 
 function rebalanceSharesByFactor(prevFactor, nextFactor) {
@@ -620,9 +660,14 @@ function handleAction(action) {
   }
   const tradePrice = Number(currentLine.close) || 0
   let note = ''
+  if (action === 'buy' || action === 'sell' || action === 'buy_half' || action === 'sell_half') {
+    session.value.tradeOperationCount = Number(session.value.tradeOperationCount || 0) + 1
+  }
   const closedTradesCountBefore = session.value.closedTrades.length
-  if (action === 'buy') note = executeBuy(tradePrice)
-  if (action === 'sell') note = executeSell(tradePrice)
+  if (action === 'buy') note = executeBuy(tradePrice, 1)
+  if (action === 'buy_half') note = executeBuy(tradePrice, 0.5)
+  if (action === 'sell') note = executeSell(tradePrice, 'normal', 1)
+  if (action === 'sell_half') note = executeSell(tradePrice, 'normal', 0.5)
   if (action === 'observe') note = '观察'
 
   const nextIndex = session.value.historyBars + session.value.revealedSteps
@@ -681,10 +726,23 @@ function finishSession(reason = 'manual') {
   const avgHoldingRate = session.value.avgHoldingRateCount > 0
     ? session.value.avgHoldingRateSum / session.value.avgHoldingRateCount
     : 0
+  const endedAt = Date.now()
+  const startedAt = Number(session.value.startedAt) || endedAt
+  const holdingDurationBars = session.value.closedTrades.reduce((acc, t) => {
+    const buyStep = Number(t.buyStep)
+    const sellStep = Number(t.sellStep)
+    if (!Number.isFinite(buyStep) || !Number.isFinite(sellStep)) return acc
+    return acc + Math.max(0, sellStep - buyStep)
+  }, 0)
 
   const record = {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString(),
+    startedAt: new Date(startedAt).toISOString(),
+    endedAt: new Date(endedAt).toISOString(),
+    trainingTimeText: formatDateTimeMinute(endedAt),
+    holdingDurationBars,
+    holdingDurationText: formatHoldingBars(holdingDurationBars),
     stockCode: session.value.stock.code,
     stockName: session.value.stock.name,
     timeRange: `${toDateText(startLine?.time)} ~ ${toDateText(endLine?.time)}`,
@@ -716,7 +774,6 @@ function finishSession(reason = 'manual') {
 async function startRandomSession() {
   loading.value = true
   errorMessage.value = ''
-  replayRecord.value = null
   try {
     const response = await fetch('/api/double-blind/start', { method: 'POST' })
     if (!response.ok) {
@@ -730,6 +787,7 @@ async function startRandomSession() {
       testBars: Number(data.testBars) || 300,
       line: Array.isArray(data.line) ? data.line : [],
       afterTestLine: Array.isArray(data.afterTestLine) ? data.afterTestLine : [],
+      startedAt: Date.now(),
       revealedSteps: 0,
       status: 'running',
       cash: user.value.cash,
@@ -737,6 +795,7 @@ async function startRandomSession() {
       openPosition: null,
       closedTrades: [],
       actionLogs: [],
+      tradeOperationCount: 0,
       avgHoldingRateSum: 0,
       avgHoldingRateCount: 0,
       peakAsset: user.value.cash,
@@ -751,11 +810,14 @@ async function startRandomSession() {
 }
 
 function backToStartPage() {
+  if (session.value?.status === 'running' && Number(session.value?.tradeOperationCount || 0) > 0) {
+    finishSession('manual_exit')
+  }
   session.value = null
 }
 
-function openReplay(record) {
-  replayRecord.value = record
+function openReplay(recordId) {
+  navigateTo(`/replay/${recordId}`)
 }
 
 watch([ma, macd, kdj, volumeMa, bias, enabledIndicators], () => {
@@ -765,5 +827,11 @@ watch([ma, macd, kdj, volumeMa, bias, enabledIndicators], () => {
 onMounted(() => {
   user.value = loadUser()
   loadRecords()
+})
+
+onBeforeUnmount(() => {
+  if (session.value?.status === 'running' && Number(session.value?.tradeOperationCount || 0) > 0) {
+    finishSession('manual_exit')
+  }
 })
 </script>

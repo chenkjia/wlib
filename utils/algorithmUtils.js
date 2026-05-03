@@ -309,6 +309,18 @@ const availableConditions = [
     func: (i, {biasS}) => Number(biasS?.[i]) < 0
   },
   {
+    value: 'BIAS_S_LT_NEG_10',
+    label: 'BIAS 短期小于-10',
+    params: ['bias'],
+    func: (i, {biasS}) => Number(biasS?.[i]) < -10
+  },
+  {
+    value: 'BIAS_S_LT_NEG_15',
+    label: 'BIAS 短期小于-15',
+    params: ['bias'],
+    func: (i, {biasS}) => Number(biasS?.[i]) < -15
+  },
+  {
     value: 'BIAS_S_ABS_LT_5',
     label: 'BIAS 短期绝对值小于5',
     params: ['bias'],
@@ -345,6 +357,18 @@ const availableConditions = [
     func: (i, {biasS, biasM}) => Number(biasS?.[i]) < Number(biasM?.[i])
   },
   {
+    value: 'BIAS_M_LT_NEG_20',
+    label: 'BIAS 中期小于-20',
+    params: ['bias'],
+    func: (i, {biasM}) => Number(biasM?.[i]) < -20
+  },
+  {
+    value: 'BIAS_M_LT_NEG_25',
+    label: 'BIAS 中期小于-25',
+    params: ['bias'],
+    func: (i, {biasM}) => Number(biasM?.[i]) < -25
+  },
+  {
     value: 'BIAS_M_GT_L',
     label: 'BIAS 中期大于长期',
     params: ['bias'],
@@ -355,6 +379,18 @@ const availableConditions = [
     label: 'BIAS 中期小于长期',
     params: ['bias'],
     func: (i, {biasM, biasL}) => Number(biasM?.[i]) < Number(biasL?.[i])
+  },
+  {
+    value: 'BIAS_L_LT_NEG_25',
+    label: 'BIAS 长期小于-25',
+    params: ['bias'],
+    func: (i, {biasL}) => Number(biasL?.[i]) < -25
+  },
+  {
+    value: 'BIAS_L_LT_NEG_30',
+    label: 'BIAS 长期小于-30',
+    params: ['bias'],
+    func: (i, {biasL}) => Number(biasL?.[i]) < -30
   },
 
   // kdj相关

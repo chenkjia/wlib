@@ -349,6 +349,50 @@ class StockDB {
     }
 
     /**
+     * 向观察列表追加股票（isFocused = true）
+     * @param {Array<string>} codes 股票代码列表
+     * @returns {Promise<Object>}
+     */
+    static async addToWatchlist(codes = []) {
+        try {
+            const normalizedCodes = Array.from(new Set((Array.isArray(codes) ? codes : [])
+                .map(code => String(code || '').trim())
+                .filter(Boolean)));
+            if (normalizedCodes.length === 0) {
+                return { matchedCount: 0, modifiedCount: 0 };
+            }
+            const result = await Stock.updateMany(
+                { code: { $in: normalizedCodes } },
+                { $set: { isFocused: true } }
+            );
+            return {
+                matchedCount: result.matchedCount || 0,
+                modifiedCount: result.modifiedCount || 0
+            };
+        } catch (error) {
+            logger.error('追加观察列表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * 清空观察列表（所有股票 isFocused = false）
+     * @returns {Promise<Object>}
+     */
+    static async clearWatchlist() {
+        try {
+            const result = await Stock.updateMany({}, { $set: { isFocused: false } });
+            return {
+                matchedCount: result.matchedCount || 0,
+                modifiedCount: result.modifiedCount || 0
+            };
+        } catch (error) {
+            logger.error('清空观察列表失败:', error);
+            throw error;
+        }
+    }
+
+    /**
      * 更新所有股票的日线关注天数
      * @param {Object} focusedDaysMap - 股票代码到关注天数的映射 {code: days}
      * @returns {Promise<Object>} 更新结果
@@ -524,7 +568,8 @@ static async getStarredStocks() {
                     _id: 0,
                     code: 1,
                     dayLine: 1,
-                    hourLine: 1
+                    hourLine: 1,
+                    adjustFactor: 1
                 }
             ).lean();
         } catch (error) {

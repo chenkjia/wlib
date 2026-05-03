@@ -37,6 +37,17 @@
         星标列表
       </button>
       <button
+        @click="activeTab = 'observe'"
+        :class="[
+          'flex-1 px-3 py-3 text-sm font-medium transition-colors',
+          activeTab === 'observe'
+            ? 'border-b-2 border-blue-500 text-blue-600 bg-blue-50'
+            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+        ]"
+      >
+        观察列表
+      </button>
+      <button
         @click="activeTab = 'tasks'"
         :class="[
           'flex-1 px-3 py-3 text-sm font-medium transition-colors',
@@ -72,6 +83,13 @@
           :enabledIndicators="props.enabledIndicators"
           :buyConditions="props.buyConditions"
           :sellConditions="props.sellConditions"
+        />
+      </div>
+
+      <!-- 观察列表标签页 -->
+      <div v-show="activeTab === 'observe'" class="h-full">
+        <ObserveStockList
+          v-model:selectedStockCode="selectedStockCode"
         />
       </div>
 
@@ -113,6 +131,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import TaskList from './TaskList.vue'
 import StockList from './StockList.vue'
 import StarredStockList from './StarredStockList.vue'
+import ObserveStockList from './ObserveStockList.vue'
 
 // 定义 props 和 emits
 const selectedStockCode = defineModel('selectedStockCode', { type: String, default: '' })
@@ -173,6 +192,7 @@ const emit = defineEmits(['useTaskParams', 'changeViewStock', 'changePanelState'
 const activeTab = ref('stocks')
 const allStockCodes = ref([])
 const starredStockCodes = ref([])
+const observeStockCodes = ref([])
 const navLoading = ref(false)
 
 // 数据源相关状态
@@ -188,6 +208,7 @@ const handleDataSourceChange = (newDataSource) => {
 
 const currentNavCodes = computed(() => {
   if (activeTab.value === 'starred') return starredStockCodes.value
+  if (activeTab.value === 'observe') return observeStockCodes.value
   if (activeTab.value === 'stocks') return allStockCodes.value
   return []
 })
@@ -230,6 +251,18 @@ async function refreshNavCodes() {
   if (activeTab.value === 'stocks') {
     await loadStockCodesForNavigation()
     return
+  }
+  if (activeTab.value === 'observe') {
+    navLoading.value = true
+    try {
+      const resp = await fetch('/api/stocks?page=1&pageSize=5000&noCount=1&focusFilter=focused&sortField=code&sortOrder=asc')
+      const data = await resp.json()
+      observeStockCodes.value = Array.isArray(data?.stocks) ? data.stocks.map(item => item.code).filter(Boolean) : []
+    } catch {
+      observeStockCodes.value = []
+    } finally {
+      navLoading.value = false
+    }
   }
 }
 

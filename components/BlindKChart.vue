@@ -44,12 +44,17 @@ const props = defineProps({
   useRealDate: {
     type: Boolean,
     default: false
+  },
+  initialFocusRange: {
+    type: Object,
+    default: null
   }
 })
 
 const chartContainer = ref(null)
 const activeSubChart = ref('macd')
 let chartInstance = null
+const hasAppliedInitialFocus = ref(false)
 
 const availableTabs = computed(() => {
   const tabs = []
@@ -294,6 +299,33 @@ function updateChartIncrementally() {
   updateGuideLinesOnly()
 }
 
+function applyInitialFocusIfNeeded(force = false) {
+  if (!chartInstance) return
+  if (!props.initialFocusRange) return
+  if (hasAppliedInitialFocus.value && !force) return
+  const line = props.lineWithMetric?.line || []
+  const length = line.length
+  if (length <= 1) return
+
+  const rawStart = Number(props.initialFocusRange.startIndex)
+  const rawEnd = Number(props.initialFocusRange.endIndex)
+  if (!Number.isFinite(rawStart) || !Number.isFinite(rawEnd)) return
+
+  const maxIndex = length - 1
+  const startIndex = Math.max(0, Math.min(maxIndex, Math.floor(rawStart)))
+  const endIndex = Math.max(startIndex + 1, Math.min(maxIndex, Math.floor(rawEnd)))
+  const start = (startIndex / maxIndex) * 100
+  const end = (endIndex / maxIndex) * 100
+
+  chartInstance.setOption({
+    dataZoom: [
+      { start, end },
+      { start, end }
+    ]
+  })
+  hasAppliedInitialFocus.value = true
+}
+
 function handleResize() {
   if (chartInstance) chartInstance.resize()
 }
@@ -301,6 +333,7 @@ function handleResize() {
 watch(() => activeSubChart.value, () => {
   fullRenderChart()
   updateGuideLinesOnly()
+  applyInitialFocusIfNeeded()
 })
 
 watch(() => props.enabledIndicators, () => {
@@ -309,6 +342,7 @@ watch(() => props.enabledIndicators, () => {
   }
   fullRenderChart()
   updateGuideLinesOnly()
+  applyInitialFocusIfNeeded()
 }, { deep: true })
 
 watch(
@@ -323,12 +357,18 @@ watch(() => props.markers, () => {
   updateGuideLinesOnly()
 }, { deep: true })
 
+watch(() => props.initialFocusRange, () => {
+  hasAppliedInitialFocus.value = false
+  applyInitialFocusIfNeeded(true)
+}, { deep: true })
+
 onMounted(async () => {
   await nextTick()
   chartInstance = echarts.init(chartContainer.value)
   window.addEventListener('resize', handleResize)
   fullRenderChart()
   updateGuideLinesOnly()
+  applyInitialFocusIfNeeded(true)
 })
 
 onUnmounted(() => {

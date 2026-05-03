@@ -727,24 +727,31 @@ export function calculateForwardAdjusted(dayLineData = [], adjustFactorData = []
     return dayLineData
   }
   
-  // 创建复权因子映射表，以日期为键，使用前复权因子
-  const adjustFactorMap = new Map()
-  adjustFactorData.forEach(item => {
-    const timeKey = new Date(item.time).getTime()
-    adjustFactorMap.set(timeKey, item.foreAdjustFactor)
-  })
+  const normalizedFactors = [...adjustFactorData]
+    .filter(item => item && item.time)
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
   
-  // 复制原数据，避免修改原始数据
-  const resultData = [...dayLineData]
-  let adjustedIndex = 0
+  if (normalizedFactors.length === 0) {
+    return dayLineData
+  }
+
+  // 复制原数据，避免修改原始数据对象
+  const resultData = dayLineData.map(item => ({ ...item }))
   for (let rIndex = 0; rIndex < resultData.length; rIndex++) {
-    adjustedIndex = adjustFactorData.findIndex(item => item.time > resultData[rIndex].time)
-    if (adjustedIndex !== -1) {
-      resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
-      resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
-      resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
-      resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(adjustFactorData[adjustedIndex-1].foreAdjustFactor).toNumber()
-    }
+    const currentTime = new Date(resultData[rIndex].time).getTime()
+    if (!Number.isFinite(currentTime)) continue
+
+    const nextFactorIndex = normalizedFactors.findIndex(item => new Date(item.time).getTime() > currentTime)
+    const factorIndex = nextFactorIndex === -1
+      ? normalizedFactors.length - 1
+      : Math.max(0, nextFactorIndex - 1)
+    const factor = Number(normalizedFactors[factorIndex]?.foreAdjustFactor)
+    if (!Number.isFinite(factor)) continue
+
+    resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(factor).toNumber()
+    resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(factor).toNumber()
+    resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(factor).toNumber()
+    resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(factor).toNumber()
   }
   
   return resultData
