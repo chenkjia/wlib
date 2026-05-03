@@ -61,49 +61,23 @@ class DayLineDB {
      */
     static async getDayLine(code, startTime = null, endTime = null) {
         try {
-            if (startTime && endTime) {
-                const result = await Stock.aggregate([{
-                    $match: {code}
-                  },
-                  {
-                    $project: {  // 重组字段
-                      dayLine: 1,
-                      adjustFactor: 1,
-                    }
-                  },
-                  {
-                    $unwind: "$dayLine"  // 先展开数组
-                  },
-                  {
-                    $match: {  // 过滤时间范围
-                      "dayLine.time": {
-                        $gte: new Date(startTime),
-                        $lte: new Date(endTime)
-                      }
-                    }
-                  }
-                ])
-                
-                const dayLineData = result.map(item => item.dayLine) || [];
-                
-                // return dayLineData
-                // 获取复权数据
-                const stock = await Stock.findOne({ code }, { _id: 0, adjustFactor: 1 });
-                const adjustFactorData = stock?.adjustFactor || [];
-                
-                // 应用前复权计算
-                return calculateForwardAdjusted(dayLineData, adjustFactorData);
-            } else {
-                // 没有时间区间就返回全部
-                const stock = await Stock.findOne({ code }, { _id: 0, dayLine: 1, adjustFactor: 1 });
-                if (!stock) throw new Error(`股票代码 ${code} 不存在`);
-                
-                const dayLineData = stock.dayLine || [];
-                // return dayLineData
-                // // 应用前复权计算
-                const adjustFactorData = stock.adjustFactor || [];
-                return calculateForwardAdjusted(dayLineData, adjustFactorData);
+            const stock = await Stock.findOne(
+                { code },
+                { _id: 0, dayLine: 1, adjustFactor: 1 }
+            ).lean();
+            if (!stock) throw new Error(`股票代码 ${code} 不存在`);
+
+            let dayLineData = Array.isArray(stock.dayLine) ? stock.dayLine : [];
+            if (startTime || endTime) {
+                const startTs = startTime ? new Date(startTime).getTime() : -Infinity;
+                const endTs = endTime ? new Date(endTime).getTime() : Infinity;
+                dayLineData = dayLineData.filter((item) => {
+                    const ts = new Date(item?.time).getTime();
+                    return Number.isFinite(ts) && ts >= startTs && ts <= endTs;
+                });
             }
+            const adjustFactorData = Array.isArray(stock.adjustFactor) ? stock.adjustFactor : [];
+            return calculateForwardAdjusted(dayLineData, adjustFactorData);
         } catch (error) {
             logger.error('获取日线数据失败:', error);
             throw error;

@@ -30,8 +30,8 @@ export default defineEventHandler(async (event) => {
         startTime ? startTime as Date : undefined, 
         endTime ? endTime as Date : undefined
       ),
-      new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('获取日线数据超时')), 5000)
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('获取日线数据超时')), 15000)
       )
     ]);
     return dayLine;

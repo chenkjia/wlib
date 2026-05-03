@@ -735,24 +735,39 @@ export function calculateForwardAdjusted(dayLineData = [], adjustFactorData = []
     return dayLineData
   }
 
-  // 复制原数据，避免修改原始数据对象
-  const resultData = dayLineData.map(item => ({ ...item }))
-  for (let rIndex = 0; rIndex < resultData.length; rIndex++) {
-    const currentTime = new Date(resultData[rIndex].time).getTime()
+  // 为了线性扫描复权因子，先按时间升序处理日线，最后再还原原顺序
+  const indexedLine = dayLineData.map((item, index) => ({ item: { ...item }, index }))
+  indexedLine.sort((a, b) => new Date(a.item.time).getTime() - new Date(b.item.time).getTime())
+
+  let factorPointer = 0
+  let currentFactor = Number(normalizedFactors[0]?.foreAdjustFactor)
+  currentFactor = Number.isFinite(currentFactor) && currentFactor > 0 ? currentFactor : 1
+
+  for (let i = 0; i < indexedLine.length; i++) {
+    const currentTime = new Date(indexedLine[i].item.time).getTime()
     if (!Number.isFinite(currentTime)) continue
 
-    const nextFactorIndex = normalizedFactors.findIndex(item => new Date(item.time).getTime() > currentTime)
-    const factorIndex = nextFactorIndex === -1
-      ? normalizedFactors.length - 1
-      : Math.max(0, nextFactorIndex - 1)
-    const factor = Number(normalizedFactors[factorIndex]?.foreAdjustFactor)
-    if (!Number.isFinite(factor)) continue
+    while (
+      factorPointer < normalizedFactors.length &&
+      new Date(normalizedFactors[factorPointer].time).getTime() <= currentTime
+    ) {
+      const nextFactor = Number(normalizedFactors[factorPointer]?.foreAdjustFactor)
+      if (Number.isFinite(nextFactor) && nextFactor > 0) {
+        currentFactor = nextFactor
+      }
+      factorPointer += 1
+    }
 
-    resultData[rIndex].close = new Decimal(resultData[rIndex].close).mul(factor).toNumber()
-    resultData[rIndex].open = new Decimal(resultData[rIndex].open).mul(factor).toNumber()
-    resultData[rIndex].high = new Decimal(resultData[rIndex].high).mul(factor).toNumber()
-    resultData[rIndex].low = new Decimal(resultData[rIndex].low).mul(factor).toNumber()
+    indexedLine[i].item.close = new Decimal(indexedLine[i].item.close).mul(currentFactor).toNumber()
+    indexedLine[i].item.open = new Decimal(indexedLine[i].item.open).mul(currentFactor).toNumber()
+    indexedLine[i].item.high = new Decimal(indexedLine[i].item.high).mul(currentFactor).toNumber()
+    indexedLine[i].item.low = new Decimal(indexedLine[i].item.low).mul(currentFactor).toNumber()
   }
+
+  const resultData = new Array(dayLineData.length)
+  indexedLine.forEach(({ item, index }) => {
+    resultData[index] = item
+  })
   
   return resultData
 }

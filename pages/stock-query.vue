@@ -326,14 +326,16 @@ async function loadStockData() {
   
   try {
     const code = encodeURIComponent(selectedStockCode.value)
-    const hourLineResponse = await fetch(`/api/hourLine?code=${code}`)
-    const hourLine = await hourLineResponse.json()
-    if (Array.isArray(hourLine) && hourLine.length > 0) {
-      chartLine.value = hourLine
-    } else {
-      const dayLineResponse = await fetch(`/api/dayLine?code=${code}`)
-      chartLine.value = await dayLineResponse.json()
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
+    const dayLineResponse = await fetch(`/api/dayLine?code=${code}`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeoutId)
+    if (!dayLineResponse.ok) {
+      throw new Error(`日线接口异常: ${dayLineResponse.status}`)
     }
+    chartLine.value = await dayLineResponse.json()
     
     // 自动计算开关关闭时，仅刷新指标，不计算买卖点
     if (autoCalculateSignals.value) {
@@ -342,7 +344,8 @@ async function loadStockData() {
       calculateMetricsOnly()
     }
   } catch (err) {
-    console.error('加载数据失败:', err)
+    chartLine.value = []
+    console.error('加载日线数据失败:', err)
   }
 }
 
