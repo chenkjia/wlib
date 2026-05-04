@@ -220,18 +220,20 @@ function focusChartToRange(focusData) {
     const startPercent = (startIndex / dataLength) * 100
     const endPercent = ((endIndex + 1) / dataLength) * 100
     
+    const zoomAxisIndex = props.useFixedVolumeSubChart ? [0, 1, 2] : [0, 1]
+
     // 更新图表的dataZoom
     myChart.setOption({
       dataZoom: [
         {
           type: 'inside',
-          xAxisIndex: [0, 1],
+          xAxisIndex: zoomAxisIndex,
           start: startPercent,
           end: endPercent
         },
         {
           type: 'slider',
-          xAxisIndex: [0, 1],
+          xAxisIndex: zoomAxisIndex,
           start: startPercent,
           end: endPercent
         }
