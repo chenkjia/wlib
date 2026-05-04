@@ -321,6 +321,12 @@ const availableConditions = [
     func: (i, {biasS}) => Number(biasS?.[i]) < -15
   },
   {
+    value: 'BIAS_S_LT_NEG_20',
+    label: 'BIAS 短期小于-20',
+    params: ['bias'],
+    func: (i, {biasS}) => Number(biasS?.[i]) < -20
+  },
+  {
     value: 'BIAS_S_ABS_LT_5',
     label: 'BIAS 短期绝对值小于5',
     params: ['bias'],
