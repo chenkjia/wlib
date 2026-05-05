@@ -19,16 +19,44 @@
         </div>
       </div>
 
-      <div v-if="record" class="rounded-lg border border-gray-200 bg-white p-2 min-h-0 flex-1">
-        <BlindKChart
-          :lineWithMetric="replayLineWithMetric"
-          :transactions="replayTransactions"
-          :enabledIndicators="record.snapshot.enabledIndicators"
-          :ma="record.snapshot.ma"
-          :markers="replayMarkers"
-          :initialFocusRange="replayFocusRange"
-          :useRealDate="true"
-        />
+      <div v-if="record" class="grid grid-cols-1 xl:grid-cols-4 gap-3 min-h-0 flex-1">
+        <div class="xl:col-span-3 rounded-lg border border-gray-200 bg-white p-2 min-h-0">
+          <BlindKChart
+            :lineWithMetric="replayLineWithMetric"
+            :transactions="replayTransactions"
+            :enabledIndicators="record.snapshot.enabledIndicators"
+            :ma="record.snapshot.ma"
+            :markers="replayMarkers"
+            :initialFocusRange="replayFocusRange"
+            :useRealDate="true"
+          />
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-white p-2 flex flex-col min-h-0">
+          <div class="px-2 pb-2 text-xs text-gray-500">操作明细</div>
+          <div class="px-2 flex-1 min-h-0 overflow-auto">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-2 py-1 text-left">买入价格</th>
+                  <th class="px-2 py-1 text-left">卖出价格</th>
+                  <th class="px-2 py-1 text-left">股数</th>
+                  <th class="px-2 py-1 text-left">盈亏</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in replayActionLogs" :key="item.id" class="border-b border-gray-100">
+                  <td class="px-2 py-1">{{ formatNumber(item.buyPrice) }}</td>
+                  <td class="px-2 py-1">{{ formatNumber(item.sellPrice) }}</td>
+                  <td class="px-2 py-1">{{ formatNumber(item.shares) }}</td>
+                  <td class="px-2 py-1" :class="Number(item.pnl) >= 0 ? 'text-red-600' : 'text-green-600'">{{ formatNumber(item.pnl) }}</td>
+                </tr>
+                <tr v-if="replayActionLogs.length === 0">
+                  <td class="px-2 py-2 text-gray-400" colspan="4">暂无操作记录</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div v-else class="rounded-lg border border-gray-200 bg-white p-6 text-sm text-gray-500">
@@ -132,6 +160,22 @@ const replayFocusRange = computed(() => {
     startIndex: historyBars,
     endIndex: historyBars + testBars - 1
   }
+})
+
+const replayActionLogs = computed(() => {
+  const snapshot = record.value?.snapshot || {}
+  const logs = Array.isArray(snapshot.actionLogs) ? snapshot.actionLogs : []
+  if (logs.length > 0) {
+    return logs
+  }
+  const closedTrades = Array.isArray(snapshot.closedTrades) ? snapshot.closedTrades : []
+  return closedTrades.map((trade, index) => ({
+    id: `fallback-${index}`,
+    buyPrice: Number(trade?.buyPrice) || 0,
+    sellPrice: Number(trade?.sellPrice) || 0,
+    shares: Number(trade?.shares) || 0,
+    pnl: Number(trade?.pnl) || 0
+  }))
 })
 
 function loadRecord() {

@@ -15,6 +15,7 @@ const stockSchema = new mongoose.Schema({
     macdTrendUpChannel: { type: Boolean, default: false, index: true },
     macdDayTags: { type: [String], default: [], index: true },
     macdHourTags: { type: [String], default: [], index: true },
+    conditionDayTags: { type: [String], default: [], index: true },
     dayLine: [{
         time: Date,
         open: Number,
@@ -45,6 +46,7 @@ const stockSchema = new mongoose.Schema({
 stockSchema.index({ macdTrendUpChannel: 1, code: 1 });
 stockSchema.index({ macdDayTags: 1, code: 1 });
 stockSchema.index({ macdHourTags: 1, code: 1 });
+stockSchema.index({ conditionDayTags: 1, code: 1 });
 
 const Stock = mongoose.model('Stock', stockSchema);
 

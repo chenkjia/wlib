@@ -25,6 +25,7 @@ class StockDB {
             await Stock.collection.createIndex({ macdTrendUpChannel: 1, code: 1 }, { background: true });
             await Stock.collection.createIndex({ macdDayTags: 1 }, { background: true });
             await Stock.collection.createIndex({ macdHourTags: 1 }, { background: true });
+            await Stock.collection.createIndex({ conditionDayTags: 1 }, { background: true });
             StockDB.macdFieldIndexesEnsured = true;
         } catch (error) {
             logger.warn('确保MACD标签索引失败，将继续无索引查询:', error?.message || error);
@@ -87,7 +88,7 @@ class StockDB {
      * @param {string} starFilter - 星标过滤器
      * @returns {Promise<Object>} 包含股票列表和总数的对象
      */
-    static async getList(page = 1, pageSize = 20, search = '', searchField = 'all', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTrendUpChannel = false, macdDayTags = [], macdHourTags = [], includeCount = true) {
+    static async getList(page = 1, pageSize = 20, search = '', searchField = 'all', sortField = 'code', sortOrder = 'asc', focusFilter = 'all', hourFocusFilter = 'all', starFilter = 'all', macdTrendUpChannel = false, macdDayTags = [], macdHourTags = [], conditionDayTags = [], includeCount = true) {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
@@ -144,10 +145,17 @@ class StockDB {
             if (Array.isArray(macdHourTags) && macdHourTags.length > 0) {
                 query.macdHourTags = { $all: macdHourTags };
             }
+
+            if (Array.isArray(conditionDayTags) && conditionDayTags.length > 0) {
+                query.conditionDayTags = { $all: conditionDayTags };
+            }
             
             // 使用Promise.all并行执行查询总数和查询数据，提高性能
             const shouldUseCodeHint = Object.keys(query).length === 0 || (Object.keys(query).length === 1 && query.code);
-            const hasMacdFilter = macdTrendUpChannel || (Array.isArray(macdDayTags) && macdDayTags.length > 0) || (Array.isArray(macdHourTags) && macdHourTags.length > 0);
+            const hasMacdFilter = macdTrendUpChannel
+                || (Array.isArray(macdDayTags) && macdDayTags.length > 0)
+                || (Array.isArray(macdHourTags) && macdHourTags.length > 0)
+                || (Array.isArray(conditionDayTags) && conditionDayTags.length > 0);
             if (hasMacdFilter) {
                 StockDB.ensureMacdFieldIndexes();
             }
@@ -162,13 +170,14 @@ class StockDB {
                 isStar: 1,
                 macdTrendUpChannel: 1,
                 macdDayTags: 1,
-                macdHourTags: 1
+                macdHourTags: 1,
+                conditionDayTags: 1
             };
             const sortSpec = { [sortField]: sortOrder === 'asc' ? 1 : -1 };
             const trendHint = { macdTrendUpChannel: 1, code: 1 };
 
             if (!includeCount) {
-                const stocks = macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                const stocks = macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
                     ? await StockDB.findWithHintFallback(query, projection, trendHint, sortSpec, skip, pageSize)
                     : await Stock.find(query, projection)
                         .sort(sortSpec)
@@ -187,12 +196,12 @@ class StockDB {
             const [total, stocks] = await Promise.all([
                 shouldUseCodeHint
                     ? StockDB.countDocumentsWithHintFallback(query, { code: 1 })
-                    : (macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                    : (macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
                         ? StockDB.countDocumentsWithHintFallback(query, trendHint)
                         : Stock.countDocuments(query)),
                 
                 // 查询当前页的数据 - 明确指定只获取需要的字段
-                macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0
+                macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
                     ? StockDB.findWithHintFallback(query, projection, trendHint, sortSpec, skip, pageSize)
                     : Stock.find(query, projection)
                         .sort(sortSpec) // 动态排序
@@ -569,7 +578,8 @@ static async getStarredStocks() {
                     code: 1,
                     dayLine: 1,
                     hourLine: 1,
-                    adjustFactor: 1
+                    adjustFactor: 1,
+                    conditionDayTags: 1
                 }
             ).lean();
         } catch (error) {

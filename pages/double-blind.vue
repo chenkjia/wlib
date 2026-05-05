@@ -10,6 +10,13 @@
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-600">用户总现金：<span class="font-semibold text-blue-600">{{ formatNumber(user.cash) }}</span></div>
             <button
+              class="px-3 py-1.5 rounded-md border border-orange-300 bg-orange-50 text-orange-700 text-sm hover:bg-orange-100 disabled:opacity-50"
+              :disabled="loading || strategyLoading"
+              @click="resetUserCash"
+            >
+              重置资金(10000)
+            </button>
+            <button
               class="px-3 py-1.5 rounded-md bg-purple-600 text-white text-sm hover:bg-purple-700 disabled:opacity-50"
               :disabled="loading || strategyLoading"
               @click="showStrategyModal = true"
@@ -338,6 +345,7 @@ import AlgorithmConfig from '~/pages/right-panel/AlgorithmConfig.vue'
 import { calculateMetric } from '~/utils/chartUtils.js'
 
 const INITIAL_CAPITAL = 100000
+const RESET_CAPITAL = 10000
 const FEE_RATE = 0.003
 const RECORD_KEY = 'double_blind_records_v1'
 const USER_KEY = 'double_blind_user'
@@ -376,6 +384,14 @@ function loadUser() {
 function saveUser() {
   if (!process.client) return
   localStorage.setItem(USER_KEY, JSON.stringify({ cash: user.value.cash, createdAt: user.value.createdAt }))
+}
+
+function resetUserCash() {
+  if (!process.client) return
+  const confirmed = window.confirm('确认将用户总现金重置为 10000 吗？')
+  if (!confirmed) return
+  user.value.cash = RESET_CAPITAL
+  saveUser()
 }
 
 function loadConfig(key, fallback) {

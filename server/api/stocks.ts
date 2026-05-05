@@ -2,7 +2,7 @@ import MongoDB from '../database/mongo.js';
 
 // 定义股票列表返回类型
 interface StockListResult {
-  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number, isStar?: boolean, macdTrendUpChannel?: boolean, macdDayTags?: string[], macdHourTags?: string[]}>;
+  stocks: Array<{code: string, name: string, isFocused: boolean, isHourFocused: boolean, focusedDays: number, hourFocusedDays: number, isStar?: boolean, macdTrendUpChannel?: boolean, macdDayTags?: string[], macdHourTags?: string[], conditionDayTags?: string[]}>;
   total: number;
   page: number;
   pageSize: number;
@@ -40,7 +40,11 @@ export default defineEventHandler(async (event) => {
       .split(',')
       .map(item => item.trim())
       .filter(Boolean);
-    const hasMacdFilter = macdTrendUpChannel || macdDayTags.length > 0 || macdHourTags.length > 0;
+    const conditionDayTags = ((query.conditionDayTags as string) || '')
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean);
+    const hasMacdFilter = macdTrendUpChannel || macdDayTags.length > 0 || macdHourTags.length > 0 || conditionDayTags.length > 0;
     const includeCount = (query.noCount as string) !== '1' && !hasMacdFilter;
     const timeoutMs = hasMacdFilter
       ? (includeCount ? 30000 : 15000)
@@ -56,7 +60,7 @@ export default defineEventHandler(async (event) => {
     
     // 使用Promise.race实现超时处理
     const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, includeCount),
+      MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, conditionDayTags, includeCount),
       timeoutPromise
     ]) as StockListResult;
     

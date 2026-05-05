@@ -4,6 +4,7 @@ import MongoConnection from '../database/connection.js'
 import MongoDB from '../database/mongo.js'
 import logger from '~/utils/logger.js'
 import { calculateEMA, calculateMA, aggregateDayToWeek, calculateForwardAdjusted } from '~/utils/chartUtils.js'
+import { availableConditions } from '~/utils/algorithmUtils.js'
 
 // 将日线聚合为月线
 function aggregateDayToMonth(dayLine = []) {
@@ -50,6 +51,17 @@ function normalizeLine(line = []) {
     return [...line].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
 }
 
+const TAG_SCOPE = {
+    MACD: 'macd',
+    BIAS: 'bias',
+    ALL: 'all'
+}
+
+const MACD_CONDITION_LIST = availableConditions.filter(item => Array.isArray(item?.params) && item.params.includes('macd'))
+const BIAS_CONDITION_LIST = availableConditions.filter(item => Array.isArray(item?.params) && item.params.includes('bias'))
+const MACD_CONDITION_SET = new Set(MACD_CONDITION_LIST.map(item => item.value))
+const BIAS_CONDITION_SET = new Set(BIAS_CONDITION_LIST.map(item => item.value))
+
 function calculateBIAS(closeSeries = [], period = 6) {
     if (!Array.isArray(closeSeries) || closeSeries.length === 0) return []
     const ma = calculateMA(closeSeries, period)
@@ -59,6 +71,60 @@ function calculateBIAS(closeSeries = [], period = 6) {
         if (!Number.isFinite(c) || !Number.isFinite(m) || m === 0) return null
         return ((c - m) / m) * 100
     })
+}
+
+function buildConditionDayTags(dayLine = [], macdConfig = { s: 12, l: 26, d: 9 }, tagScope = TAG_SCOPE.ALL) {
+    const normalizedDayLine = normalizeLine(dayLine)
+    if (normalizedDayLine.length === 0) return []
+    const closeSeries = normalizedDayLine.map(item => Number(item.close))
+    const dif = []
+    const dea = []
+    const bar = []
+
+    if (closeSeries.length > 0) {
+        const emaS = calculateEMA(closeSeries, macdConfig.s)
+        const emaL = calculateEMA(closeSeries, macdConfig.l)
+        const difSeries = emaS.map((value, index) => value - emaL[index])
+        const deaSeries = calculateEMA(difSeries, macdConfig.d)
+        const barSeries = difSeries.map((value, index) => value - deaSeries[index])
+        dif.push(...difSeries)
+        dea.push(...deaSeries)
+        bar.push(...barSeries)
+    }
+
+    const biasS = calculateBIAS(closeSeries, 6)
+    const biasM = calculateBIAS(closeSeries, 12)
+    const biasL = calculateBIAS(closeSeries, 24)
+    const context = {
+        line: normalizedDayLine,
+        dif,
+        dea,
+        bar,
+        biasS,
+        biasM,
+        biasL
+    }
+    const lastIndex = normalizedDayLine.length - 1
+    if (lastIndex < 0) return []
+
+    const selectedConditions = tagScope === TAG_SCOPE.MACD
+        ? MACD_CONDITION_LIST
+        : tagScope === TAG_SCOPE.BIAS
+            ? BIAS_CONDITION_LIST
+            : [...MACD_CONDITION_LIST, ...BIAS_CONDITION_LIST]
+
+    const tags = []
+    for (const condition of selectedConditions) {
+        if (!condition?.value || typeof condition.func !== 'function') continue
+        try {
+            if (condition.func(lastIndex, context)) {
+                tags.push(condition.value)
+            }
+        } catch (error) {
+            // 单个条件失败不影响整体计算
+        }
+    }
+    return tags
 }
 
 // 计算单周期 MACD 序列，并返回与序列一一对应的时间轴
@@ -234,13 +300,17 @@ async function updateMacdTags() {
     const args = process.argv.slice(2)
     const dayLowThresholdArg = args.find(item => item.startsWith('--day-low-threshold='))
     const dayLowThreshold = dayLowThresholdArg ? Number(dayLowThresholdArg.split('=')[1]) : 0.15
+    const scopeArg = (args.find(item => item.startsWith('--scope=')) || '').split('=')[1]
+    const tagScope = Object.values(TAG_SCOPE).includes(scopeArg) ? scopeArg : TAG_SCOPE.ALL
     const macdConfig = { s: 12, l: 26, d: 9 }
     const stockCodes = await MongoDB.getStockCodesForMacdTagging()
     const totalStocks = stockCodes.length
     const fieldCounter = {
+        scope: tagScope,
         macdTrendUpChannel: 0,
         macdDayTags: {},
-        macdHourTags: {}
+        macdHourTags: {},
+        conditionDayTags: {}
     }
     let matchedCount = 0
     let modifiedCount = 0
@@ -255,25 +325,54 @@ async function updateMacdTags() {
             ? [...stock.adjustFactor].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime())
             : []
         const adjustedDayLine = calculateForwardAdjusted(stock.dayLine || [], adjustFactor)
-        const macdFields = buildMacdFields({
-            dayLine: adjustedDayLine,
-            hourLine: stock.hourLine || [],
-            macdConfig,
-            dayLowThreshold
-        })
-        const updateResult = await MongoDB.updateStock(stock.code, macdFields)
+        let macdFields = null
+        if (tagScope === TAG_SCOPE.MACD || tagScope === TAG_SCOPE.ALL) {
+            macdFields = buildMacdFields({
+                dayLine: adjustedDayLine,
+                hourLine: stock.hourLine || [],
+                macdConfig,
+                dayLowThreshold
+            })
+        }
+
+        const existingConditionTags = Array.isArray(stock.conditionDayTags) ? stock.conditionDayTags : []
+        const newlyComputedConditionTags = buildConditionDayTags(adjustedDayLine, macdConfig, tagScope)
+        const preservedTags = tagScope === TAG_SCOPE.MACD
+            ? existingConditionTags.filter(tag => !MACD_CONDITION_SET.has(tag))
+            : tagScope === TAG_SCOPE.BIAS
+                ? existingConditionTags.filter(tag => !BIAS_CONDITION_SET.has(tag))
+                : []
+        const mergedConditionTags = Array.from(new Set([...preservedTags, ...newlyComputedConditionTags]))
+
+        const updatePayload = {
+            conditionDayTags: mergedConditionTags
+        }
+        if (macdFields) {
+            Object.assign(updatePayload, macdFields)
+        }
+        const updateResult = await MongoDB.updateStock(stock.code, updatePayload)
         matchedCount += updateResult.matchedCount || 0
         modifiedCount += updateResult.modifiedCount || 0
-        if (macdFields.macdTrendUpChannel) {
+        if (macdFields?.macdTrendUpChannel) {
             fieldCounter.macdTrendUpChannel += 1
         }
-        for (const tag of macdFields.macdDayTags) {
-            fieldCounter.macdDayTags[tag] = (fieldCounter.macdDayTags[tag] || 0) + 1
+        if (Array.isArray(macdFields?.macdDayTags)) {
+            for (const tag of macdFields.macdDayTags) {
+                fieldCounter.macdDayTags[tag] = (fieldCounter.macdDayTags[tag] || 0) + 1
+            }
         }
-        for (const tag of macdFields.macdHourTags) {
-            fieldCounter.macdHourTags[tag] = (fieldCounter.macdHourTags[tag] || 0) + 1
+        if (Array.isArray(macdFields?.macdHourTags)) {
+            for (const tag of macdFields.macdHourTags) {
+                fieldCounter.macdHourTags[tag] = (fieldCounter.macdHourTags[tag] || 0) + 1
+            }
         }
-        console.log(`[${i + 1}/${totalStocks}] ${stock.code} 字段计算并保存完成，趋势:${macdFields.macdTrendUpChannel ? '是' : '否'} 日线标签:${macdFields.macdDayTags.length} 小时标签:${macdFields.macdHourTags.length}`)
+        for (const tag of mergedConditionTags) {
+            fieldCounter.conditionDayTags[tag] = (fieldCounter.conditionDayTags[tag] || 0) + 1
+        }
+        const trendText = macdFields ? (macdFields.macdTrendUpChannel ? '是' : '否') : '-'
+        const macdDayCount = Array.isArray(macdFields?.macdDayTags) ? macdFields.macdDayTags.length : '-'
+        const macdHourCount = Array.isArray(macdFields?.macdHourTags) ? macdFields.macdHourTags.length : '-'
+        console.log(`[${i + 1}/${totalStocks}] ${stock.code} 字段计算并保存完成，范围:${tagScope} 趋势:${trendText} 日线标签:${macdDayCount} 小时标签:${macdHourCount} 条件标签:${mergedConditionTags.length}`)
     }
     return {
         totalStocks,
@@ -290,10 +389,11 @@ async function main() {
     try {
         await MongoConnection.connect()
         const result = await updateMacdTags()
-        console.log('\n=== MACD标签更新结果 ===')
+        console.log('\n=== 标签更新结果 ===')
         console.log(`处理股票数量: ${result.totalStocks}`)
         console.log(`匹配数量: ${result.updateResult.matchedCount}`)
         console.log(`更新数量: ${result.updateResult.modifiedCount}`)
+        console.log(`更新范围: ${result.fieldCounter.scope}`)
         console.log('上升通道数量:')
         console.log(`  macdTrendUpChannel: ${result.fieldCounter.macdTrendUpChannel}`)
         console.log('日线标签分布:')
@@ -302,6 +402,10 @@ async function main() {
         })
         console.log('小时线标签分布:')
         Object.entries(result.fieldCounter.macdHourTags).forEach(([tag, count]) => {
+            console.log(`  ${tag}: ${count}`)
+        })
+        console.log('条件标签分布:')
+        Object.entries(result.fieldCounter.conditionDayTags).forEach(([tag, count]) => {
             console.log(`  ${tag}: ${count}`)
         })
     } catch (error) {
