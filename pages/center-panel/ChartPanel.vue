@@ -15,6 +15,19 @@
       </span>
     </div>
     
+    <!-- 主图切换标签 -->
+    <div class="chart-tabs px-3 py-2 border-b" style="border-color: var(--border-light);">
+      <UButton
+        v-for="t in mainChartTabs"
+        :key="t.key"
+        :label="t.label"
+        :color="activeMainChart === t.key ? 'primary' : 'neutral'"
+        :variant="activeMainChart === t.key ? 'solid' : 'soft'"
+        size="xs"
+        @click="activeMainChart = t.key"
+      />
+    </div>
+    
     <!-- 图表容器 -->
     <div class="chart-container flex-grow" ref="chartContainer"></div>
     
@@ -38,7 +51,7 @@ import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
 import TradeStats from '~/components/TradeStats.vue'
 import { splitData, createChartOption } from './ChartUtils.js'
-import { calculateMA } from '~/utils/chartUtils.js'
+import { calculateMA, formatLineForChanlun } from '~/utils/chartUtils.js'
 
 const props = defineProps({
   stockCode: {
@@ -99,6 +112,16 @@ let myChart = null
 
 // 新增：副图切换状态
 const activeSubChart = ref(props.useFixedVolumeSubChart ? 'macd' : 'volume') // volume | macd | kdj | bias
+
+// 主图切换状态
+const activeMainChart = ref('kline') // kline | chanlun
+
+// 主图切换tabs
+const mainChartTabs = [
+  { key: 'kline', label: 'K线' },
+  { key: 'chanlun', label: '缠论' }
+]
+
 const availableTabs = computed(() => {
   if (props.useFixedVolumeSubChart) {
     const tabs = []
@@ -146,10 +169,17 @@ async function refreshChart() {
     // 重新初始化图表
     myChart = echarts.init(chartContainer.value)
     
-    const data = splitData(props.dayLineWithMetric.line, props.transactions)
+    const sourceLine = activeMainChart.value === 'chanlun'
+      ? formatLineForChanlun(props.dayLineWithMetric.line || [])
+      : (props.dayLineWithMetric.line || [])
+    const chartMetric = {
+      ...props.dayLineWithMetric,
+      line: sourceLine
+    }
+    const data = splitData(sourceLine, props.transactions)
     renderChart(
       data, 
-      props.dayLineWithMetric
+      chartMetric
     )
   } catch (err) {
     handleError('刷新图表失败', err)
@@ -170,7 +200,8 @@ function renderChart(data, dayLineWithMetric) {
     props.ma,
     activeSubChart.value,
     props.simulatedBuyPoints,
-    props.useFixedVolumeSubChart
+    props.useFixedVolumeSubChart,
+    activeMainChart.value
   )
   myChart.setOption(option)
 }
@@ -265,6 +296,11 @@ watch(() => props.focusData, (newFocusData) => {
 
 // 监听副图切换
 watch(() => activeSubChart.value, async () => {
+  await refreshChart()
+})
+
+// 监听主图切换
+watch(() => activeMainChart.value, async () => {
   await refreshChart()
 })
 

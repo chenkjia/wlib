@@ -80,6 +80,171 @@ export function calculateMA(data, period) {
   }
   return result;
 }
+
+/**
+ * 按缠论包含关系做高低价格式化（仅处理 high/low，输出无上下引线实体柱）
+ * @param {Array<Object>} rawLine
+ * @returns {Array<Object>}
+ */
+export function formatLineForChanlun(rawLine = []) {
+  if (!Array.isArray(rawLine) || rawLine.length === 0) return []
+  const formatted = rawLine.map(item => ({ ...item, chanlunTrend: 0 }))
+  let direction = 0 // 1: 向上, -1: 向下, 0: 未确定
+
+  // 第1步：按包含关系格式化 high/low
+  for (let i = 1; i < formatted.length; i++) {
+    const prev = formatted[i - 1]
+    const curr = formatted[i]
+    if (!prev || !curr) continue
+
+    const prevHigh = Number(prev.high)
+    const prevLow = Number(prev.low)
+    const currHigh = Number(curr.high)
+    const currLow = Number(curr.low)
+    if (![prevHigh, prevLow, currHigh, currLow].every(Number.isFinite)) continue
+
+    // 仅判断高低点是否存在包含关系
+    const hasContain =
+      (currHigh <= prevHigh && currLow >= prevLow) ||
+      (currHigh >= prevHigh && currLow <= prevLow)
+    const isUp = currHigh > prevHigh && currLow > prevLow
+    const isDown = currHigh < prevHigh && currLow < prevLow
+
+    // 包含关系：按当前方向合并；非包含关系：用于更新方向
+    let finalHigh = currHigh
+    let finalLow = currLow
+    if (hasContain) {
+      const pick = direction >= 0 ? Math.max : Math.min
+      finalHigh = pick(prevHigh, currHigh)
+      finalLow = pick(prevLow, currLow)
+    } else if (isUp) {
+      direction = 1
+    } else if (isDown) {
+      direction = -1
+    }
+
+    // 防御：确保 high >= low
+    const high = Math.max(finalHigh, finalLow)
+    const low = Math.min(finalHigh, finalLow)
+
+    formatted[i] = {
+      ...curr,
+      high,
+      low,
+      // 先占位，第二步按“分型确认”回填趋势和颜色方向
+      open: low,
+      close: high
+    }
+  }
+
+  // 第2步：分型确认后再回填趋势
+  // 规则：
+  // 1) 未确认K线保持 chanlunTrend = 0（蓝色）
+  // 2) 第一个分型出现后，先确认其“之前”的趋势
+  // 3) 分型需要后一根K线存在才算确认（因此分型索引范围为 1..n-2）
+  // 4) 相邻用于成笔的分型不能重叠，且至少隔一根独立K线
+  const trendMarks = new Array(formatted.length).fill(0)
+  const fractals = []
+  const MIN_BI_CENTER_GAP = 4
+
+  const pickBetterFractal = (prevFractal, nextFractal) => {
+    if (!prevFractal) return nextFractal
+    if (prevFractal.type !== nextFractal.type) return nextFractal
+    const prevBar = formatted[prevFractal.index]
+    const nextBar = formatted[nextFractal.index]
+    if (!prevBar || !nextBar) return prevFractal
+    // 同类型分型取“更极值”的一个，减少噪声
+    if (nextFractal.type === 1) {
+      return nextBar.high >= prevBar.high ? nextFractal : prevFractal
+    }
+    return nextBar.low <= prevBar.low ? nextFractal : prevFractal
+  }
+
+  const getFractalType = (a, b, c) => {
+    if (!a || !b || !c) return 0
+    const ah = Number(a.high), al = Number(a.low)
+    const bh = Number(b.high), bl = Number(b.low)
+    const ch = Number(c.high), cl = Number(c.low)
+    if (![ah, al, bh, bl, ch, cl].every(Number.isFinite)) return 0
+    const isTop = bh > ah && bl > al && bh > ch && bl > cl
+    const isBottom = bh < ah && bl < al && bh < ch && bl < cl
+    if (isTop) return 1
+    if (isBottom) return -1
+    return 0
+  }
+
+  const canFormBi = (leftFractal, rightFractal) => {
+    if (!leftFractal || !rightFractal) return false
+    // 3根K线分型：中心间距>=3才不会重叠；这里额外要求>=4，保证中间至少隔1根独立K线
+    return rightFractal.index - leftFractal.index >= MIN_BI_CENTER_GAP
+  }
+
+  for (let i = 1; i < formatted.length - 1; i++) {
+    const type = getFractalType(formatted[i - 1], formatted[i], formatted[i + 1])
+    if (type === 0) continue
+    const candidate = { index: i, type }
+    const last = fractals[fractals.length - 1]
+    if (!last) {
+      fractals.push(candidate)
+      continue
+    }
+    const better = pickBetterFractal(last, candidate)
+    if (better.index === last.index) {
+      continue
+    }
+    if (last.type === candidate.type) {
+      fractals[fractals.length - 1] = better
+    } else {
+      if (canFormBi(last, candidate)) {
+        fractals.push(candidate)
+      }
+    }
+  }
+
+  const fillRange = (start, end, trend) => {
+    if (trend === 0) return
+    const left = Math.max(0, start)
+    const right = Math.min(formatted.length - 1, end)
+    for (let i = left; i <= right; i++) trendMarks[i] = trend
+  }
+
+  if (fractals.length > 0) {
+    // 第一个分型：确认其之前趋势（顶分型前是上升，底分型前是下降）
+    const first = fractals[0]
+    let currentTrend = first.type === 1 ? 1 : -1
+    fillRange(0, first.index, currentTrend)
+
+    // 分型确认K线（i+1）确认反向趋势
+    let cursor = first.index + 1
+    if (cursor < formatted.length) {
+      currentTrend = -currentTrend
+      trendMarks[cursor] = currentTrend
+    }
+
+    // 后续每个分型：回填到该分型，再在确认K线上切换方向
+    for (let i = 1; i < fractals.length; i++) {
+      const f = fractals[i]
+      fillRange(cursor, f.index, currentTrend)
+      cursor = f.index + 1
+      if (cursor < formatted.length) {
+        currentTrend = -currentTrend
+        trendMarks[cursor] = currentTrend
+      }
+    }
+    // cursor 之后保持 0，表示“未确认趋势”
+  }
+
+  for (let i = 0; i < formatted.length; i++) {
+    const trend = trendMarks[i]
+    formatted[i].chanlunTrend = trend
+    // 缠论柱不显示上下引线：实体覆盖 [low, high]
+    // 趋势未定（0）同样保留实体，颜色由渲染层标记为蓝色
+    formatted[i].open = trend < 0 ? formatted[i].high : formatted[i].low
+    formatted[i].close = trend < 0 ? formatted[i].low : formatted[i].high
+  }
+
+  return formatted
+}
 /**
  * 计算指数移动平均线
  * @param {Array<number>} data - 历史行情数据

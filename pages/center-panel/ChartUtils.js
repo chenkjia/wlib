@@ -83,7 +83,23 @@ function buildTrendSegments(lineData = [], maMiddleSeries = [], maLongSeries = [
  */
 export function splitData(rawData = [], transactions = []) {
   const categoryData = rawData.map(item => item.time)
-  const values = rawData.map(item => [item.open, item.close, item.low, item.high])
+  const values = rawData.map(item => {
+    const value = [item.open, item.close, item.low, item.high]
+    // 缠论趋势未定（0）使用蓝色实体柱
+    if (item?.chanlunTrend === 0) {
+      const neutralColor = '#3b82f6'
+      return {
+        value,
+        itemStyle: {
+          color: neutralColor,
+          color0: neutralColor,
+          borderColor: neutralColor,
+          borderColor0: neutralColor
+        }
+      }
+    }
+    return value
+  })
   const volumes = rawData.map((item, index) => [index, item.volume, item.close > item.open ? 1 : -1])
   const trendData = transactions.map(transaction => ({
     buyIndex: rawData.findIndex(item => item.time === transaction.buyTime),
@@ -320,10 +336,13 @@ function processMacdDeviationPoints(dif = [], dea = [], line = []) {
  * @param {Function} formatDateMMDD - 日期格式化函数
  * @returns {Object} 图表选项
  */
-export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], maConfig = {}, activeSubChart = 'volume', simulatedBuyPoints = [], useFixedVolumeSubChart = false) {
+export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, formatDateMMDD, enabledIndicators = ['ma', 'macd'], maConfig = {}, activeSubChart = 'volume', simulatedBuyPoints = [], useFixedVolumeSubChart = false, mainChartType = 'kline') {
   const macdEnabled = enabledIndicators.includes('macd')
   const kdjEnabled = enabledIndicators.includes('kdj')
   const biasEnabled = enabledIndicators.includes('bias')
+  const isChanlunMain = mainChartType === 'chanlun'
+  const showMainMa = !isChanlunMain && enabledIndicators.includes('ma')
+  const showTrendBackground = !isChanlunMain
   const hasMACD = activeSubChart === 'macd' ? macdEnabled : false
   const hasKDJ = activeSubChart === 'kdj' ? kdjEnabled : false
   const hasBIAS = activeSubChart === 'bias' ? biasEnabled : false
@@ -359,13 +378,15 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         label: { show: false }
       }))
     : []
-  const trendSegments = buildTrendSegments(
-    dayLineWithMetric.line || [],
-    maM,
-    maL,
-    data.categoryData || [],
-    maConfig
-  )
+  const trendSegments = showTrendBackground
+    ? buildTrendSegments(
+      dayLineWithMetric.line || [],
+      maM,
+      maL,
+      data.categoryData || [],
+      maConfig
+    )
+    : []
   const bullTrendAreas = trendSegments
     .filter(segment => segment.state === 'bull')
     .map(segment => [{ xAxis: segment.startX }, { xAxis: segment.endX }])
@@ -493,7 +514,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
   
   // 系列
   const series = [
-    ...(bullTrendAreas.length > 0 ? [{
+    ...(showTrendBackground && bullTrendAreas.length > 0 ? [{
       name: '多头趋势背景',
       type: 'line',
       xAxisIndex: 0,
@@ -510,7 +531,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         data: bullTrendAreas
       }
     }] : []),
-    ...(bearTrendAreas.length > 0 ? [{
+    ...(showTrendBackground && bearTrendAreas.length > 0 ? [{
       name: '空头趋势背景',
       type: 'line',
       xAxisIndex: 0,
@@ -567,7 +588,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
       }
     },
     // MA线系列 - 只有启用MA时才显示
-    ...(enabledIndicators.includes('ma') ? [
+    ...(showMainMa ? [
       ...(showMaS ? [{ id: 'series-maS', name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
       ...(showMaM ? [{ id: 'series-maM', name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
       ...(showMaL ? [{ id: 'series-maL', name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
@@ -626,17 +647,20 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         let res = date + '<br/>'
         
         // K线数据
-        if (klineParam && Array.isArray(klineParam.data)) {
+        const klineValue = Array.isArray(klineParam?.data)
+          ? klineParam.data
+          : (Array.isArray(klineParam?.data?.value) ? klineParam.data.value : null)
+        if (klineValue) {
           res += `
-            开盘: ${klineParam.data[1]}<br/>
-            收盘: ${klineParam.data[2]}<br/>
-            最低: ${klineParam.data[3]}<br/>
-            最高: ${klineParam.data[4]}<br/>
+            开盘: ${klineValue[1]}<br/>
+            收盘: ${klineValue[2]}<br/>
+            最低: ${klineValue[3]}<br/>
+            最高: ${klineValue[4]}<br/>
           `
         }
         
         // 均线数据
-        if (enabledIndicators.includes('ma')) {
+        if (showMainMa) {
           params.forEach((param, index) => {
             if (index > 0 && index < 5) { // MA线
               res += `${param.seriesName}: ${param.data !== '-' ? param.data : '-'}<br/>`
