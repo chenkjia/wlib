@@ -137,12 +137,11 @@ export function formatLineForChanlun(rawLine = []) {
     }
   }
 
-  // 第2步：分型确认后再回填趋势
+  // 第2步：分型确认后再回填趋势（向后确认）
   // 规则：
-  // 1) 未确认K线保持 chanlunTrend = 0（蓝色）
-  // 2) 第一个分型出现后，先确认其“之前”的趋势
-  // 3) 分型需要后一根K线存在才算确认（因此分型索引范围为 1..n-2）
-  // 4) 相邻用于成笔的分型不能重叠，且至少隔一根独立K线
+  // 1) 仅当后续K线足够确认“分型对(一笔)”时，才回填对应区间趋势
+  // 2) 无法由后续信息确认的末尾区间，一律保持 chanlunTrend = 0（蓝色）
+  // 3) 相邻用于成笔的分型不能重叠，且至少隔一根独立K线
   const trendMarks = new Array(formatted.length).fill(0)
   const fractals = []
   const MIN_BI_CENTER_GAP = 4
@@ -179,6 +178,29 @@ export function formatLineForChanlun(rawLine = []) {
     return rightFractal.index - leftFractal.index >= MIN_BI_CENTER_GAP
   }
 
+  const getStepDirection = (prevBar, nextBar) => {
+    if (!prevBar || !nextBar) return 0
+    const prevHigh = Number(prevBar.high)
+    const prevLow = Number(prevBar.low)
+    const nextHigh = Number(nextBar.high)
+    const nextLow = Number(nextBar.low)
+    if (![prevHigh, prevLow, nextHigh, nextLow].every(Number.isFinite)) return 0
+    if (nextHigh > prevHigh && nextLow > prevLow) return 1
+    if (nextHigh < prevHigh && nextLow < prevLow) return -1
+    return 0
+  }
+
+  const hasTwoBarsConfirmAfterFractal = (fractalIndex, trend) => {
+    const i1 = fractalIndex + 1
+    const i2 = fractalIndex + 2
+    // 后续K线不足，保持未确认
+    if (i2 >= formatted.length) return false
+    const d1 = getStepDirection(formatted[fractalIndex], formatted[i1])
+    const d2 = getStepDirection(formatted[i1], formatted[i2])
+    // 至少两根同方向K线（这里按连续两根处理）
+    return d1 === trend && d2 === trend
+  }
+
   for (let i = 1; i < formatted.length - 1; i++) {
     const type = getFractalType(formatted[i - 1], formatted[i], formatted[i + 1])
     if (type === 0) continue
@@ -208,30 +230,29 @@ export function formatLineForChanlun(rawLine = []) {
     for (let i = left; i <= right; i++) trendMarks[i] = trend
   }
 
-  if (fractals.length > 0) {
-    // 第一个分型：确认其之前趋势（顶分型前是上升，底分型前是下降）
-    const first = fractals[0]
-    let currentTrend = first.type === 1 ? 1 : -1
-    fillRange(0, first.index, currentTrend)
-
-    // 分型确认K线（i+1）确认反向趋势
-    let cursor = first.index + 1
-    if (cursor < formatted.length) {
-      currentTrend = -currentTrend
-      trendMarks[cursor] = currentTrend
+  if (fractals.length >= 2) {
+    // 仅使用“已确认分型对”来回填趋势：
+    // 顶->底 为下降笔；底->顶 为上升笔
+    const biPairs = []
+    for (let i = 0; i < fractals.length - 1; i++) {
+      const from = fractals[i]
+      const to = fractals[i + 1]
+      if (!from || !to || from.type === to.type) continue
+      if (!canFormBi(from, to)) continue
+      const trend = from.type === -1 ? 1 : -1
+      if (!hasTwoBarsConfirmAfterFractal(to.index, trend)) continue
+      biPairs.push({
+        fromIndex: from.index,
+        toIndex: to.index,
+        trend
+      })
     }
 
-    // 后续每个分型：回填到该分型，再在确认K线上切换方向
-    for (let i = 1; i < fractals.length; i++) {
-      const f = fractals[i]
-      fillRange(cursor, f.index, currentTrend)
-      cursor = f.index + 1
-      if (cursor < formatted.length) {
-        currentTrend = -currentTrend
-        trendMarks[cursor] = currentTrend
-      }
-    }
-    // cursor 之后保持 0，表示“未确认趋势”
+    // 每一笔区间在“后一分型出现 + 后续2根同向K线确认”后才回填
+    biPairs.forEach((pair) => {
+      fillRange(pair.fromIndex, pair.toIndex, pair.trend)
+    })
+    // 最后一笔之后没有新确认信息的区间，保持 0（未确认）
   }
 
   for (let i = 0; i < formatted.length; i++) {
