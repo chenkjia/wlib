@@ -5,6 +5,8 @@ function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
 }
 
+const TRADING_DAYS_PER_YEAR = 250
+
 const historicalHighPrefixCache = new WeakMap()
 
 function getHistoricalHighPrefix(line = []) {
@@ -22,6 +24,33 @@ function getHistoricalHighPrefix(line = []) {
   }
   historicalHighPrefixCache.set(line, prefix)
   return prefix
+}
+
+function isWindowHighestToday(i, line = [], windowSize = 1) {
+  if (!Array.isArray(line) || i < 0 || i >= line.length) return false
+  const normalizedWindow = Math.max(1, Number(windowSize) || 1)
+  const start = Math.max(0, i - normalizedWindow + 1)
+  const cur = Number(line[i]?.high ?? line[i]?.close)
+  if (!isFiniteNumber(cur)) return false
+  let maxHigh = -Infinity
+  for (let j = start; j <= i; j++) {
+    const high = Number(line[j]?.high ?? line[j]?.close)
+    if (isFiniteNumber(high) && high > maxHigh) maxHigh = high
+  }
+  return isFiniteNumber(maxHigh) && cur >= maxHigh
+}
+
+function getRangeHighest(line = [], startIndex = 0, endIndex = -1) {
+  if (!Array.isArray(line) || line.length === 0) return null
+  const start = Math.max(0, Number(startIndex) || 0)
+  const end = Math.min(line.length - 1, Number(endIndex))
+  if (!Number.isFinite(end) || end < start) return null
+  let maxHigh = -Infinity
+  for (let i = start; i <= end; i++) {
+    const high = Number(line[i]?.high ?? line[i]?.close)
+    if (isFiniteNumber(high) && high > maxHigh) maxHigh = high
+  }
+  return isFiniteNumber(maxHigh) ? maxHigh : null
 }
 
 function isGoldenCross(i, dif = [], dea = []) {
@@ -619,6 +648,52 @@ const availableConditions = [
       const prevHigh = prefix[i - 1]
       if (!isFiniteNumber(cur) || !isFiniteNumber(prevHigh)) return false
       return cur > prevHigh
+    }
+  },
+  {
+    value: 'PRICE_HIGHEST_IN_3Y',
+    label: '三年内最高价',
+    params: ['line'],
+    func: (i, {line}) => isWindowHighestToday(i, line, 3 * TRADING_DAYS_PER_YEAR)
+  },
+  {
+    value: 'PRICE_HIGHEST_IN_5Y',
+    label: '五年内最高价',
+    params: ['line'],
+    func: (i, {line}) => isWindowHighestToday(i, line, 5 * TRADING_DAYS_PER_YEAR)
+  },
+  {
+    value: 'PRICE_LT_10PCT_ABOVE_HIGH_BETWEEN_1Y_3Y',
+    label: '比前1年前到3年前最高价高不到10%',
+    params: ['line'],
+    func: (i, {line}) => {
+      if (!Array.isArray(line) || i < 0) return false
+      const oneYear = TRADING_DAYS_PER_YEAR
+      const threeYear = 3 * TRADING_DAYS_PER_YEAR
+      const rangeStart = i - threeYear
+      const rangeEnd = i - oneYear
+      if (rangeEnd < 0) return false
+      const refHigh = getRangeHighest(line, rangeStart, rangeEnd)
+      const cur = Number(line[i]?.high ?? line[i]?.close)
+      if (!isFiniteNumber(refHigh) || !isFiniteNumber(cur) || refHigh <= 0) return false
+      return cur >= refHigh && cur < refHigh * 1.1
+    }
+  },
+  {
+    value: 'PRICE_LT_10PCT_ABOVE_HIGH_BETWEEN_1Y_5Y',
+    label: '比前1年前到5年前最高价高不到10%',
+    params: ['line'],
+    func: (i, {line}) => {
+      if (!Array.isArray(line) || i < 0) return false
+      const oneYear = TRADING_DAYS_PER_YEAR
+      const fiveYear = 5 * TRADING_DAYS_PER_YEAR
+      const rangeStart = i - fiveYear
+      const rangeEnd = i - oneYear
+      if (rangeEnd < 0) return false
+      const refHigh = getRangeHighest(line, rangeStart, rangeEnd)
+      const cur = Number(line[i]?.high ?? line[i]?.close)
+      if (!isFiniteNumber(refHigh) || !isFiniteNumber(cur) || refHigh <= 0) return false
+      return cur >= refHigh && cur < refHigh * 1.1
     }
   },
   { 
