@@ -676,7 +676,7 @@ const availableConditions = [
       const refHigh = getRangeHighest(line, rangeStart, rangeEnd)
       const cur = Number(line[i]?.high ?? line[i]?.close)
       if (!isFiniteNumber(refHigh) || !isFiniteNumber(cur) || refHigh <= 0) return false
-      return cur >= refHigh && cur < refHigh * 1.1
+      return cur <= refHigh * 1.1
     }
   },
   {
@@ -693,7 +693,7 @@ const availableConditions = [
       const refHigh = getRangeHighest(line, rangeStart, rangeEnd)
       const cur = Number(line[i]?.high ?? line[i]?.close)
       if (!isFiniteNumber(refHigh) || !isFiniteNumber(cur) || refHigh <= 0) return false
-      return cur >= refHigh && cur < refHigh * 1.1
+      return cur <= refHigh * 1.1
     }
   },
   { 

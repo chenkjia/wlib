@@ -154,7 +154,7 @@ function evaluateGroupAtIndex(group: any, index: number, datasets: any) {
   return false
 }
 
-function findSignalIndices(buyConditions: any[] = [], datasets: any) {
+function findSignalIndices(buyConditions: any[] = [], datasets: any, eligibleRawIndexSet?: Set<number>) {
   if (!Array.isArray(buyConditions) || buyConditions.length === 0) return []
   if (hasInvalidGroup(buyConditions)) return []
   const dayLength = Array.isArray(datasets?.dayData?.data) ? datasets.dayData.data.length : 0
@@ -163,6 +163,9 @@ function findSignalIndices(buyConditions: any[] = [], datasets: any) {
   const signalIndices: number[] = []
 
   for (let index = 0; index < dayLength; index++) {
+    if (eligibleRawIndexSet && !eligibleRawIndexSet.has(index)) {
+      continue
+    }
     if (buyStep < buyLength) {
       const matched = evaluateGroupAtIndex(buyConditions[buyStep], index, datasets)
       if (matched) {
@@ -239,14 +242,17 @@ export default defineEventHandler(async (event) => {
     // 策略匹配口径与训练页展示一致：使用前复权后的序列计算信号
     const adjustedLineForSignal = buildForwardAdjustedLine(rawLine, candidate.adjustFactor || [])
     const datasets = buildDatasets(adjustedLineForSignal, indicatorConfig)
-    const signalRawIndices = findSignalIndices(buyConditions, datasets)
+    const eligibleRawIndexSet = new Set<number>()
+    for (let pos = HISTORY_BARS; pos + TEST_BARS <= tradableIndices.length; pos += 1) {
+      const rawIndex = tradableIndices[pos]
+      if (typeof rawIndex === 'number') eligibleRawIndexSet.add(rawIndex)
+    }
+    if (eligibleRawIndexSet.size === 0) continue
+
+    const signalRawIndices = findSignalIndices(buyConditions, datasets, eligibleRawIndexSet)
     if (signalRawIndices.length === 0) continue
 
-    const validSignalRawIndices = signalRawIndices.filter((rawIndex) => {
-      const pos = tradablePosMap.get(rawIndex)
-      if (typeof pos !== 'number') return false
-      return pos >= HISTORY_BARS && pos + TEST_BARS <= tradableIndices.length
-    })
+    const validSignalRawIndices = signalRawIndices
     if (validSignalRawIndices.length === 0) continue
 
     // 每个命中点都先应用“向前10日回看命中则前移”规则，再在可用开始点里随机一个
