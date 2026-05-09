@@ -17,9 +17,9 @@ export default defineEventHandler(async (event) => {
   try {
     // 获取查询参数
     const query = getQuery(event);
-    const page = parseInt(query.page as string) || 1;
-    const pageSize = parseInt(query.pageSize as string) || 20;
-    const search = query.search as string || '';
+    const page = Math.max(1, parseInt(query.page as string) || 1);
+    const pageSize = Math.min(100, Math.max(1, parseInt(query.pageSize as string) || 20));
+    const search = String(query.search as string || '').trim();
     const searchField = query.searchField as string || 'all';
     // 只允许对有索引的字段进行排序
     const allowedSortFields = ['code', 'isFocused', 'isHourFocused', 'focusedDays', 'hourFocusedDays'];
@@ -48,7 +48,7 @@ export default defineEventHandler(async (event) => {
     const includeCount = (query.noCount as string) !== '1' && !hasMacdFilter;
     const timeoutMs = hasMacdFilter
       ? (includeCount ? 30000 : 15000)
-      : 5000;
+      : 12000;
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => {
         reject(new Error(`获取股票列表超时(${timeoutMs}ms)`));
@@ -58,11 +58,20 @@ export default defineEventHandler(async (event) => {
     // 确保MongoDB已连接
     await MongoDB.connect();
     
-    // 使用Promise.race实现超时处理
-    const result = await Promise.race([
-      MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, conditionDayTags, includeCount),
-      timeoutPromise
-    ]) as StockListResult;
+    // 使用Promise.race实现超时处理；超时后降级为无总数查询，避免频繁500
+    let result: StockListResult;
+    try {
+      result = await Promise.race([
+        MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, conditionDayTags, includeCount),
+        timeoutPromise
+      ]) as StockListResult;
+    } catch (raceError) {
+      const message = raceError instanceof Error ? raceError.message : '';
+      if (!message.includes('超时')) {
+        throw raceError;
+      }
+      result = await MongoDB.getList(page, pageSize, search, searchField, sortField, sortOrder, focusFilter, hourFocusFilter, starFilter, macdTrendUpChannel, macdDayTags, macdHourTags, conditionDayTags, false) as StockListResult;
+    }
     
     if (!result || !result.stocks || !Array.isArray(result.stocks)) {
       throw new Error('获取的股票数据格式不正确');

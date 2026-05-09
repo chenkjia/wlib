@@ -16,6 +16,27 @@ class StockDB {
         return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
+    static isNumericCodeLike(value = '') {
+        return /^\d{3,6}$/.test(String(value).trim());
+    }
+
+    static buildCodePrefixQuery(search = '') {
+        const keyword = String(search || '').trim();
+        if (!keyword) return null;
+        const escaped = StockDB.escapeRegex(keyword);
+        if (StockDB.isNumericCodeLike(keyword)) {
+            return {
+                $or: [
+                    { code: { $regex: new RegExp(`^${escaped}`) } },
+                    { code: { $regex: new RegExp(`^sh\\.${escaped}`) } },
+                    { code: { $regex: new RegExp(`^sz\\.${escaped}`) } },
+                    { code: { $regex: new RegExp(`^bj\\.${escaped}`) } }
+                ]
+            };
+        }
+        return { code: { $regex: new RegExp(`^${escaped}`) } };
+    }
+
     static async ensureMacdFieldIndexes() {
         if (StockDB.macdFieldIndexesEnsured || StockDB.macdFieldIndexesEnsuring) {
             return;
@@ -92,22 +113,24 @@ class StockDB {
         try {
             // 计算跳过的文档数量
             const skip = (page - 1) * pageSize;
+            const keyword = String(search || '').trim();
             
             // 构建查询条件，大小写不敏感的搜索
             let query = { };
-            if (search) {
-                const escapedSearch = StockDB.escapeRegex(search);
+            if (keyword) {
+                const escapedSearch = StockDB.escapeRegex(keyword);
+                const codePrefixQuery = StockDB.buildCodePrefixQuery(keyword);
                 if (searchField === 'code') {
-                    // 代码搜索走前缀匹配，优先命中 code 索引
-                    query = { code: { $regex: new RegExp(`^${escapedSearch}`) } };
+                    // 支持 600001 直接命中 sh.600001/sz.600001/bj.600001
+                    query = codePrefixQuery || { code: { $regex: new RegExp(`^${escapedSearch}`) } };
                 } else if (searchField === 'name') {
                     query = { name: { $regex: new RegExp(`^${escapedSearch}`) } };
                 } else {
                     // 通用搜索支持股票代码和名称
                     query = {
                         $or: [
-                            { code: { $regex: new RegExp('^' + escapedSearch, 'i') } },
-                            { name: { $regex: new RegExp('^' + escapedSearch, 'i') } }
+                            ...(codePrefixQuery?.$or || [{ code: { $regex: new RegExp(`^${escapedSearch}`) } }]),
+                            { name: { $regex: new RegExp(`^${escapedSearch}`) } }
                         ]
                     };
                 }
@@ -194,14 +217,16 @@ class StockDB {
             }
 
             const [total, stocks] = await Promise.all([
-                shouldUseCodeHint
-                    ? StockDB.countDocumentsWithHintFallback(query, { code: 1 })
-                    : (macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
-                        ? StockDB.countDocumentsWithHintFallback(query, trendHint)
-                        : Stock.countDocuments(query)),
+                Object.keys(query).length === 0
+                    ? Stock.estimatedDocumentCount()
+                    : (shouldUseCodeHint
+                        ? StockDB.countDocumentsWithHintFallback(query, { code: 1 })
+                        : (macdTrendUpChannel && !keyword && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
+                            ? StockDB.countDocumentsWithHintFallback(query, trendHint)
+                            : Stock.countDocuments(query))),
                 
                 // 查询当前页的数据 - 明确指定只获取需要的字段
-                macdTrendUpChannel && !search && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
+                macdTrendUpChannel && !keyword && macdDayTags.length === 0 && macdHourTags.length === 0 && conditionDayTags.length === 0
                     ? StockDB.findWithHintFallback(query, projection, trendHint, sortSpec, skip, pageSize)
                     : Stock.find(query, projection)
                         .sort(sortSpec) // 动态排序
