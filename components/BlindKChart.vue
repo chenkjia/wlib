@@ -11,7 +11,14 @@
         <span class="summary-item" :class="profitRatioClass">盈亏比 {{ profitRatioText }}</span>
       </div>
     </div>
-    <div ref="chartContainer" class="chart-container flex-grow"></div>
+    <div class="chart-main-wrap flex-grow">
+      <div v-if="showMainMaInfo" class="main-ma-summary">
+        <span v-for="item in maHoverItems" :key="item.key" class="ma-item" :style="{ color: item.color }">
+          {{ item.label }}: {{ item.value }}
+        </span>
+      </div>
+      <div ref="chartContainer" class="chart-container"></div>
+    </div>
     <div class="chart-tabs px-3 py-2 border-t border-gray-200">
       <UButton
         v-for="t in availableTabs"
@@ -29,7 +36,7 @@
 <script setup>
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import * as echarts from 'echarts'
-import { createChartOption, splitData } from '~/pages/center-panel/ChartUtils.js'
+import { createChartOption, splitData, maLineColors } from '~/pages/center-panel/ChartUtils.js'
 
 const props = defineProps({
   lineWithMetric: {
@@ -67,6 +74,7 @@ const activeSubChart = ref('macd')
 let chartInstance = null
 const hasAppliedInitialFocus = ref(false)
 const hoverBar = ref(null)
+const hoverDataIndex = ref(-1)
 
 const availableTabs = computed(() => {
   const tabs = []
@@ -158,17 +166,49 @@ const profitRatioClass = computed(() => {
   return 'text-gray-500'
 })
 
+const maHoverItems = computed(() => {
+  const index = hoverDataIndex.value
+  if (!Number.isFinite(index) || index < 0) return []
+  const maConfig = props.ma || {}
+  const metric = props.lineWithMetric || {}
+  const mapping = [
+    { key: 'maS', period: Number(maConfig.s), series: metric.maS || [] },
+    { key: 'maM', period: Number(maConfig.m), series: metric.maM || [] },
+    { key: 'maL', period: Number(maConfig.l), series: metric.maL || [] },
+    { key: 'maX', period: Number(maConfig.x), series: metric.maX || [] }
+  ]
+  return mapping
+    .filter(item => Number.isFinite(item.period) && item.period > 0)
+    .map(item => {
+      const value = Number(item.series[index])
+      return {
+        key: item.key,
+        label: `${item.key}(${item.period})`,
+        value: Number.isFinite(value) ? value.toFixed(2) : '--',
+        color: maLineColors[item.key] || '#374151'
+      }
+    })
+})
+
+const showMainMaInfo = computed(() => {
+  return props.enabledIndicators.includes('ma') && maHoverItems.value.length > 0
+})
+
 function updateHoverBarByIndex(index) {
   const line = props.lineWithMetric?.line || []
   if (!Array.isArray(line) || line.length === 0) {
     hoverBar.value = null
+    hoverDataIndex.value = -1
     return
   }
   if (!Number.isFinite(index)) {
-    hoverBar.value = line[line.length - 1] || null
+    const fallbackIndex = line.length - 1
+    hoverDataIndex.value = fallbackIndex
+    hoverBar.value = line[fallbackIndex] || null
     return
   }
   const safeIndex = Math.max(0, Math.min(line.length - 1, Math.floor(index)))
+  hoverDataIndex.value = safeIndex
   hoverBar.value = line[safeIndex] || null
 }
 
@@ -491,8 +531,31 @@ onUnmounted(() => {
 <style scoped>
 .chart-container {
   width: 100%;
+  height: 100%;
   min-height: 460px;
   background: #fff;
+}
+
+.chart-main-wrap {
+  position: relative;
+}
+
+.main-ma-summary {
+  position: absolute;
+  top: 38px;
+  left: 100px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.ma-item {
+  white-space: nowrap;
 }
 
 .chart-tabs {
