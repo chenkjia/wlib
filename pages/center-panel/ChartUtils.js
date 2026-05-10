@@ -86,8 +86,11 @@ function formatAxisVolumeLabel(value) {
   const n = Number(value)
   if (!Number.isFinite(n)) return '--'
   const abs = Math.abs(n)
-  if (abs >= 100000000) return `${(n / 100000000).toFixed(1)}亿`
-  if (abs >= 10000) return `${(n / 10000).toFixed(1)}万`
+  const trim = (num) => Number.isInteger(num) ? String(num) : String(Number(num.toFixed(1)))
+  if (abs >= 100000000) return `${trim(n / 100000000)}亿`
+  if (abs >= 10000000) return `${trim(n / 10000000)}千万`
+  if (abs >= 1000000) return `${trim(n / 1000000)}百万`
+  if (abs >= 10000) return `${trim(n / 10000)}万`
   return `${Math.round(n)}`
 }
 
