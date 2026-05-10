@@ -30,6 +30,11 @@
           {{ item.label }}: {{ item.value }}
         </span>
       </div>
+      <div v-if="showSubIndicatorInfo" class="sub-indicator-summary" :style="subIndicatorStyle">
+        <span v-for="item in subIndicatorItems" :key="item.key" class="sub-item" :style="{ color: item.color }">
+          {{ item.label }}: {{ item.value }}
+        </span>
+      </div>
       <div class="chart-container" ref="chartContainer"></div>
     </div>
     
@@ -227,6 +232,52 @@ const showMainMaInfo = computed(() => {
     && props.enabledIndicators.includes('ma')
     && maHoverItems.value.length > 0
 })
+
+const subIndicatorItems = computed(() => {
+  const index = hoverDataIndex.value
+  if (!Number.isFinite(index) || index < 0) return []
+  const metric = props.dayLineWithMetric || {}
+  const getVal = (arr) => {
+    const value = Number(Array.isArray(arr) ? arr[index] : undefined)
+    return Number.isFinite(value) ? value : null
+  }
+  if (activeSubChart.value === 'volume') {
+    return [
+      { key: 'vol', label: 'VOL', value: formatVolumeNumber(displayLine.value?.[index]?.volume), color: '#6b7280' },
+      { key: 'volMaS', label: 'VOL-MA-S', value: formatDisplayNumber(getVal(metric.volumeMaS || [])), color: '#f59e0b' },
+      { key: 'volMaL', label: 'VOL-MA-L', value: formatDisplayNumber(getVal(metric.volumeMaL || [])), color: '#3b82f6' }
+    ]
+  }
+  if (activeSubChart.value === 'macd') {
+    return [
+      { key: 'dif', label: 'DIF', value: formatDisplayNumber(getVal(metric.dif || [])), color: '#da6ee8' },
+      { key: 'dea', label: 'DEA', value: formatDisplayNumber(getVal(metric.dea || [])), color: '#39afe6' },
+      { key: 'bar', label: 'BAR', value: formatDisplayNumber(getVal(metric.bar || [])), color: '#6b7280' }
+    ]
+  }
+  if (activeSubChart.value === 'kdj') {
+    return [
+      { key: 'k', label: 'K', value: formatDisplayNumber(getVal(metric.kdjK || metric.k || [])), color: '#ffd166' },
+      { key: 'd', label: 'D', value: formatDisplayNumber(getVal(metric.kdjD || metric.d || [])), color: '#06d6a0' },
+      { key: 'j', label: 'J', value: formatDisplayNumber(getVal(metric.kdjJ || metric.j || [])), color: '#ef476f' }
+    ]
+  }
+  if (activeSubChart.value === 'bias') {
+    return [
+      { key: 'biasS', label: 'BIAS-S', value: formatDisplayNumber(getVal(metric.biasS || [])), color: '#f59e0b' },
+      { key: 'biasM', label: 'BIAS-M', value: formatDisplayNumber(getVal(metric.biasM || [])), color: '#3b82f6' },
+      { key: 'biasL', label: 'BIAS-L', value: formatDisplayNumber(getVal(metric.biasL || [])), color: '#8b5cf6' }
+    ]
+  }
+  return []
+})
+
+const showSubIndicatorInfo = computed(() => subIndicatorItems.value.length > 0)
+
+const subIndicatorStyle = computed(() => ({
+  left: '100px',
+  top: props.useFixedVolumeSubChart ? '76%' : '74%'
+}))
 
 function updateHoverBarByIndex(index) {
   const line = displayLine.value || []
@@ -506,6 +557,22 @@ watch(
 }
 
 .ma-item {
+  white-space: nowrap;
+}
+
+.sub-indicator-summary {
+  position: absolute;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.sub-item {
   white-space: nowrap;
 }
 
