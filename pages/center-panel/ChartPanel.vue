@@ -1,20 +1,6 @@
 <template>
   <div class="w-full flex flex-col h-full">
-    <!-- 图表顶部交易统计组件 -->
-    <TradeStats :backtestData="backtestData" />
-    <div class="px-3 pt-1">
-      <span
-        :class="[
-          'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium',
-          props.autoCalculateSignals
-            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-            : 'bg-amber-50 text-amber-700 border border-amber-200'
-        ]"
-      >
-        自动计算买卖点：{{ props.autoCalculateSignals ? '开启' : '关闭' }}
-      </span>
-    </div>
-    <div class="px-3 pt-2 pb-1">
+    <div class="chart-top-row px-3 pt-2 pb-1 border-b" style="border-color: var(--border-light);">
       <div class="chart-summary">
         <span class="summary-item">时间 {{ hoverTimeText }}</span>
         <span class="summary-item">开盘 {{ formatDisplayNumber(hoverBar?.open) }}</span>
@@ -24,19 +10,17 @@
         <span class="summary-item">成交量 {{ formatVolumeNumber(hoverBar?.volume) }}</span>
         <span class="summary-item" :class="profitRatioClass">盈亏比 {{ profitRatioText }}</span>
       </div>
-    </div>
-    
-    <!-- 主图切换标签 -->
-    <div class="chart-tabs px-3 py-2 border-b" style="border-color: var(--border-light);">
-      <UButton
-        v-for="t in mainChartTabs"
-        :key="t.key"
-        :label="t.label"
-        :color="activeMainChart === t.key ? 'primary' : 'neutral'"
-        :variant="activeMainChart === t.key ? 'solid' : 'soft'"
-        size="xs"
-        @click="activeMainChart = t.key"
-      />
+      <div class="chart-tabs chart-tabs-main">
+        <UButton
+          v-for="t in mainChartTabs"
+          :key="t.key"
+          :label="t.label"
+          :color="activeMainChart === t.key ? 'primary' : 'neutral'"
+          :variant="activeMainChart === t.key ? 'solid' : 'soft'"
+          size="xs"
+          @click="activeMainChart = t.key"
+        />
+      </div>
     </div>
     
     <!-- 图表容器 -->
@@ -60,7 +44,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue'
 import * as echarts from 'echarts'
-import TradeStats from '~/components/TradeStats.vue'
 import { splitData, createChartOption } from './ChartUtils.js'
 import { calculateMA, formatLineForChanlun } from '~/utils/chartUtils.js'
 
@@ -466,6 +449,19 @@ watch(
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.chart-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.chart-tabs-main {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .chart-summary {
