@@ -1,5 +1,16 @@
 <template>
   <div class="w-full h-full flex flex-col">
+    <div class="px-3 pt-2 pb-1">
+      <div class="chart-summary">
+        <span class="summary-item">时间 {{ hoverTimeText }}</span>
+        <span class="summary-item">开盘 {{ formatDisplayNumber(hoverBar?.open) }}</span>
+        <span class="summary-item">收盘 {{ formatDisplayNumber(hoverBar?.close) }}</span>
+        <span class="summary-item">最低 {{ formatDisplayNumber(hoverBar?.low) }}</span>
+        <span class="summary-item">最高 {{ formatDisplayNumber(hoverBar?.high) }}</span>
+        <span class="summary-item">成交量 {{ formatVolumeNumber(hoverBar?.volume) }}</span>
+        <span class="summary-item" :class="profitRatioClass">盈亏比 {{ profitRatioText }}</span>
+      </div>
+    </div>
     <div ref="chartContainer" class="chart-container flex-grow"></div>
     <div class="chart-tabs px-3 py-2 border-t border-gray-200">
       <UButton
@@ -55,6 +66,7 @@ const chartContainer = ref(null)
 const activeSubChart = ref('macd')
 let chartInstance = null
 const hasAppliedInitialFocus = ref(false)
+const hoverBar = ref(null)
 
 const availableTabs = computed(() => {
   const tabs = []
@@ -101,6 +113,82 @@ function formatRealDateDetail(value) {
   const h = String(date.getHours()).padStart(2, '0')
   const min = String(date.getMinutes()).padStart(2, '0')
   return `${y}-${m}-${d} ${h}:${min}`
+}
+
+function formatDisplayNumber(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '--'
+  return n.toFixed(2)
+}
+
+function formatVolumeNumber(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '--'
+  if (n >= 100000000) return `${(n / 100000000).toFixed(2)}亿`
+  if (n >= 10000) return `${(n / 10000).toFixed(2)}万`
+  return n.toFixed(0)
+}
+
+const hoverTimeText = computed(() => {
+  const value = hoverBar.value?.time
+  if (!value) return '--'
+  return props.useRealDate ? formatRealDateDetail(value) : formatBlindIndexDetail(value)
+})
+
+const profitRatio = computed(() => {
+  const bar = hoverBar.value
+  if (!bar) return null
+  const open = Number(bar.open)
+  const close = Number(bar.close)
+  if (!Number.isFinite(open) || !Number.isFinite(close) || open === 0) return null
+  return ((close - open) / open) * 100
+})
+
+const profitRatioText = computed(() => {
+  const value = profitRatio.value
+  if (!Number.isFinite(value)) return '--'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+})
+
+const profitRatioClass = computed(() => {
+  const value = profitRatio.value
+  if (!Number.isFinite(value)) return 'text-gray-500'
+  if (value > 0) return 'text-red-600'
+  if (value < 0) return 'text-green-600'
+  return 'text-gray-500'
+})
+
+function updateHoverBarByIndex(index) {
+  const line = props.lineWithMetric?.line || []
+  if (!Array.isArray(line) || line.length === 0) {
+    hoverBar.value = null
+    return
+  }
+  if (!Number.isFinite(index)) {
+    hoverBar.value = line[line.length - 1] || null
+    return
+  }
+  const safeIndex = Math.max(0, Math.min(line.length - 1, Math.floor(index)))
+  hoverBar.value = line[safeIndex] || null
+}
+
+function handleAxisPointerUpdate(event) {
+  const axesInfo = Array.isArray(event?.axesInfo) ? event.axesInfo : []
+  const info = axesInfo[0]
+  if (!info) return
+  const pointerDataIndex = Number(info.dataIndex)
+  if (Number.isFinite(pointerDataIndex)) {
+    updateHoverBarByIndex(pointerDataIndex)
+    return
+  }
+  const pointerValue = info.value
+  if (typeof pointerValue === 'number') {
+    updateHoverBarByIndex(pointerValue)
+    return
+  }
+  const line = props.lineWithMetric?.line || []
+  const index = line.findIndex(item => item?.time === pointerValue)
+  if (index >= 0) updateHoverBarByIndex(index)
 }
 
 function buildOption() {
@@ -367,6 +455,7 @@ watch(
   [() => props.lineWithMetric, () => props.transactions, () => props.ma],
   () => {
     updateChartIncrementally()
+    updateHoverBarByIndex(Number.POSITIVE_INFINITY)
   },
   { deep: true }
 )
@@ -385,6 +474,9 @@ onMounted(async () => {
   chartInstance = echarts.init(chartContainer.value)
   window.addEventListener('resize', handleResize)
   fullRenderChart()
+  updateHoverBarByIndex(Number.POSITIVE_INFINITY)
+  chartInstance.on('updateAxisPointer', handleAxisPointerUpdate)
+  chartInstance.getZr()?.on('globalout', () => updateHoverBarByIndex(Number.POSITIVE_INFINITY))
   updateGuideLinesOnly()
   applyInitialFocusIfNeeded(true)
 })
@@ -407,5 +499,20 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.chart-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #374151;
+  font-size: 12px;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 </style>
