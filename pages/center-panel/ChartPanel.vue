@@ -14,6 +14,17 @@
         自动计算买卖点：{{ props.autoCalculateSignals ? '开启' : '关闭' }}
       </span>
     </div>
+    <div class="px-3 pt-2 pb-1">
+      <div class="chart-summary">
+        <span class="summary-item">时间 {{ hoverTimeText }}</span>
+        <span class="summary-item">开盘 {{ formatDisplayNumber(hoverBar?.open) }}</span>
+        <span class="summary-item">收盘 {{ formatDisplayNumber(hoverBar?.close) }}</span>
+        <span class="summary-item">最低 {{ formatDisplayNumber(hoverBar?.low) }}</span>
+        <span class="summary-item">最高 {{ formatDisplayNumber(hoverBar?.high) }}</span>
+        <span class="summary-item">成交量 {{ formatVolumeNumber(hoverBar?.volume) }}</span>
+        <span class="summary-item" :class="profitRatioClass">盈亏比 {{ profitRatioText }}</span>
+      </div>
+    </div>
     
     <!-- 主图切换标签 -->
     <div class="chart-tabs px-3 py-2 border-b" style="border-color: var(--border-light);">
@@ -115,6 +126,8 @@ const activeSubChart = ref(props.useFixedVolumeSubChart ? 'macd' : 'volume') // 
 
 // 主图切换状态
 const activeMainChart = ref('kline') // kline | chanlun
+const displayLine = ref([])
+const hoverBar = ref(null)
 
 // 主图切换tabs
 const mainChartTabs = [
@@ -151,6 +164,84 @@ function formatDateMMDD(value) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+function formatDisplayNumber(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '--'
+  return n.toFixed(2)
+}
+
+function formatVolumeNumber(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '--'
+  if (n >= 100000000) return `${(n / 100000000).toFixed(2)}亿`
+  if (n >= 10000) return `${(n / 10000).toFixed(2)}万`
+  return n.toFixed(0)
+}
+
+const hoverTimeText = computed(() => {
+  const value = hoverBar.value?.time
+  if (!value) return '--'
+  return formatDateYYYYMMDD(value)
+})
+
+const profitRatio = computed(() => {
+  const bar = hoverBar.value
+  if (!bar) return null
+  const open = Number(bar.open)
+  const close = Number(bar.close)
+  if (!Number.isFinite(open) || !Number.isFinite(close) || open === 0) return null
+  return ((close - open) / open) * 100
+})
+
+const profitRatioText = computed(() => {
+  const value = profitRatio.value
+  if (!Number.isFinite(value)) return '--'
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+})
+
+const profitRatioClass = computed(() => {
+  const value = profitRatio.value
+  if (!Number.isFinite(value)) return 'text-gray-500'
+  if (value > 0) return 'text-red-600'
+  if (value < 0) return 'text-green-600'
+  return 'text-gray-500'
+})
+
+function updateHoverBarByIndex(index) {
+  const line = displayLine.value || []
+  if (!Array.isArray(line) || line.length === 0) {
+    hoverBar.value = null
+    return
+  }
+  if (!Number.isFinite(index)) {
+    hoverBar.value = line[line.length - 1] || null
+    return
+  }
+  const safeIndex = Math.max(0, Math.min(line.length - 1, Math.floor(index)))
+  hoverBar.value = line[safeIndex] || null
+}
+
+function handleAxisPointerUpdate(event) {
+  const axesInfo = Array.isArray(event?.axesInfo) ? event.axesInfo : []
+  const info = axesInfo[0]
+  if (!info) return
+  const pointerDataIndex = Number(info.dataIndex)
+  const line = displayLine.value || []
+  if (!Array.isArray(line) || line.length === 0) return
+
+  if (Number.isFinite(pointerDataIndex)) {
+    updateHoverBarByIndex(pointerDataIndex)
+    return
+  }
+  const pointerValue = info.value
+  if (typeof pointerValue === 'number') {
+    updateHoverBarByIndex(pointerValue)
+    return
+  }
+  const index = line.findIndex(item => item?.time === pointerValue)
+  if (index >= 0) updateHoverBarByIndex(index)
+}
+
 // 刷新图表
 async function refreshChart() {
   try {
@@ -172,6 +263,8 @@ async function refreshChart() {
     const sourceLine = activeMainChart.value === 'chanlun'
       ? formatLineForChanlun(props.dayLineWithMetric.line || [])
       : (props.dayLineWithMetric.line || [])
+    displayLine.value = sourceLine
+    updateHoverBarByIndex(Number.POSITIVE_INFINITY)
     const chartMetric = {
       ...props.dayLineWithMetric,
       line: sourceLine
@@ -181,6 +274,8 @@ async function refreshChart() {
       data, 
       chartMetric
     )
+    myChart.on('updateAxisPointer', handleAxisPointerUpdate)
+    myChart.getZr()?.on('globalout', () => updateHoverBarByIndex(Number.POSITIVE_INFINITY))
   } catch (err) {
     handleError('刷新图表失败', err)
   }
@@ -371,6 +466,21 @@ watch(
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.chart-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: #374151;
+  font-size: 12px;
+}
+
+.summary-item {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
 }
 
 .tab-btn {

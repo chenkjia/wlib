@@ -636,9 +636,21 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     backgroundColor: '#ffffff',
     textStyle: { color: '#111827' },
     tooltip: {
+      // 保留原有 hover 计算流程，只隐藏弹窗内容
+      show: true,
+      showContent: false,
       trigger: 'axis',
+      triggerOn: 'mousemove|click',
       axisPointer: {
-        type: 'cross'
+        type: 'line',
+        axis: 'x',
+        snap: true,
+        lineStyle: {
+          type: 'dashed',
+          width: 1.2,
+          color: '#2563eb',
+          opacity: 0.8
+        }
       },
       formatter: function(params) {
         const klineParam = params.find(p => p.seriesType === 'candlestick' || p.seriesName === 'K线')
@@ -747,6 +759,14 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     },
     axisPointer: {
       link: { xAxisIndex: 'all' },
+      triggerOn: 'mousemove|click',
+      snap: true,
+      lineStyle: {
+        type: 'dashed',
+        width: 1.2,
+        color: '#2563eb',
+        opacity: 0.8
+      },
       label: {
         backgroundColor: '#777'
       }

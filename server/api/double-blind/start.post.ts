@@ -69,7 +69,7 @@ export default defineEventHandler(async () => {
 
     const startPos = randomInt(minStartPos, maxStartPos)
     const selectedPositions = tradableIndices.slice(startPos - HISTORY_BARS, startPos + TEST_BARS)
-    const afterTestPositions = tradableIndices.slice(startPos + TEST_BARS, startPos + TEST_BARS + 100)
+    const afterTestPositions = tradableIndices.slice(startPos + TEST_BARS)
     if (selectedPositions.length < MIN_VALID_BARS) continue
 
     const getFactorAt = resolveForeFactorMap(candidate.adjustFactor || [])

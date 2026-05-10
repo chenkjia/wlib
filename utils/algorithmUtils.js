@@ -73,6 +73,25 @@ function isDeadCross(i, dif = [], dea = []) {
   return prevDif > prevDea && curDif <= curDea
 }
 
+function isGreenBackgroundTrend(i, maM = [], maL = []) {
+  if (i <= 0) return false
+  const maMiddle = Number(maM[i])
+  const maLong = Number(maL[i])
+  const maMiddlePrev = Number(maM[i - 1])
+  const maLongPrev = Number(maL[i - 1])
+  if (![maMiddle, maLong, maMiddlePrev, maLongPrev].every(isFiniteNumber)) return false
+  return maMiddle < maLong && maMiddle <= maMiddlePrev && maLong <= maLongPrev
+}
+
+function isGreenBackgroundTrendForDays(i, maM = [], maL = [], days = 1) {
+  const n = Math.max(1, Number(days) || 1)
+  if (i < n - 1) return false
+  for (let j = i - (n - 1); j <= i; j++) {
+    if (!isGreenBackgroundTrend(j, maM, maL)) return false
+  }
+  return true
+}
+
 function isMacdBottomDeviation(index, line = [], dif = [], dea = []) {
   if (!Array.isArray(line) || !Array.isArray(dif) || !Array.isArray(dea) || index <= 0) return false
   // 仅在当前是金叉时判定底背离
@@ -562,6 +581,24 @@ const availableConditions = [
     label: '长期均线拐头向下',
     params: ['ma'],
     func: (i, {maL}) => maL[i-2] < maL[i-1] && maL[i] < maL[i-1]
+  },
+  {
+    value: 'GREEN_BG_DOWNTREND_50D',
+    label: '持续下跌50天（绿色背景连续50天）',
+    params: ['ma'],
+    func: (i, {maM, maL}) => isGreenBackgroundTrendForDays(i, maM, maL, 50)
+  },
+  {
+    value: 'GREEN_BG_DOWNTREND_80D',
+    label: '持续下跌80天（绿色背景连续80天）',
+    params: ['ma'],
+    func: (i, {maM, maL}) => isGreenBackgroundTrendForDays(i, maM, maL, 80)
+  },
+  {
+    value: 'GREEN_BG_DOWNTREND_100D',
+    label: '持续下跌100天（绿色背景连续100天）',
+    params: ['ma'],
+    func: (i, {maM, maL}) => isGreenBackgroundTrendForDays(i, maM, maL, 100)
   },
   { 
     value: 'MAX_UPTREND', 
