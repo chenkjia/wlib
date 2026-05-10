@@ -5,6 +5,12 @@
 // 颜色配置
 export const upColor = '#ef4444'
 export const downColor = '#22c55e'
+export const maLineColors = {
+  maS: '#f59e0b',
+  maM: '#3b82f6',
+  maL: '#8b5cf6',
+  maX: '#14b8a6'
+}
 
 function calculateSimpleMA(values = [], period = 60) {
   if (!Array.isArray(values) || values.length === 0) return []
@@ -589,10 +595,10 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
     },
     // MA线系列 - 只有启用MA时才显示
     ...(showMainMa ? [
-      ...(showMaS ? [{ id: 'series-maS', name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
-      ...(showMaM ? [{ id: 'series-maM', name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
-      ...(showMaL ? [{ id: 'series-maL', name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : []),
-      ...(showMaX ? [{ id: 'series-maX', name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { opacity: 0.5 }, showSymbol: false }] : [])
+      ...(showMaS ? [{ id: 'series-maS', name: 'maS', type: 'line', data: maS, smooth: true, lineStyle: { color: maLineColors.maS, opacity: 0.9, width: 1.2 }, showSymbol: false }] : []),
+      ...(showMaM ? [{ id: 'series-maM', name: 'maM', type: 'line', data: maM, smooth: true, lineStyle: { color: maLineColors.maM, opacity: 0.9, width: 1.2 }, showSymbol: false }] : []),
+      ...(showMaL ? [{ id: 'series-maL', name: 'maL', type: 'line', data: maL, smooth: true, lineStyle: { color: maLineColors.maL, opacity: 0.9, width: 1.2 }, showSymbol: false }] : []),
+      ...(showMaX ? [{ id: 'series-maX', name: 'maX', type: 'line', data: maX, smooth: true, lineStyle: { color: maLineColors.maX, opacity: 0.9, width: 1.2 }, showSymbol: false }] : [])
     ] : []),
     // 第一副图固定成交量
     {
