@@ -17,6 +17,11 @@
           {{ item.label }}: {{ item.value }}
         </span>
       </div>
+      <div v-if="showVolumeSubInfo" class="sub-indicator-summary volume-sub-indicator-summary">
+        <span v-for="item in volumeSubItems" :key="item.key" class="sub-item" :style="{ color: item.color }">
+          {{ item.label }}: {{ item.value }}
+        </span>
+      </div>
       <div v-if="showSubIndicatorInfo" class="sub-indicator-summary">
         <span v-for="item in subIndicatorItems" :key="item.key" class="sub-item" :style="{ color: item.color }">
           {{ item.label }}: {{ item.value }}
@@ -199,6 +204,21 @@ const showMainMaInfo = computed(() => {
   return props.enabledIndicators.includes('ma') && maHoverItems.value.length > 0
 })
 
+const volumeSubItems = computed(() => {
+  const index = hoverDataIndex.value
+  if (!Number.isFinite(index) || index < 0) return []
+  const metric = props.lineWithMetric || {}
+  const getVal = (arr) => {
+    const value = Number(Array.isArray(arr) ? arr[index] : undefined)
+    return Number.isFinite(value) ? value : null
+  }
+  return [
+    { key: 'vol', label: 'VOL', value: formatVolumeNumber(props.lineWithMetric?.line?.[index]?.volume), color: '#6b7280' },
+    { key: 'volMaS', label: 'VOL-MA-S', value: formatVolumeNumber(getVal(metric.volumeMaS || [])), color: '#f59e0b' },
+    { key: 'volMaL', label: 'VOL-MA-L', value: formatVolumeNumber(getVal(metric.volumeMaL || [])), color: '#3b82f6' }
+  ]
+})
+
 const subIndicatorItems = computed(() => {
   const index = hoverDataIndex.value
   if (!Number.isFinite(index) || index < 0) return []
@@ -232,6 +252,7 @@ const subIndicatorItems = computed(() => {
 })
 
 const showSubIndicatorInfo = computed(() => subIndicatorItems.value.length > 0)
+const showVolumeSubInfo = computed(() => volumeSubItems.value.length > 0)
 
 function updateHoverBarByIndex(index) {
   const line = props.lineWithMetric?.line || []
@@ -275,7 +296,7 @@ function buildOption() {
   const data = splitData(line, props.transactions)
   const labelFormatter = props.useRealDate ? formatRealDateDetail : formatBlindIndexDetail
   const axisLabelFormatter = props.useRealDate ? formatRealDate : formatBlindIndex
-  return createChartOption(
+  const option = createChartOption(
     data,
     props.lineWithMetric || { line: [] },
     labelFormatter,
@@ -286,6 +307,7 @@ function buildOption() {
     [],
     true
   )
+  return option
 }
 
 function getCurrentZoomWindow() {
@@ -609,6 +631,10 @@ onUnmounted(() => {
   font-size: 12px;
   pointer-events: none;
   text-shadow: 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+.volume-sub-indicator-summary {
+  top: 58%;
 }
 
 .sub-item {

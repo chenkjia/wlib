@@ -82,6 +82,15 @@ function buildTrendSegments(lineData = [], maMiddleSeries = [], maLongSeries = [
   return segments
 }
 
+function formatAxisVolumeLabel(value) {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return '--'
+  const abs = Math.abs(n)
+  if (abs >= 100000000) return `${(n / 100000000).toFixed(1)}亿`
+  if (abs >= 10000) return `${(n / 10000).toFixed(1)}万`
+  return `${Math.round(n)}`
+}
+
 /**
  * 分割K线图数据
  * @param {Array} rawData - 原始数据
@@ -407,15 +416,16 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
 
   const indicatorGridIndex = useFixedVolumeSubChart ? 2 : 1
   const volumeGridIndex = 1
+  const gridSidePadding = '60px'
   const grid = useFixedVolumeSubChart
     ? [
-      { left: '10%', right: '10%', top: '4%', height: '52%' },
-      { left: '10%', right: '10%', top: '58%', height: '14%' },
-      { left: '10%', right: '10%', top: '76%', height: '14%' }
+      { left: gridSidePadding, right: gridSidePadding, top: '4%', height: '50%' },
+      { left: gridSidePadding, right: gridSidePadding, top: '58%', height: '14%' },
+      { left: gridSidePadding, right: gridSidePadding, top: '76%', height: '14%' }
     ]
     : [
-      { left: '10%', right: '10%', top: '4%', height: '60%' },
-      { left: '10%', right: '10%', top: '74%', height: '20%' }
+      { left: gridSidePadding, right: gridSidePadding, top: '4%', height: '58%' },
+      { left: gridSidePadding, right: gridSidePadding, top: '74%', height: '20%' }
     ]
 
   const xAxis = [
@@ -486,7 +496,7 @@ export function createChartOption(data, dayLineWithMetric, formatDateYYYYMMDD, f
         show: false
       }
     },
-    { scale: true, gridIndex: volumeGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } },
+    { scale: true, gridIndex: volumeGridIndex, splitNumber: 2, axisLabel: { show: true, formatter: formatAxisVolumeLabel }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } },
     ...(useFixedVolumeSubChart
       ? [{ scale: true, gridIndex: indicatorGridIndex, splitNumber: 2, axisLabel: { show: true }, axisLine: { show: true }, axisTick: { show: true }, splitLine: { show: true } }]
       : [])

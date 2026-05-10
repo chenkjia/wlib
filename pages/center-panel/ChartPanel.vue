@@ -30,6 +30,11 @@
           {{ item.label }}: {{ item.value }}
         </span>
       </div>
+      <div v-if="showVolumeSubInfo" class="sub-indicator-summary" :style="volumeSubStyle">
+        <span v-for="item in volumeSubItems" :key="item.key" class="sub-item" :style="{ color: item.color }">
+          {{ item.label }}: {{ item.value }}
+        </span>
+      </div>
       <div v-if="showSubIndicatorInfo" class="sub-indicator-summary" :style="subIndicatorStyle">
         <span v-for="item in subIndicatorItems" :key="item.key" class="sub-item" :style="{ color: item.color }">
           {{ item.label }}: {{ item.value }}
@@ -233,6 +238,21 @@ const showMainMaInfo = computed(() => {
     && maHoverItems.value.length > 0
 })
 
+const volumeSubItems = computed(() => {
+  const index = hoverDataIndex.value
+  if (!Number.isFinite(index) || index < 0) return []
+  const metric = props.dayLineWithMetric || {}
+  const getVal = (arr) => {
+    const value = Number(Array.isArray(arr) ? arr[index] : undefined)
+    return Number.isFinite(value) ? value : null
+  }
+  return [
+    { key: 'vol', label: 'VOL', value: formatVolumeNumber(displayLine.value?.[index]?.volume), color: '#6b7280' },
+    { key: 'volMaS', label: 'VOL-MA-S', value: formatVolumeNumber(getVal(metric.volumeMaS || [])), color: '#f59e0b' },
+    { key: 'volMaL', label: 'VOL-MA-L', value: formatVolumeNumber(getVal(metric.volumeMaL || [])), color: '#3b82f6' }
+  ]
+})
+
 const subIndicatorItems = computed(() => {
   const index = hoverDataIndex.value
   if (!Number.isFinite(index) || index < 0) return []
@@ -273,10 +293,16 @@ const subIndicatorItems = computed(() => {
 })
 
 const showSubIndicatorInfo = computed(() => subIndicatorItems.value.length > 0)
+const showVolumeSubInfo = computed(() => props.useFixedVolumeSubChart && volumeSubItems.value.length > 0)
 
 const subIndicatorStyle = computed(() => ({
   left: '100px',
   top: props.useFixedVolumeSubChart ? '76%' : '74%'
+}))
+
+const volumeSubStyle = computed(() => ({
+  left: '100px',
+  top: '58%'
 }))
 
 function updateHoverBarByIndex(index) {
